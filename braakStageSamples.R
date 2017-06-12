@@ -1,5 +1,5 @@
 #sample IDs of ROI for PD
-setwd("C:/Users/dkeo/surfdrive/BioMed_project")
+setwd("C:/Users/dkeo/surfdrive/Parkinson/BioMed_project")
 load("../polyQ_coexpression/resources/BrainExpr.RData")
 source("../AHBA_ontology.R")
 donorNames <- names(brainExpr)
