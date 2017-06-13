@@ -74,3 +74,46 @@ diffGenesPerBraakStage <- lapply(braakNames, function(bs){
   list(upregulated = diffUp, downregulated = diffDown)
 })
 save(diffGenesPerBraakStage, file = "resources/diffGenesPerBraakStage.RData")
+#############################################
+# Examine differential expressed genes
+
+load("resources/diffGenesPerBraakStage.RData")
+is.present.up <- function(x){
+  res <- sapply(diffGenesPerBraakStage, function(bs){
+    upGenes <- bs[["upregulated"]]
+    as.numeric(x %in% upGenes[ , "gene_symbol"])
+  })
+  rownames(res) <- x
+  res
+}
+
+is.present.down <- function(x){
+  res <- sapply(diffGenesPerBraakStage, function(bs){
+    downGenes <- bs[["downregulated"]]
+    as.numeric(x %in% downGenes[ , "gene_symbol"])
+  })
+  rownames(res) <- x
+  res
+}
+
+# Presence of high impact genes
+hiGenes <- c("GBA", "LRRK2", "PINK1", "PARK7", "SCNA", "VPS35", "DNAJC13", "CHCHD2") # High impact genes
+presence_hiGenes <- is.present(hiGenes)
+
+#Genes differentially expressed in all regions
+allUp <- lapply(diffGenesPerBraakStage, function(bs){bs[["upregulated"]][ , "gene_symbol"]})
+allDown <- lapply(diffGenesPerBraakStage, function(bs){bs[["downregulated"]][ , "gene_symbol"]})
+allStagesUp <- Reduce(intersect, allUp)
+allStagesDown <- Reduce(intersect, allDown)
+allStagesUp
+allStagesDown
+
+# Comparing top 10 genes for each region to other regions
+top10up <- lapply(diffGenesPerBraakStage, function(bs){
+  bs[["upregulated"]][1:10, "gene_symbol"]
+})
+top10down <- lapply(diffGenesPerBraakStage, function(bs){
+  bs[["downregulated"]][1:10, "gene_symbol"]
+})
+lapply(top10up, is.present.up)
+lapply(top10down, is.present.down)
