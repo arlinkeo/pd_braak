@@ -78,5 +78,19 @@ sumNonB <- sapply(nonBraak, sum)
 total <- sumAllB + sumNonB
 tabNonAll <- cbind(sumAllB, perc.All = sumAllB/total, sumNonB, perc.Non = sumNonB/total, total)
 
+#Braak regions 1-3 and 4-6 merged
+braak1to3 <- lapply(donorNames, function(d){
+  tab <- lapply(braakStages[1:3], function(s){s[[d]]})
+  as.numeric(Reduce("|", tab))
+})
+sumB1to3 <- sapply(braak1to3, sum)
+braak4to6 <- lapply(donorNames, function(d){
+  tab <- lapply(braakStages[4:6], function(s){s[[d]]})
+  as.numeric(Reduce("|", tab))
+})
+sumB4to6 <- sapply(braak4to6, sum)
+cbind(sumB1to3, sumB4to6)
 
-save(braakStages, nonBraak, file = "braakStages.RData")
+braakStages <- append(braakStages, list('braak1-3' = braak1to3, 'braak4-6' = braak4to6))
+
+save(braakStages, nonBraak, file = "resources/braakStages.RData")
