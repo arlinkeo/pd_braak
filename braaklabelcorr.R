@@ -6,6 +6,7 @@ library(ggplot2)
 library(gridExtra)
 library(grid)
 library(reshape2)
+library(plyr)
 
 load("resources/braakStages.RData")
 braakNames <- names(braakStages)
@@ -70,6 +71,7 @@ mergedBraakLabels <- label.vector(mergedBsPerDonor)
 
 #braak stage plot order 
 braakOrder <- c("0", sapply(braakNames, function(n){tail(unlist(strsplit(n, split = "braak")), 1)}))
+names(braakOrder) <- NULL
 
 #### Bar plot functions
 # single plot for braak stages
@@ -77,6 +79,7 @@ boxplot.braakstage <- function(tab, title){
   tab$braakstage <- factor(tab$braakstage, levels = braakOrder)
   p <- ggplot(tab, aes(x = braakstage, y = expr)) + geom_boxplot(aes(fill = color)) +
     labs(x = "Braak stage", y = "Expression") +
+    guides(fill = FALSE) + 
     ggtitle(title)
   p
 }
@@ -123,6 +126,7 @@ lysosomeGenes <- unlist(read.table("lysosome_geneset.txt", header = FALSE, comme
 lysosomeGenes <- as.character(name2entrezId(lysosomeGenes))
 lysosomeGenes<- lysosomeGenes[!is.na(lysosomeGenes)]
 corLyso <- avgCor[lysosomeGenes]
+names(corLyso) <- entrezId2Name(names(corLyso))
 # average across genes
 exprLyso1 <- lapply(donorNames, function(d){
   geneExpr <- brainExpr[[d]][lysosomeGenes, ]
@@ -134,6 +138,26 @@ exprLyso1 <- lapply(donorNames, function(d){
   tab <- rbind(tab1, tab2)
 })
 multi.boxplot(exprLyso1, main = "Expression of lysosome genes in Braak regions \n (averaged across genes)")
+#Average within region
+exprLyso2 <- lapply(donorNames, function(d){
+  geneExpr <- brainExpr[[d]][lysosomeGenes, ]
+  labels <- braakLabels[[d]]
+  mergedLabels <- mergedBraakLabels[[d]]
+  # uniqueLabels <- unique(c(labels, mergedLabels))
+  avgGeneExpr <- sapply(braakOrder, function(s){
+    cols <- unique(c(which(labels == s), which(mergedLabels == s)))
+    stageExpr <- geneExpr[ , cols]
+    apply(stageExpr, 1, mean)
+  })
+  tab <- melt(avgGeneExpr)
+  colnames(tab) <- c("gene", "braakstage", "expr")
+  color <- mapvalues(tab$braakstage, from = c(1:6), to = c(rep("1-3",3), rep("4-6",3)))
+  tab$color <- color
+  tab
+})
+multi.boxplot(exprLyso2, main = "Expression of lysosome genes in Braak regions \n (averaged across samples)")
 
 dev.off()
+
+
 
