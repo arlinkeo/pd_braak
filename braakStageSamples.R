@@ -4,6 +4,7 @@ load("../polyQ_coexpression/resources/BrainExpr.RData")
 source("../AHBA_ontology.R")
 donorNames <- names(brainExpr)
 names(donorNames) <- donorNames
+sampleIds <- lapply(brainExpr, colnames)
 ontology <- read.csv("../ABA_human_processed/Ontology_edited.csv")
 
 structures <- c("myelencephalon", "dorsal motor nucleus of the vagus", "midbrain reticular formation", "intermediate zone, left", "intermediate zone, right",
@@ -62,8 +63,6 @@ braakStages <- lapply(braakStages, function(r){
 sapply(braakStages, function(s){sapply(s, sum)})
 
 #All Braak stages
-# braakStages$braak1 <- medIds
-# braakStages <- braakStages[c(6, 1:5)]
 allBraak <- lapply(donorNames, function(d){
   tab <- lapply(braakStages, function(s){s[[d]]})
   as.numeric(Reduce("|", tab))
@@ -94,3 +93,36 @@ cbind(sumB1to3, sumB4to6)
 braakStages <- append(braakStages, list('braak1-3' = braak1to3, 'braak4-6' = braak4to6))
 
 save(braakStages, nonBraak, file = "resources/braakStages.RData")
+
+###### Functions to convert binary vectors to single vector with Braak labels
+
+#Revert list in list
+revert.list <- function(ll){
+  lapply(donorNames, function(d){
+    t(sapply(ll, function(bs){
+      bs[[d]]
+    }))
+  })
+}
+#generate label vector for all samples
+label.vector <- function(ll){
+  lapply(donorNames, function(dn){
+    d <- ll[[dn]]
+    labels <- apply(d, 2, function(v){
+      s <- which(v == 1)
+      ifelse(length(s) == 0, 0, tail(unlist(strsplit(names(s), split = "braak")), 1))
+    })
+    names(labels) <- sampleIds[[dn]]
+    labels
+  })
+}
+
+### Braak labels 1 to 6 for each sample ###
+bsPerDonor <- revert.list(braakStages[1:6])
+braakLabels <- label.vector(bsPerDonor)
+
+### Merged Braak labels 1-3 and 4-6 for each sample ###
+mergedBsPerDonor <- revert.list(braakStages[7:8])
+mergedBraakLabels <- label.vector(mergedBsPerDonor)
+
+save(braakLabels, mergedBraakLabels, file = "resources/braakLabels.RData")
