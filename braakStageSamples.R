@@ -126,3 +126,7 @@ mergedBsPerDonor <- revert.list(braakStages[7:8])
 mergedBraakLabels <- label.vector(mergedBsPerDonor)
 
 save(braakLabels, mergedBraakLabels, file = "resources/braakLabels.RData")
+
+#Count non-zero labels, if >1 there are multiple labels assigned to a sample
+countLabels <- sapply(bsPerDonor, function(d){apply(d, 2, function(v){sum(v!=0)})})
+lapply(countLabels, function(d){which(d > 2)})
