@@ -12,6 +12,7 @@ donorNames <- names(brainExpr)
 names(donorNames) <- donorNames
 load("../ABA_Rdata/BrainExprNorm.RData")
 load("resources/geneLabelCor.RData")
+load("resources/geneLabelCorNorm.RData")
 load("resources/diffGenesBraak.RData")
 load("resources/braakLabels.RData")
 
@@ -20,17 +21,7 @@ probeInfo <- read.csv("../ABA_human_processed/probe_info_2014-11-11.csv")
 entrezId2Name <- function (x) {probeInfo$gene_symbol[match(x, probeInfo$entrez_id)]} #Input is vector
 name2entrezId <- function (x) {probeInfo$entrez_id[match(x, probeInfo$gene_symbol)]} #Input is vector
 
-#Average correlation across brains
-avgCor <- apply(geneLabelCor, 1, mean)
-
-#braak stage plot order 
-braakNames <- sapply(names(diffGenesBraak1), function(n){tail(unlist(strsplit(n, split = "braak")), 1)})
-names(diffGenesBraak1) <- braakNames
-names(braakNames) <- braakNames
-braakOrder <- c("0", braakNames)
-names(braakOrder) <- NULL
-
-###### Functions
+###### p-value Functions
 # Get diff. expr. p-value for a gene and donor
 pval.up <- function(gene, donor){
   sapply(diffGenesBraak1, function(braak){
@@ -44,35 +35,19 @@ pval.down <- function(gene, donor){
   })
 }
 
-# is.present <- function(x){
-#   res <- sapply(diffGenesBraak2, function(bs){
-#     upGenes <- bs[["upregulated"]]
-#     downGenes <- bs[["downregulated"]]
-#     upVec <- x %in% upGenes[ , "gene_symbol"]
-#     downVec <- x %in% downGenes[ , "gene_symbol"]
-#     upAndDown <- intersect(which(upVec), which(downVec)) # which gene (index) is up and downregulated? (should not be possible)
-#     if(length(upAndDown) > 0) paste("Genes both up- and downregulated: ", paste(x[upAndDown], collapse = ", "), sep = "")
-#     upVec <- as.numeric(upVec)
-#     downVec <- -as.numeric(downVec)
-#     apply(rbind(upVec, downVec), 2, sum)
-#   })
-#   res <- as.data.frame((res))
-#   res <- if(length(x) == 1) t(res) else res
-#   rownames(res) <- x
-#   colnames(res) <- names(diffGenesBraak2)
-#   res
-# }
-
 ######### Box plot functions
 
-# Number of samples
-nSamples <- function(x){
-  c(y = 9, label = length(x))
-}
+#braak stage boxplot order 
+braakNames <- sapply(names(diffGenesBraak1), function(n){tail(unlist(strsplit(n, split = "braak")), 1)})
+names(diffGenesBraak1) <- braakNames
+names(braakNames) <- braakNames
+braakOrder <- c("0", braakNames)
+names(braakOrder) <- NULL
 
-# single plot for braak stages
+# single boxplot for braak stages
 boxplot.braakstage <- function(tab, title){
   tab$braakstage <- factor(tab$braakstage, levels = braakOrder)
+    nSamples <- function(x){c(y = max(tab[["expr"]]) + 1, label = length(x))}# Number of samples
   p <- ggplot(tab, aes(x = braakstage, y = expr)) + geom_boxplot(aes(fill = color)) +
     stat_summary(fun.data = nSamples, geom = "text", size = 2.5) +
     labs(x = "Braak stage", y = "Expression") +
@@ -83,17 +58,17 @@ boxplot.braakstage <- function(tab, title){
 
 boxplot.with.pval <- function(tab, title, pvalUp.df, pvalDown.df){
   p <- boxplot.braakstage(tab, title)
-  p + geom_text(data = pvalUp.df, aes(y = 0, label = pvalue), size = 2.5) +
-    geom_text(data = pvalDown.df, aes(y = -1, label = pvalue), size = 2.5)
+  p + geom_text(data = pvalUp.df, aes(y = min(tab[["expr"]]) - 1, label = pvalue), size = 2.5) +
+    geom_text(data = pvalDown.df, aes(y = min(tab[["expr"]]) - 2, label = pvalue), size = 2.5)
 }
 
-# multiple plots given multiple tables
+# multiple plots on a grid
 multi.boxplot <- function(p, main){
   main = textGrob(main, gp=gpar(fontface="bold"))
   grid.arrange(grobs = p, top = main) 
 }
 
-# Create data frame
+# Create data frame (boxplot function input) given expression matrix in a donor
 expr.df <- function(expr, d){
   labels <- braakLabels[[d]]
   mergedLabels <- mergedBraakLabels[[d]]
@@ -105,14 +80,14 @@ expr.df <- function(expr, d){
 }
   
 # get gene(s) expression, braak labels and p-value (diff. expression) for each donor
-gene.expr.lab <- function(gene, d){
-  geneExpr <- unlist(brainExpr[[d]][gene, ])
+gene.expr.lab <- function(gene, d, norm = FALSE){
+  geneExpr <- if (norm) unlist(brainExprNorm[[d]][gene, ]) else unlist(brainExpr[[d]][gene, ])
   expr.df(geneExpr, d)
 }
 
 #Boxplot with p-values given gene and donor
-plot.gene <- function(gene, d){
-  tab <- gene.expr.lab(gene,d)
+plot.gene <- function(gene, d, norm = FALSE){
+  tab <- gene.expr.lab(gene,d, norm)
   pvaluesUp <- c('0' = "", pval.up(gene, d))
   pvalUp.df <- data.frame(braakstage = names(pvaluesUp), pvalue = pvaluesUp)
   pvaluesDown <- c('0' = "", pval.down(gene, d))
@@ -123,16 +98,17 @@ plot.gene <- function(gene, d){
 }
 ############
 
-####### Heatmap functions
-
-
-#######
+#Average correlation across brains
+avgCor <- apply(geneLabelCor, 1, mean)
+avgCorNorm <- apply(geneLabelCorNorm, 1, mean) # Identical values as avgCor
 
 # Box plot min and max genes
 maxGene <- names(which(avgCor == max(avgCor)))
-minGene <- names(which(avgCor == min(avgCor)))
 exprMaxGene <- lapply(donorNames, function(d){ plot.gene(maxGene,d) })
+exprMaxGeneNorm <- lapply(donorNames, function(d){ plot.gene(maxGene,d, norm = TRUE) })
+minGene <- names(which(avgCor == min(avgCor)))
 exprMinGene <- lapply(donorNames, function(d){ plot.gene(minGene,d) })
+exprMinGeneNorm <- lapply(donorNames, function(d){ plot.gene(minGene,d, norm = TRUE) })
 
 #Expression of lysosome genes across Braak region
 lysosomeGenes <- unlist(read.table("lysosome_geneset.txt", header = FALSE, comment.char = "#", sep = "\n"))
@@ -142,15 +118,37 @@ avgCorLyso <- avgCor[lysosomeGenes]
 names(avgCorLyso) <- entrezId2Name(names(avgCorLyso))
 
 # average across genes
-exprLyso1 <- lapply(donorNames, function(d){
+exprLyso1a <- lapply(donorNames, function(d){
   geneExpr <- brainExpr[[d]][lysosomeGenes, ]
   avgSampleExpr <- apply(geneExpr, 2, mean)
   tab <- expr.df(avgSampleExpr, d)
   boxplot.braakstage(tab, d)
 })
+exprLyso1b <- lapply(donorNames, function(d){
+  geneExpr <- brainExprNorm[[d]][lysosomeGenes, ]
+  avgSampleExpr <- apply(geneExpr, 2, mean)
+  tab <- expr.df(avgSampleExpr, d)
+  boxplot.braakstage(tab, d)
+})
 #Average within region
-exprLyso2 <- lapply(donorNames, function(d){
+exprLyso2a <- lapply(donorNames, function(d){
   geneExpr <- brainExpr[[d]][lysosomeGenes, ]
+  labels <- braakLabels[[d]]
+  mergedLabels <- mergedBraakLabels[[d]]
+  avgGeneExpr <- sapply(braakOrder, function(s){
+    cols <- unique(c(which(labels == s), which(mergedLabels == s)))
+    stageExpr <- geneExpr[ , cols]
+    apply(stageExpr, 1, mean)
+  })
+  tab <- melt(avgGeneExpr)
+  colnames(tab) <- c("gene", "braakstage", "expr")
+  color <- mapvalues(tab$braakstage, from = c(1:6), to = c(rep("1-3",3), rep("4-6",3)))
+  tab$color <- color
+  tab
+  boxplot.braakstage(tab, d)
+})
+exprLyso2b <- lapply(donorNames, function(d){
+  geneExpr <- brainExprNorm[[d]][lysosomeGenes, ]
   labels <- braakLabels[[d]]
   mergedLabels <- mergedBraakLabels[[d]]
   avgGeneExpr <- sapply(braakOrder, function(s){
@@ -193,8 +191,7 @@ exprHiGenes2 <- lapply(hiGenes[5:8], function(gene){
   plot.gene(gene,d)
 })
 
-################3 Heat maps of expression of lysosome genes
-sortedLysoIds <- as.character(name2entrezId(names(sortLyso)))
+####### Heatmap functions
 
 genes.expr.braak <- function(genes, d){
   expr <- brainExprNorm[[d]] # Normalized expression data
@@ -216,14 +213,16 @@ heatmap.expr <- function(tab, main){
     scale_fill_gradient2(low = "blue", mid = "white", high = "red", name = "Expression") +
     scale_x_discrete(position = "top") +
     theme(axis.text.x = element_blank(),
-          axis.text.y = element_text(face = "italic", size = 6),
+          axis.text.y = element_text(face = "italic", size = 2),
           axis.ticks = element_blank(),
           panel.border = element_rect(fill = NA, colour = "black", size = 0.6)#,
           # plot.margin = unit(c(8,0,1,0), unit = "cm")
     ) +
-    labs(x = "Braak stage", y = "Lysosome gene") +
+    labs(x = "Braak stage", y = "Gene") +
     ggtitle(main)
 }
+# Heat maps of expression of lysosome genes
+sortedLysoIds <- as.character(name2entrezId(names(sortLyso)))
 
 tabLyso <- lapply(donorNames, function(d){
   tab <- genes.expr.braak(sortedLysoIds, d)  
@@ -251,10 +250,14 @@ pdf(file = "expr_corr_boxplot.pdf",8,8)
 
 hist(avgCor, main = "Correlation between gene expression and braak regions")
 multi.boxplot(exprMaxGene, main = paste("Gene with max. positive corrrelation: ", entrezId2Name(maxGene), sep = ""))
+multi.boxplot(exprMaxGeneNorm, main = paste("Gene with max. positive corrrelation (Normalized): ", entrezId2Name(maxGene), sep = ""))
 multi.boxplot(exprMinGene, main = paste("Gene with min. negative corrrelation: ", entrezId2Name(minGene), sep = ""))
+multi.boxplot(exprMinGeneNorm, main = paste("Gene with min. positive corrrelation (Normalized): ", entrezId2Name(minGene), sep = ""))
 hist(corLyso)
-multi.boxplot(exprLyso1, main = "Expression of lysosome genes in Braak regions \n (averaged across genes)")
-multi.boxplot(exprLyso2, main = "Expression of lysosome genes in Braak regions \n (averaged across samples)")
+multi.boxplot(exprLyso1a, main = "Expression of lysosome genes in Braak regions \n (averaged across genes)")
+multi.boxplot(exprLyso1b, main = "Expression of lysosome genes in Braak regions \n (averaged across genes, normalized)")
+multi.boxplot(exprLyso2a, main = "Expression of lysosome genes in Braak regions \n (averaged across samples)")
+multi.boxplot(exprLyso2b, main = "Expression of lysosome genes in Braak regions \n (averaged across samples, normalized)")
 multi.boxplot(exprLyso3a, main = "Expression of top 3 correlated lysosome genes in Braak regions")
 multi.boxplot(exprLyso3b, main = "Expression of low correlated lysosome genes in Braak regions")
 multi.boxplot(exprHiGenes1, main = "Expression of high impact genes in Braak regions")
@@ -263,10 +266,8 @@ multi.boxplot(exprHiGenes2, main = "Expression of high impact genes in Braak reg
 dev.off()
 
 
-pdf(file = "expr_corr_heatmap.pdf",8,9)
+pdf(file = "expr_corr_heatmap.pdf",12,8)
 multi.boxplot(tabLyso, main = "Expression of lysosome genes in Braak stages")
-
-exprLyso.heatmap
 corLyso.heatmap
 
 dev.off()
