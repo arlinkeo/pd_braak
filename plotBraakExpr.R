@@ -6,6 +6,7 @@ library(gridExtra)
 library(grid)
 library(reshape2)
 library(plyr)
+library(ggrepel)
 
 load("../ABA_Rdata/BrainExprNorm.RData")
 donorNames <- names(brainExprNorm)
@@ -14,30 +15,47 @@ load("resources/geneLabelCor.RData")
 load("resources/diffGenesBraak.RData") # for looking up p-value (2 diff. data structures)
 load("resources/braakLabels.RData") # Braak stage label vectors
 
+susceptibilityGenes <- as.character(name2entrezId(c("INPP5F", "TMEM175", "ASH1L", "MAPT", "RIT1", "C14orf83", "STK39", "GPNMB", "BST1", 
+              "SIPA1L2", "DLG2", "NUCKS1", "GCH1", "MCCC1", "FAM47E", "BCKDK", "TMPRSS9", "UBOX5", 
+              "CCDC62", "SYNJ1", "EIF4G1", "FBXO7", "C20orf30", "POLG", "VSP13C", "PLA2G6")))
+susceptibilityGenes <- susceptibilityGenes[!is.na(susceptibilityGenes)]
+hlaGenes <- as.character(name2entrezId(c("HLA-DRA", "HLA-DRB1", "HLA-DRB5", "HLA-DQB1")))
+
 # Mapping entrez IDs to gene symbols and vice versa
 probeInfo <- read.csv("../ABA_human_processed/probe_info_2014-11-11.csv")
 entrezId2Name <- function (x) {probeInfo$gene_symbol[match(x, probeInfo$entrez_id)]} #Input is vector
 name2entrezId <- function (x) {probeInfo$entrez_id[match(x, probeInfo$gene_symbol)]} #Input is vector
 
-###### p-value Functions
+###### p-value/fold-change Functions
 # Get diff. expr. p-value for a gene and donor
 pval.up <- function(gene, donor){
-  sapply(diffGenesBraak1, function(braak){
-    format(braak[[donor]][gene, "corr_pvalUp"], digits = 2)
+  sapply(diffGenesList, function(braak){
+    format(braak[[donor]][gene, "pval_up"], digits = 2)
   })
 }
 
 pval.down <- function(gene, donor){
-  sapply(diffGenesBraak1, function(braak){
-    format(braak[[donor]][gene, "corr_pvalDown"], digits = 2)
+  sapply(diffGenesList, function(braak){
+    format(braak[[donor]][gene, "pval_down"], digits = 2)
   })
 }
 
+# pval.2tail <- function(gene, donor){
+#   sapply(diffGenesList, function(braak){
+#     format(braak[[donor]][gene, "pval_2tail"], digits = 2)
+#   })
+# }
+# 
+# fold.change <- function(gene, donor){
+#   sapply(diffGenesList, function(braak){
+#     format(braak[[donor]][gene, "fold-change"], digits = 2)
+#   })
+# }
+
 ######### Box plot functions
 
-#braak stage boxplot order 
-braakNames <- sapply(names(diffGenesBraak1), function(n){tail(unlist(strsplit(n, split = "braak")), 1)})
-names(diffGenesBraak1) <- braakNames
+#braak stage plot order 
+braakNames <- sapply(names(diffGenesList), function(n){tail(unlist(strsplit(n, split = "braak")), 1)})
 names(braakNames) <- braakNames
 braakOrder <- c("0", braakNames)
 names(braakOrder) <- NULL
@@ -280,3 +298,44 @@ corHiGenes
 dev.off()
 ####################
 
+### Volcano plots of diff. expr. genes
+braakOrder2 <- names(diffGenesList)[c(1:3, 7, 4:6, 8)]
+
+png(file = "diff_expr_volcanoplot.png",1200,600)
+# for (d in donorNames) {
+  d <- donorNames[1]
+  vPlots <- lapply(braakOrder2, function(bs){
+    tab <- diffGenesList[[bs]][[d]]
+    tab <- tab[, c("fold-change", "pval_2tail")]
+    colnames(tab) <- c("fold_change", "pval_2tail")
+    signifGenes <- rownames(tab)[tab$pval_2tail < 0.05 & abs(tab$fold_change) > 1]
+    tab$info <- as.numeric(tab$pval_2tail < 0.05 & abs(tab$fold_change) > 1)
+    tab[hiGenes, "info"] <- 2
+    tab[lysosomeGenes, "info"] <- 3
+    tab[susceptibilityGenes, "info"] <- 4
+    tab[hlaGenes, "info"] <- 5
+    tab <- tab[order(tab$info),]
+    tab$info <- as.factor(tab$info)
+    tab$pval_2tail <- -log10(tab$pval_2tail)
+    labels <- entrezId2Name(rownames(tab))
+    labels[!(labels %in% entrezId2Name(c(hiGenes, signifGenes)))] <- ""
+    ggplot(tab, aes(fold_change, pval_2tail, colour = info)) +
+      geom_point(alpha = 1, size=1) +
+      scale_colour_manual(values = c("0"="grey", "1"="red", "2"="black", "3" = "blue",
+                                     "4" = "green", "5" = "pink")) +
+      geom_text(label = labels, colour = "black", size = 3, nudge_x = 0.2) +
+      theme(legend.position = "none",
+            panel.background = element_rect(fill = "white"),
+            axis.line = element_line(colour = "black"),
+            axis.title =  element_text(size = 12),
+            plot.title = element_text(size = 12, face = "bold")
+            ) +
+      geom_vline(xintercept = 0, colour = "black") +
+      geom_hline(yintercept = -log10(0.05), colour = "black") +
+      labs(x = "log2 fold-change", y = "-log10 p-value") +
+      ggtitle(paste("Braak stage", tail(unlist(strsplit(bs, split = "braak")), 1)))
+  })
+  main = textGrob(d, gp=gpar(fontface="bold"))
+  grid.arrange(grobs = vPlots, top = main, nrow = 2, ncol = 4) 
+# }
+dev.off()
