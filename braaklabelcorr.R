@@ -24,6 +24,5 @@ braak.cor <- function(dataList) {
 
 # Correlate gene expression to Braak labels for each brain (without non-Braak region)
 geneLabelCor <- braak.cor(brainExpr)
-geneLabelCorNorm <- braak.cor(brainExprNorm)
+geneLabelCorNorm <- braak.cor(brainExprNorm) # Identical values
 save(geneLabelCor, file = "resources/geneLabelCor.RData")
-save(geneLabelCorNorm, file = "resources/geneLabelCorNorm.RData")
