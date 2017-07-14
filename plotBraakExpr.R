@@ -269,7 +269,7 @@ cor.heatmap <- function(genes){
           axis.text.y = element_text(face = "italic")#,
           #plot.margin = unit(c(10,0,10,0), unit = "cm")
           ) +
-    labs(x = "Braak stage", y = "Gene") +
+    labs(x = "Donor", y = "Gene") +
     coord_fixed(1)
 }
 ######
@@ -299,43 +299,64 @@ dev.off()
 ####################
 
 ### Volcano plots of diff. expr. genes
-braakOrder2 <- names(diffGenesList)[c(1:3, 7, 4:6, 8)]
+fullBraakNames <- names(diffGenesList)
+braakOrder2 <- fullBraakNames[c(1:3, 7, 4:6, 8)]
+braak1to6 <- fullBraakNames[1:6]
+braakMerged <- fullBraakNames[7:8]
 
-png(file = "diff_expr_volcanoplot.png",1200,600)
-# for (d in donorNames) {
-  d <- donorNames[1]
-  vPlots <- lapply(braakOrder2, function(bs){
+volcano.plot <- function(tab, bs, labels){
+  ggplot(tab, aes(fold_change, pval_2tail, colour = info)) +
+    geom_point(alpha = 1, size=1.5) +
+    scale_colour_manual(values = c("0"="grey", "1"="red", "2"="black", "3" = "blue",
+                                   "4" = "green", "5" = "pink")) +
+    # geom_text(label = labels, colour = "black", size = 3, nudge_x = 0.2) +
+    geom_text_repel(label = labels, colour = "black", size = 3, nudge_x = 0.2) +
+    theme(legend.position = "none",
+          panel.background = element_rect(fill = "white"),
+          axis.line = element_line(colour = "black"),
+          axis.title =  element_text(size = 12),
+          plot.title = element_text(size = 12, face = "bold")
+    ) +
+    geom_vline(xintercept = 0, colour = "black") +
+    geom_hline(yintercept = -log10(0.05), colour = "black") +
+    labs(x = "log2 fold-change", y = "-log10 p-value") +
+    ggtitle(paste("Braak stage", tail(unlist(strsplit(bs, split = "braak")), 1)))
+}
+
+v.plot.list <- function(braakList){
+  lapply(braakList, function(bs){
     tab <- diffGenesList[[bs]][[d]]
     tab <- tab[, c("fold-change", "pval_2tail")]
     colnames(tab) <- c("fold_change", "pval_2tail")
     signifGenes <- rownames(tab)[tab$pval_2tail < 0.05 & abs(tab$fold_change) > 1]
     tab$info <- as.numeric(tab$pval_2tail < 0.05 & abs(tab$fold_change) > 1)
     tab[hiGenes, "info"] <- 2
-    tab[lysosomeGenes, "info"] <- 3
-    tab[susceptibilityGenes, "info"] <- 4
-    tab[hlaGenes, "info"] <- 5
+    # tab[lysosomeGenes, "info"] <- 3
+    # tab[susceptibilityGenes, "info"] <- 4
+    # tab[hlaGenes, "info"] <- 5
     tab <- tab[order(tab$info),]
     tab$info <- as.factor(tab$info)
     tab$pval_2tail <- -log10(tab$pval_2tail)
     labels <- entrezId2Name(rownames(tab))
     labels[!(labels %in% entrezId2Name(c(hiGenes, signifGenes)))] <- ""
-    ggplot(tab, aes(fold_change, pval_2tail, colour = info)) +
-      geom_point(alpha = 1, size=1) +
-      scale_colour_manual(values = c("0"="grey", "1"="red", "2"="black", "3" = "blue",
-                                     "4" = "green", "5" = "pink")) +
-      geom_text(label = labels, colour = "black", size = 3, nudge_x = 0.2) +
-      theme(legend.position = "none",
-            panel.background = element_rect(fill = "white"),
-            axis.line = element_line(colour = "black"),
-            axis.title =  element_text(size = 12),
-            plot.title = element_text(size = 12, face = "bold")
-            ) +
-      geom_vline(xintercept = 0, colour = "black") +
-      geom_hline(yintercept = -log10(0.05), colour = "black") +
-      labs(x = "log2 fold-change", y = "-log10 p-value") +
-      ggtitle(paste("Braak stage", tail(unlist(strsplit(bs, split = "braak")), 1)))
+    volcano.plot(tab, bs, labels)
   })
+}
+
+d <- donorNames[1]
+
+png(file = "diff_expr_volcanoplot1.png",900,600)
+# for (d in donorNames) {
+  vPlots1to6 <- v.plot.list(braak1to6)
   main = textGrob(d, gp=gpar(fontface="bold"))
-  grid.arrange(grobs = vPlots, top = main, nrow = 2, ncol = 4) 
+  grid.arrange(grobs = vPlots1to6, top = main, nrow = 2, ncol = 3) 
 # }
 dev.off()
+
+png(file = "diff_expr_volcanoplot2.png",600,300)
+  d <- donorNames[1]
+  main = textGrob(d, gp=gpar(fontface="bold"))
+  vPlotsMerged <- v.plot.list(braakMerged)
+  grid.arrange(grobs = vPlotsMerged, top = main, nrow = 1, ncol = 2) 
+dev.off()
+
