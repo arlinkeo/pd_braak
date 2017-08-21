@@ -4,12 +4,12 @@ options(stringsAsFactors = FALSE)
 
 make.italic <- function(x) {as.expression(lapply(x, function(x) bquote(italic(.(x)))))}
 
-load("../polyQ_coexpression/resources/BrainExpr.RData")
-donorNames <- names(brainExpr)
+load("../ABA_Rdata/BrainExprNorm.RData")
+donorNames <- names(brainExprNorm)
 names(donorNames) <- donorNames
 entrezId2Name <- function (x) { row <- which(probeInfo$entrez_id == x); probeInfo[row, 4]} #Input is single element
 
-probeInfo <- read.csv("../polyQ_coexpression/ABA_human_processed/probe_info_2014-11-11.csv")
+probeInfo <- read.csv("../ABA_human_processed/probe_info_2014-11-11.csv")
 pdGenes1 <- c("GBA", "LRRK2", "PINK1", "PARK7", "SNCA", "VPS35", "DNAJC13", "CHCHD2")
 pdGenes2 <- c("INPP5F", "TMEM175", "ASH1L", "MAPT", "RIT1", "C14orf83", "STK39", "GPNMB", "BST1", 
               "SIPA1L2", "DLG2", "NUCKS1", "GCH1", "MCCC1", "FAM47E", "BCKDK", "TMPRSS9", "UBOX5", 
@@ -26,7 +26,7 @@ pdEntrezIDs <- as.character(geneInfo[ , 6])
 pdGenes <- geneInfo[ , 4]
 pdCol <- pdCol[pdGenes]
 
-ontology <- read.csv("../polyQ_coexpression/ABA_human_processed/Ontology_edited.csv")
+ontology <- read.csv("../ABA_human_processed/Ontology_edited.csv")
 structures <- c("brain", "locus ceruleus", "substantia nigra", "amygdala", "hippocampal formation", "temporal lobe", 
                 "cingulate gyrus", "frontal lobe", "parietal lobe", "anterior olfactory nucleus", "dorsal motor nucleus of the vagus")
 structureIDs <- ontology[ontology$name %in% structures, ][ , c(1:3)]
@@ -40,7 +40,7 @@ sampleIDs <- apply(structureIDs, 1, function(id){
   ontologyRows <- grep(id[1], ontology$structure_id_path)
   selectIds <- as.character(ontology$id[ontologyRows])
   lapply(donorNames, function(d){
-    expr <- brainExpr[[d]]
+    expr <- brainExprNorm[[d]]
     ids <- intersect(selectIds, colnames(expr))
     cols <- colnames(expr) %in% ids
     as.numeric(cols)
@@ -53,12 +53,12 @@ sampleSize <- sapply(sampleIDs, function(s){
 })
 sampleSize
 
-sampleIDs[c("AO", "LC", "10")] <- NULL
+sampleIDs[c("Br", "AO", "LC", "10")] <- NULL
 
 #Expr in all regional samples and donors
 regionalExpr <- lapply(sampleIDs, function(s){
   res <- lapply(donorNames, function(d){
-    expr <- brainExpr[[d]]
+    expr <- brainExprNorm[[d]]
     expr2 <- expr[pdEntrezIDs, as.logical(s[[d]])]
   })
 })
@@ -88,9 +88,9 @@ rownames(avgExpr) <- sapply(rownames(avgExpr), entrezId2Name)
 
 colpalette <- colorRampPalette(c("blue", "white", "red"))(n = 200)
 
-pdf(file = "pdGenes_expr2.pdf", 8, 12)
+pdf(file = "pdGenes_expr3.pdf", 8, 12)
 heatmap.2(avgExpr, hclustfun = function(y){hclust(y, method = "average")}, trace = "none", 
-          col = colpalette, cellnote = round(avgExpr, digits = 2), notecol = "black", notecex = 0.8, colRow = pdCol)
+          col = colpalette, cellnote = round(avgExpr, digits = 2), notecol = "black", notecex = 0.6, colRow = pdCol)
 # plot(geneTree, xlab="", sub="", main = paste("Mean correlation of clustered modules in ", id[3], sep =""), 
 #      hang = 0.04, font = 3, axes = FALSE, ylab = "");
 # labeledHeatmap(avgExpr, xLabels = colnames(avgExpr), yLabels = make.italic(rownames(avgExpr)),
