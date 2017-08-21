@@ -27,12 +27,14 @@ diffGenesList <- lapply(braakNames, function(bs){
       pval2tail <- test2tail$p.value
       meanB <- test2tail$estimate[1]
       meanNB <- test2tail$estimate[2]
+      names(meanB) <- 'meanB'
+      names(meanNB) <- 'meanNB'
       confidence95 <- test2tail$conf.int
       # fChange <- log2(2^test2tail$estimate[1] / 2^test2tail$estimate[2]) # estimate is mean
       # names(fChange) <- 'fold-change'
-      c('p-value' = pval2tail, meanB, meanNB, 'lower-confidence' = confidence95[1], 'upper-confidence' = confidence95[2])
+      c('pvalue' = pval2tail, meanB, meanNB, 'lower95' = confidence95[1], 'upper95' = confidence95[2])
     })))
-    pvalues$'p-value' <- p.adjust(pvalues$'p-value' , method = "BH", n = nGenes) #corrected p
+    pvalues$'pvalue' <- p.adjust(pvalues$'pvalue' , method = "BH", n = nGenes) #corrected p
     pvalues
   })
 })
