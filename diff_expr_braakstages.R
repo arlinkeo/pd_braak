@@ -41,7 +41,7 @@ diffGenesList <- lapply(braakNames, function(bs){
   })
 })
 
-# # convert lists to gene x donor tablefor each braak stage
+# # convert lists to gene x donor table for each braak stage
 # dg.table <- function(x){
 #   lapply(braakNames, function(bs){
 #     brainList <- diffGenesList[[bs]]
