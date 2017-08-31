@@ -56,6 +56,56 @@ nDiffgenes <- function(x){
 nDiffgenes("bonferroni")
 nDiffgenes("benjamini_hochberg")
 
+nDonors <- 6
+
+# convert lists to gene x donor table for each braak stage
+dg.table <- function(x){
+  lapply(braakNames, function(bs){
+    brainList <- diffGenesList[[bs]]
+    genes <- rownames(brainList[[1]])
+    tab <- sapply(brainList, function(t){v <- t[ , x]})
+    rownames(tab) <- genes
+    tab
+  })
+}
+
+dgTable1 <- dg.table("benjamini_hochberg")
+dgTable2 <- dg.table("bonferroni")
+
+# Diff. expressed in all donors
+diff.all <- function(list, th) {
+  braakTab <- sapply(list, function(tab){
+    apply(tab < th, 1, sum) == nDonors
+  })
+  rownames(braakTab) <- rownames(list[[1]])
+  braakTab
+}
+
+dgAll1 <- diff.all(dgTable1, 0.05)
+dgAll2 <- diff.all(dgTable2, 0.05)
+apply(dgAll1, 2, sum)
+apply(dgAll2, 2, sum)
+
+#Combine p-values
+combine.p <- function(list){
+  sapply(list, function(tab){
+    apply(tab, 1, function(p){
+      sumlog(p)$p#pchisq(-2*sum(log(p)), df = length(p)*2, lower.tail = FALSE)
+    })
+  })
+}
+
+fisherP1 <- combine.p(dgTable1)
+fisherP2 <- combine.p(dgTable2)
+apply(fisherP1 < 0.05, 2, sum)
+apply(fisherP2 < 0.05, 2, sum)
+
+#Get list of sorted significant genes
+signif.genes <- function(tab){
+  lapply(braakNames, function(bs){
+    (head(tab[, bs])) < 0.05
+  })
+}
 # #############################################
 # # Examine differential expressed genes
 # 
