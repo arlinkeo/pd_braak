@@ -36,55 +36,26 @@ diffGenesList <- lapply(braakNames, function(bs){
       # names(fChange) <- 'fold-change'
       c('pvalue' = pval2tail, meanB, 'varB' = varB, meanNB, 'varNB' = varNB, 'lower95' = confidence95[1], 'upper95' = confidence95[2])
     })))
-    pvalues$'pvalue' <- p.adjust(pvalues$'pvalue' , method = "BH", n = nGenes) #corrected p
+    pvalues$'benjamini_hochberg' <- p.adjust(pvalues$'pvalue' , method = "BH", n = nGenes) #corrected p
+    pvalues$'bonferroni' <- p.adjust(pvalues$'pvalue' , method = "bonferroni", n = nGenes) #corrected p
     pvalues
   })
 })
 
-# # convert lists to gene x donor table for each braak stage
-# dg.table <- function(x){
-#   lapply(braakNames, function(bs){
-#     brainList <- diffGenesList[[bs]]
-#     genes <- rownames(brainList[[1]])
-#     tab <- sapply(brainList, function(t){v <- t[ , x]})
-#     rownames(tab) <- genes
-#     tab
-#   })
-# }
-# 
-# dgTable2tail <- dg.table("p-value")
-
 save(diffGenesList, file = "resources/diffGenesBraak.RData")
-# 
-# # Diff. expressed in all donors
-# diff.all <- function(list, th) {
-#   braakTab <- sapply(list, function(tab){
-#     apply(diffUp < th, 1, sum) == nDonors
-#   })
-#   rownames(braakTab) <- rownames(list[[1]])
-#   braakTab
-# }
-# 
-# dgAll2tail <- diff.all(dgTable2tail, 0.05)
-# 
-# #Combine p-values
-# combine.p <- function(list){
-#   sapply(list, function(tab){
-#     apply(tab, 1, function(p){
-#       pchisq(-2*sum(log(p)), df = length(p)*2, lower.tail = FALSE)
-#     })
-#   })
-# }
-# 
-# fisherP2tail <- combine.p(dgTable2tail)
-# 
-# #Get list of sorted significant genes
-# signif.genes <- function(tab){
-#   lapply(braakNames, function(bs){
-#     (head(tab[, bs])) < 0.05
-#   })
-# }
-# 
+
+# Number of diff. expr. genes in each braak stage en donor after multiple testing correction
+nDiffgenes <- function(x){
+  sapply(diffGenesList, function(bs){
+    sapply(bs, function(d){
+      sum(d[[x]] < 0.05)
+    })
+  })
+}
+
+nDiffgenes("bonferroni")
+nDiffgenes("benjamini_hochberg")
+
 # #############################################
 # # Examine differential expressed genes
 # 
