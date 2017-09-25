@@ -7,8 +7,6 @@ source("PD/base_script.R")
 load("resources/diffGenesBraak.RData")
 
 load("resources/braakStages.RData")
-braakNames <- names(braakStages)
-names(braakNames) <- braakNames
 sizes <- sapply(braakStages, function(bs){
   sapply(bs, sum)
 })
@@ -28,10 +26,11 @@ sumTable <- function(g){
     tab$donor <- donors
     tab$size <- sizes[, bs]
     tab$varDiff <- (tab$varB / tab$size) + (tab$varNB / sizesNB) # variance of mean difference
-    tab$pvalue <- tab$benjamini_hochberg
+    tab$pvalue <- tab$benjamini_hochberg # Corrected p-value
     tab <- tab[, c("lower95", "upper95", "meanDiff", "varDiff", "donor", "size", "pvalue")]
     sumEffect <- rma(tab$meanDiff, tab$varDiff, method = "DL") # Summary effect size
     tab$weight <- round(weights(sumEffect), digits = 2)
+    # Add row with summary effect statistics
     tab <- rbind(tab, 'SummaryEff' = list(sumEffect$ci.lb, sumEffect$ci.ub, sumEffect$beta, sumEffect$se^2, 
                                           "Summary", sum(tab$size), sumEffect$pval, sum(tab$weight)))
     tab$isSum <- tab$donor == "Summary"
