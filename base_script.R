@@ -11,3 +11,6 @@ name2EntrezId <- function (x) {as.character(probeInfo$entrez_id[match(x, probeIn
 
 donorNames <- c("donor9861", "donor10021", "donor12876", "donor14380", "donor15496", "donor15697")
 names(donorNames) <- donorNames
+
+braakNames <- c("braak1","braak2","braak3","braak4","braak5","braak6", "braak1-3", "braak4-6")
+names(braakNames) <- braakNames
