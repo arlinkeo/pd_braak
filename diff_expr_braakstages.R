@@ -7,8 +7,6 @@ source("PD/base_script.R")
 load("../ABA_Rdata/BrainExpr.RData")
 nDonors <- length(donorNames)
 load("resources/braakStages.RData")
-braakNames <- names(braakStages)
-names(braakNames) <- braakNames
 
 #Differential expression for each braak stage compared to non-braak stage
 diffGenesList <- lapply(braakNames, function(bs){
