@@ -8,7 +8,7 @@ sampleIds <- lapply(brainExpr, colnames)
 ontology <- read.csv("../ABA_human_processed/Ontology_edited.csv")
 
 structures <- c("myelencephalon", "dorsal motor nucleus of the vagus", "midbrain reticular formation", "intermediate zone, left", "intermediate zone, right",
-                "pons", "locus ceruleus", "midbrain raphe nuclei", "pontine raphe nucleus", "mesencephalon", "substantia nigra", 
+                "pons", "pontine tegmentum", "midbrain tegmentum", "locus ceruleus", "midbrain raphe nuclei", "pontine raphe nucleus", "mesencephalon", "substantia nigra", 
                 "basal forebrain", "amygdala", "hippocampal formation", "substantia innominata", "basal nucleus of meynert, right",
                 "basal nucleus of meynert, left", "CA2 field", "occipito-temporal gyrus", "cingulate gyrus", "temporal lobe", 
                 "frontal lobe", "parietal lobe")
@@ -47,7 +47,7 @@ sapply(sampleIDs, function(s){sapply(s, sum)})
 #Braak stages
 braakStages <- list(
   braak1 = c("myelencephalon"),
-  braak2 = c("pons"),
+  braak2 = c("pontine tegmentum", "midbrain tegmentum"),
   braak3 = c("substantia nigra", "basal nucleus of meynert, right", "basal nucleus of meynert, left", "CA2 field"),
   braak4 = c("amygdala", "occipito-temporal gyrus"), 
   braak5 = c("cingulate gyrus", "temporal lobe"),
@@ -78,19 +78,21 @@ total <- sumAllB + sumNonB
 tabNonAll <- cbind(sumAllB, perc.All = sumAllB/total, sumNonB, perc.Non = sumNonB/total, total)
 
 #Braak regions 1-3 and 4-6 merged
-braak1to3 <- lapply(donorNames, function(d){
-  tab <- lapply(braakStages[1:3], function(s){s[[d]]})
-  as.numeric(Reduce("|", tab))
-})
+merge.braak <- function(x){
+  lapply(donorNames, function(d){
+    tab <- lapply(braakStages[x], function(s){s[[d]]})
+    as.numeric(Reduce("|", tab))
+  })
+}
+braak1to3 <- merge.braak(c(1:3))
 sumB1to3 <- sapply(braak1to3, sum)
-braak4to6 <- lapply(donorNames, function(d){
-  tab <- lapply(braakStages[4:6], function(s){s[[d]]})
-  as.numeric(Reduce("|", tab))
-})
+braak4to6 <- merge.braak(c(4:6))
 sumB4to6 <- sapply(braak4to6, sum)
-cbind(sumB1to3, sumB4to6)
+braak1to6 <- merge.braak(c(1:6))
+sumB1to6 <- sapply(braak1to6, sum)
+cbind(sumB1to3, sumB4to6, sumB1to6)
 
-braakStages <- append(braakStages, list('braak1-3' = braak1to3, 'braak4-6' = braak4to6))
+braakStages <- append(braakStages, list('braak1-3' = braak1to3, 'braak4-6' = braak4to6, 'braak1-6' = braak1to6))
 
 save(braakStages, nonBraak, file = "resources/braakStages.RData")
 
@@ -126,6 +128,14 @@ mergedBsPerDonor <- revert.list(braakStages[7:8])
 mergedBraakLabels <- label.vector(mergedBsPerDonor)
 
 save(braakLabels, mergedBraakLabels, file = "resources/braakLabels.RData")
+
+#Save numbers
+braakSize <- t(sapply(braakLabels, function(d){
+  sapply(as.character(c(0:6)), function(s){
+    sum(d == s)
+  })
+}))
+write.table(braakSize, file = "braakSize.txt", sep = "\t", quote = FALSE)
 
 #Count non-zero labels, if >1 there are multiple labels assigned to a sample
 countLabels <- sapply(bsPerDonor, function(d){apply(d, 2, function(v){sum(v!=0)})})
