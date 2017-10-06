@@ -55,33 +55,35 @@ leftPanel <- fp +
   geom_vline(xintercept = 0, linetype = "dashed") +
   scale_shape_manual(values = c(15,18)) +
   scale_color_manual(values = c('#00CCCC', '#FF8000')) +
-  labs(title = "Meta-analysis of differential expression", x = "Raw mean difference") +
+  labs(title = "Summary effect size of PINK1", x = "Raw mean difference") +
   scale_y_discrete(labels = rev(tab$donor)) +
-  scale_x_continuous(limits = c(x.min, x.max)) +
-  # geom_text(aes(x = x.max + 0.25, label = rmd), size = 3) +
-  # geom_text(aes(x = x.max + 0.55, label = size), size = 3) +
-  # geom_text(aes(x = x.max + 0.7, label = weight), size = 3) +
+  # scale_x_continuous(limits = c(x.min, x.max)) +
+  geom_text(aes(x = x.max + 0.25, label = rmd), size = 3) +
+  geom_text(aes(x = x.max + 0.55, label = size), size = 3) +
+  geom_text(aes(x = x.max + 0.7, label = weight), size = 3) +
   # geom_text(data = colLabels, aes(x, y, label = label)) +
   theme.grid + theme(plot.margin = unit(c(0,4,0,4), "lines")) +
   facet.braak
+pdf(file = "forestplot_PINK1.pdf", 12, 8)
 leftPanel
+dev.off()
 
-# rightPanel <- fp +
-#   geom_text(aes(x = 1, label = rmd), size = 3) +
-#   geom_text(aes(x = 2, label = size), size = 3) +
-#   geom_text(aes(x = 3, label = weight), size = 3) +
-#   # geom_text(data = colLabels, aes(x, y, label = label), vjust = 0.5) +
-#   theme.grid +
-#   theme(axis.text.x = element_text(colour = "white"), axis.text.y = element_blank(),
-#         axis.line.x = element_line(colour = "white"), axis.ticks.x = element_line(colour = "white"),
-#         axis.title.x = element_text(colour = "white"), strip.text = element_blank()) +
-#   facet.braak
+rightPanel <- fp +
+  geom_text(aes(x = 2, label = rmd), size = 3) +
+  geom_text(aes(x = 3, label = size), size = 3) +
+  geom_text(aes(x = 4, label = weight), size = 3) +
+  # geom_text(data = colLabels, aes(x, y, label = label), vjust = 0.5) +
+  theme.grid +
+  theme(axis.text.x = element_text(colour = "white"), axis.text.y = element_blank(),
+        axis.line.x = element_line(colour = "white"), axis.ticks.x = element_line(colour = "white"),
+        axis.title.x = element_text(colour = "white"), strip.text = element_blank()) +
+  facet.braak
 
-rightPanel <- fp + 
-  annotate("text", x = rep(1, nrow(tab)), y = c(1:nrow(tab)), label = tab$rmd) +
-  annotate("text", x = c(1:3), y = c(nrow(tab)+1),label = c("Raw mean difference", "N", "Weight")) + # Headers
-  theme.grid
-rightPanel
+# rightPanel <- fp + 
+#   annotate("text", x = rep(1, nrow(tab)), y = c(1:nrow(tab)), label = tab$rmd) +
+#   annotate("text", x = c(1:3), y = c(nrow(tab)+1),label = c("Raw mean difference", "N", "Weight")) + # Headers
+#   theme.grid
+# rightPanel
 
 p <- grid.arrange(leftPanel, rightPanel, widths = c(3,1), ncol = 2)
 p
