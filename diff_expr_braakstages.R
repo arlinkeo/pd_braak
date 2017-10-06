@@ -39,7 +39,6 @@ diffGenesList <- lapply(braakNames, function(bs){
     pvalues
   })
 })
-
 save(diffGenesList, file = "resources/diffGenesBraak.RData")
 
 # Number of diff. expr. genes in each braak stage en donor after multiple testing correction
