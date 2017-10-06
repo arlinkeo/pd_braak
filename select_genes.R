@@ -23,15 +23,29 @@ genesPerBs <- lapply(braakNames, function(bs){
   bsTab <- as.data.frame(bsTab)
   bsTab
 })
+save(genesPerBs, file = "resources/diffExprBraak.RData")
+load("resources/diffExprBraak.RData")
 
-#Number of diff. expressed genes based on summary effect p-value
+#Number of diff. expressed genes based on summary effect p-value (uncorrected)
 sapply(genesPerBs, function(t){
   sum(unlist(t$pvalue) < 0.05)
 })
 
-#Number of diff. expressed genes based on summary effect p-value corrected
-sapply(genesPerBs, function(t){
+#Average correlation across brains
+load("resources/geneLabelCor.RData")
+corr <- apply(geneLabelCor, 1, mean)
+
+#Bonferroni-corrected p-values and effect size
+pvalEffsize <- lapply(genesPerBs, function(t){
   p <- unlist(t$pvalue)
-  correctedP <- p.adjust(p, method = "bonferroni", n = length(p))
-  sum(correctedP < 0.05)
+  names(p) <- rownames(t)
+  p <- p.adjust(p, method = "bonferroni", n = length(p))
+  data.frame(p, effectSize = unlist(t$meanDiff), r = corr)
 })
+sapply(pvalEffsize, function(x) sum(x$p<.05 & abs(x$effectSize)>1))
+sapply(pvalEffsize, function(x) sum(x$p<.05 & x$effectSize>1))
+sapply(pvalEffsize, function(x) sum(x$p<.05 & x$effectSize< -1))
+sapply(pvalEffsize, function(x) sum(x$p<.05 & abs(x$effectSize)>1 & abs(x$r)>0.5))
+sapply(pvalEffsize, function(x) sum(x$p<.05 & x$effectSize>1 & abs(x$r)>0.5))
+sapply(pvalEffsize, function(x) sum(x$p<.05 & x$effectSize< -1 & abs(x$r)>0.5))
+
