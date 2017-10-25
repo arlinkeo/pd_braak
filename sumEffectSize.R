@@ -21,11 +21,11 @@ sumTable <- function(g){
   lapply(braakNames, function(bs){
     donorList <- diffGenesList[[bs]]
     tab <- as.data.frame(t(sapply(donorList, function(t) unlist(t[g, ]))))# get gene row for each donor
-    tab$meanDiff <- unlist(tab$meanB) - unlist(tab$meanNB)# mean difference
+    tab$meanDiff <- unlist(tab$meanB) - unlist(tab$meanNB)# mean difference for each donor
     donors <- sapply(rownames(tab), function(n){ paste0("Donor ", unlist(strsplit(n, split = "donor"))[2])})
     tab$donor <- donors
     tab$size <- sizes[, bs]
-    tab$varDiff <- (tab$varB / tab$size) + (tab$varNB / sizesNB) # variance of mean difference
+    tab$varDiff <- (tab$varB / tab$size) + (tab$varNB / sizesNB) # variance of mean difference for each donor
     tab$pvalue <- tab$benjamini_hochberg # Corrected p-value
     tab <- tab[, c("lower95", "upper95", "meanDiff", "varDiff", "donor", "size", "pvalue")]
     sumEffect <- rma(tab$meanDiff, tab$varDiff, method = "DL") # Summary effect size
