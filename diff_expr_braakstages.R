@@ -103,25 +103,3 @@ signif.genes <- function(tab){
     (head(tab[, bs])) < 0.05
   })
 }
-# #############################################
-# # Examine differential expressed genes
-# 
-# load("resources/diffGenesBraak.RData")
-# 
-# #Genes differentially expressed in all regions
-# allUp <- lapply(diffGenesBraak2, function(bs){bs[["upregulated"]][ , "gene_symbol"]})
-# allDown <- lapply(diffGenesBraak2, function(bs){bs[["downregulated"]][ , "gene_symbol"]})
-# allStagesUp <- Reduce(intersect, allUp)
-# allStagesDown <- Reduce(intersect, allDown)
-# allStagesUp
-# allStagesDown
-# # 
-# # # Comparing top 10 genes for each region to other regions
-# # top10up <- lapply(diffGenesBraak2, function(bs){
-# #   bs[["upregulated"]][1:10, "gene_symbol"]
-# # })
-# # top10down <- lapply(diffGenesBraak2, function(bs){
-# #   bs[["downregulated"]][1:10, "gene_symbol"]
-# # })
-# # lapply(top10up, is.present.up)
-# # lapply(top10down, is.present.down)

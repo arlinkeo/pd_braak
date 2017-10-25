@@ -2,7 +2,6 @@
 setwd("C:/Users/dkeo/surfdrive/Parkinson")
 
 load("../polyQ_coexpression/resources/BrainExpr.RData")
-# sampleIds <- lapply(brainExpr, colnames)
 source("PD/base_script.R")
 ontology <- read.csv("../ABA_human_processed/Ontology_edited.csv")
 
