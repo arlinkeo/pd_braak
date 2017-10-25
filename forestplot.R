@@ -19,8 +19,11 @@ load("resources/sumEffectSize.RData")
 # 
 # genes <- rownames(diffGenesList$braak1$donor9861)
 # names(genes) <- genes
+# 
+# braakNames <- braakNames[1:8]
+# sumEffectSize <- lapply(sumEffectSize, function(b)b[1:8])
 
-gene <- "PINK1"
+gene <- "GBA"
 geneId <- name2EntrezId(gene)
 
 #Get values for a gene to plot
@@ -53,18 +56,20 @@ leftPanel <- fp +
   geom_point(aes(size = size, shape = isSum, color = isSum)) +
   geom_errorbarh(aes(xmin = lower95, xmax = upper95), height = 0) +
   geom_vline(xintercept = 0, linetype = "dashed") +
+  geom_vline(xintercept = 1, linetype = "dotted") +
+  geom_vline(xintercept = -1, linetype = "dotted") +
   scale_shape_manual(values = c(15,18)) +
   scale_color_manual(values = c('#00CCCC', '#FF8000')) +
-  labs(title = "Summary effect size of PINK1", x = "Raw mean difference") +
+  labs(title = paste0("Summary effect size of ", gene), x = "Raw mean difference") +
   scale_y_discrete(labels = rev(tab$donor)) +
   # scale_x_continuous(limits = c(x.min, x.max)) +
-  geom_text(aes(x = x.max + 0.25, label = rmd), size = 3) +
-  geom_text(aes(x = x.max + 0.55, label = size), size = 3) +
-  geom_text(aes(x = x.max + 0.7, label = weight), size = 3) +
+  geom_text(aes(x = x.max + 0.3, label = rmd), size = 3) +
+  geom_text(aes(x = x.max + 0.7, label = size), size = 3) +
+  geom_text(aes(x = x.max + 1.0, label = weight), size = 3) +
   # geom_text(data = colLabels, aes(x, y, label = label)) +
   theme.grid + theme(plot.margin = unit(c(0,4,0,4), "lines")) +
   facet.braak
-pdf(file = "forestplot_PINK1.pdf", 12, 8)
+pdf(file = paste0("forestplot_", gene, ".pdf"), 12, 8)
 leftPanel
 dev.off()
 
