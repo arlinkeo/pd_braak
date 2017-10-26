@@ -12,8 +12,12 @@ name2EntrezId <- function (x) {as.character(probeInfo$entrez_id[match(x, probeIn
 donorNames <- c("donor9861", "donor10021", "donor12876", "donor14380", "donor15496", "donor15697")
 names(donorNames) <- donorNames
 
-braakNames <- c("braak1","braak2","braak3","braak4","braak5","braak6", "braak1-2", "braak3-4", "braak5-6", "braak1-3", "braak4-6")
+braakNames <- c("braak1","braak2","braak3","braak4","braak5","braak6")
 names(braakNames) <- braakNames
+braakNamesMerged1 <- c("braak1-2", "braak3-4", "braak5-6")
+names(braakNamesMerged1) <- braakNamesMerged1
+braakNamesMerged2 <- c("braak1-3", "braak4-6")
+names(braakNamesMerged2) <- braakNamesMerged2
 
 # PD-implicated genes
 pdGenes <- list(hiImpact = c("GBA", "LRRK2", "PINK1", "PARK7", "SNCA", "VPS35", "DNAJC13", "CHCHD2"),
