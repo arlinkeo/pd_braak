@@ -1,7 +1,7 @@
 #sample IDs of ROI for PD
 setwd("C:/Users/dkeo/surfdrive/Parkinson")
 
-load("../polyQ_coexpression/resources/BrainExpr.RData")
+load("../ABA_Rdata/BrainExprNorm.RData")
 source("PD/base_script.R")
 ontology <- read.csv("../ABA_human_processed/Ontology_edited.csv")
 
@@ -15,22 +15,49 @@ nonBraakRoi  <-  c("cerebellum", "basal part of pons", "red nucleus", "ventral t
 regions <- c(braakRoi, nonBraakRoi)
 names(regions) <- regions
 
+############################################################################
+# # Function to select region-specific samples in all six donors
+# selectSamples <- function(r){# for a single structure
+#   row <- match(r, ontology$name)
+#   id <- ontology$id[row]
+#   rows <- grep(id, ontology$structure_id_path)
+#   selectIds <- ontology$id[rows]
+#   lapply(donorNames, function(d){
+#     expr <- brainExpr[[d]]
+#     ids <- intersect(selectIds, colnames(expr))
+#     cols <- colnames(expr) %in% ids
+#     as.integer(cols)
+#   })
+# }
+# 
+# roiSamples <- lapply(regions, function(s){
+#   selectSamples(s)
+# })
+# sapply(roiSamples, function(s){sapply(s, sum)})
+# save(roiSamples, file = "resources/roiSamples2.RData")
+
+############################################################################
 # Function to select region-specific samples in all six donors
-selectSamples <- function(r){# for a single structure
+
+selectIds <- function(r){ # for a single structure
   row <- match(r, ontology$name)
   id <- ontology$id[row]
   rows <- grep(id, ontology$structure_id_path)
-  selectIds <- ontology$id[rows]
-  lapply(donorNames, function(d){
-    expr <- brainExpr[[d]]
-    ids <- intersect(selectIds, colnames(expr))
-    cols <- colnames(expr) %in% ids
-    as.integer(cols)
-  })
+  ontology$id[rows]
 }
 
-roiSamples <- lapply(regions, function(s){
-  selectSamples(s)
+regionIDs <- lapply(regions, selectIds)
+
+roiSamples <- lapply(donorNames, function(d){
+  expr <- brainExprNorm[[d]]
+  colnames <- colnames(expr)
+  v <- sapply(regionIDs, function(ids){
+    ids <- intersect(ids, colnames)
+    cols <- colnames %in% ids
+    as.integer(cols)
+  })
+  rownames(v) <- colnames
+  v
 })
-sapply(roiSamples, function(s){sapply(s, sum)})
+sapply(roiSamples, function(df){apply(df, 2, sum)})
 save(roiSamples, file = "resources/roiSamples.RData")
