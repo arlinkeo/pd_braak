@@ -1,142 +1,133 @@
 #sample IDs of ROI for PD
 setwd("C:/Users/dkeo/surfdrive/Parkinson")
-load("../polyQ_coexpression/resources/BrainExpr.RData")
-source("../AHBA_ontology.R")
-donorNames <- names(brainExpr)
-names(donorNames) <- donorNames
-sampleIds <- lapply(brainExpr, colnames)
-ontology <- read.csv("../ABA_human_processed/Ontology_edited.csv")
 
-structures <- c("myelencephalon", "dorsal motor nucleus of the vagus", "midbrain reticular formation", "intermediate zone, left", "intermediate zone, right",
-                "pons", "pontine tegmentum", "midbrain tegmentum", "locus ceruleus", "midbrain raphe nuclei", "pontine raphe nucleus", "mesencephalon", "substantia nigra", 
-                "basal forebrain", "amygdala", "hippocampal formation", "substantia innominata", "basal nucleus of meynert, right",
-                "basal nucleus of meynert, left", "CA2 field", "occipito-temporal gyrus", "cingulate gyrus", "temporal lobe", 
-                "frontal lobe", "parietal lobe")
-names(structures) <- structures
-
-#Select anatomic region-specific samples
-sampleIDs <- lapply(structures, function(s){
-  row <- match(s, ontology$name)
-  id <- ontology$id[row]
-  rows <- grep(id, ontology$structure_id_path)
-  selectIds <- ontology$id[rows]
-  lapply(donorNames, function(d){
-    expr <- brainExpr[[d]]
-    ids <- intersect(selectIds, colnames(expr))
-    cols <- colnames(expr) %in% ids
-    as.integer(cols)
-  })
-})
-sapply(sampleIDs, function(s){sapply(s, sum)})
-
-# #Braak stage I: Medulla
-# med <- ontology[grep("medulla", ontology$name), ]$id
-# names(med) <- sapply(med, get.name)
-# medIds <- unique(unlist(lapply(med, function(id){
-#   rows <- grep(id, ontology$structure_id_path)
-#   selectIds <- ontology$id[rows]
-# })))
-# medIds <- lapply(donorNames, function(d){
-#   expr <- brainExpr[[d]]
-#   ids <- intersect(medIds, colnames(expr))
-#   cols <- colnames(expr) %in% ids
-#   as.integer(cols)
-# })
-# sapply(medIds, sum)
+source("PD/base_script.R")
+load("resources/roiSamples.RData")
 
 #Braak stages
-braakStages <- list(
+braakRegions <- list(
   braak1 = c("myelencephalon"),
-  braak2 = c("pontine tegmentum", "midbrain tegmentum"),
+  braak2 = c("pontine tegmentum"),
   braak3 = c("substantia nigra", "basal nucleus of meynert, right", "basal nucleus of meynert, left", "CA2 field"),
   braak4 = c("amygdala", "occipito-temporal gyrus"), 
   braak5 = c("cingulate gyrus", "temporal lobe"),
   braak6 = c("frontal lobe", "parietal lobe")
 )
-braakStages <- lapply(braakStages, function(r){
-   region <- sampleIDs[r]
-   ids <- lapply(donorNames, function(d){
-     tab <- lapply(region, function(s){s[[d]]})
-     as.numeric(Reduce("|", tab))
-   })
-})
-sapply(braakStages, function(s){sapply(s, sum)})
+
+#########################################################################
+# # Function to join selections of multiple regions
+# mergeSelect <- function(r){
+#   lapply(donorNames, function(d){
+#     tab <- lapply(r, function(s){s[[d]]})
+#     as.numeric(Reduce("|", tab))
+#   })
+# }
+# 
+# braakStages <- lapply(braakStages, function(b){
+#    mergeSelect(roiSamples[b])
+# })
+# sapply(braakStages, function(s){sapply(s, sum)})
+# 
+# #All Braak stages
+# allBraak <- lapply(donorNames, function(d){
+#   tab <- lapply(braakStages, function(s){s[[d]]})
+#   as.numeric(Reduce("|", tab))
+# })
+# 
+# #Early, mid, and late stages
+# braak1to2 <- mergeSelect(braakStages[1:2])
+# braak3to4 <- mergeSelect(braakStages[3:4])
+# braak5to6 <- mergeSelect(braakStages[5:6])
+# braakStages1 <- list('braak1-2' = braak1to2, 'braak3-4' = braak3to4, 'braak5-6' = braak5to6)
+# #Early and late stages
+# braak1to3 <- mergeSelect(braakStages[1:3])
+# braak4to6 <- mergeSelect(braakStages[4:6])
+# braakStages2 <- list('braak1-3' = braak1to3, 'braak4-6' = braak4to6)
+# 
+# braakStages <- Reduce(append, list(braakStages, braakStages1, braakStages2))
+# 
+# #non-Braak regions
+# excludeCb <- function(b){
+#   lapply(donorNames, function(d){ # All except braak and cerebellum
+#     b[[d]] - roiSamples$cerebellum[[d]]
+#   })
+# }
+# 
+# nonBraakA1 <- lapply(allBraak, function(d){as.numeric(!d)}) # All except braak
+# nonBraakA2 <- excludeCb(nonBraakA1) # All except braak and cerebellum
+# nonBraakB1 <- lapply(allBraak, function(d){ d[d==0]= 1; d}) # All
+# nonBraakB2 <- excludeCb(nonBraakB1) # All except cerebellum
+# nonBraakC1 <- mergeSelect(roiSamples[c("basal part of pons", "red nucleus", "ventral tegmental area", "corpus callosum", 
+#                            "midbrain reticular formation", "cerebellum")]) # Known unaffected regions
+# nonBraakC2 <- excludeCb(nonBraakC1) # Known unaffected regions except cerebellum
+# 
+# nonBraak <- mget(c("nonBraakA1", "nonBraakA2", "nonBraakB1", "nonBraakB2", "nonBraakC1", "nonBraakC2")) # named list
+# 
+# save(braakStages, nonBraak, file = "resources/braakStages.RData")
+
+#########################################################################
+
+# Function to join selections of multiple regions
+collapseMerge <- function(m){
+  apply(m, 1, function(v){
+    ifelse(Reduce("|", v), 1L, 0L)
+  })
+}
+
+#Function to select regions and merge
+mergeRegions <- function(m, regions){
+  m <- m[, regions, drop = FALSE]
+  collapseMerge(m)
+}
+
+#Function to merge for each donor
+merge.per.donor <- function(mll, regionll){
+  lapply(donorNames, function (d){
+    m <- mll[[d]]
+    sapply(regionll, function(r){ mergeRegions(m, r)})
+  })
+}
+
+# Braak stage samples
+braakStages <- merge.per.donor(roiSamples, braakRegions)
+sapply(braakStages, function(m)apply(m, 2, sum))
 
 #All Braak stages
-allBraak <- lapply(donorNames, function(d){
-  tab <- lapply(braakStages, function(s){s[[d]]})
-  as.numeric(Reduce("|", tab))
-})
+allBraak <- lapply(braakStages, collapseMerge)
+sapply(allBraak, sum)
+
+# Merged Braak stages
+braakMerged1 <- split(braakNames, ceiling(seq_along(braakNames)/2))
+names(braakMerged1) <- braakNamesMerged1
+braakMerged2 <- split(braakNames, ceiling(seq_along(braakNames)/3))
+names(braakMerged2) <- braakNamesMerged2
+braakMerged1 <- merge.per.donor(braakStages, braakMerged1)
+braakMerged2 <- merge.per.donor(braakStages, braakMerged2)
+sapply(braakMerged2, function(m)apply(m, 2 , sum))
 
 #non-Braak regions
-nonBraak <- lapply(allBraak, function(d){as.numeric(!d)})
+nonBraakA1 <- lapply(allBraak, function(d){ifelse(!d, 1L, 0L)}) # All except braak
+nonBraakB1 <- lapply(allBraak, function(d){ d[d==0]= 1L; d}) # All
+nonBraakKnown <- c("basal part of pons", "red nucleus", "ventral tegmental area", "corpus callosum", 
+                "midbrain reticular formation", "cerebellum")
+nonBraakC1 <- sapply(donorNames, function(d) {
+  m <- roiSamples[[d]]
+  mergeRegions(m, nonBraakKnown)
+})
 
-#Braak and non-Braak
-sumAllB <- sapply(allBraak, sum)
-sumNonB <- sapply(nonBraak, sum)
-total <- sumAllB + sumNonB
-tabNonAll <- cbind(sumAllB, perc.All = sumAllB/total, sumNonB, perc.Non = sumNonB/total, total)
-
-#Braak regions 1-3 and 4-6 merged
-merge.braak <- function(x){
-  lapply(donorNames, function(d){
-    tab <- lapply(braakStages[x], function(s){s[[d]]})
-    as.numeric(Reduce("|", tab))
-  })
-}
-braak1to3 <- merge.braak(c(1:3))
-sumB1to3 <- sapply(braak1to3, sum)
-braak4to6 <- merge.braak(c(4:6))
-sumB4to6 <- sapply(braak4to6, sum)
-braak1to6 <- merge.braak(c(1:6))
-sumB1to6 <- sapply(braak1to6, sum)
-cbind(sumB1to3, sumB4to6, sumB1to6)
-
-braakStages <- append(braakStages, list('braak1-3' = braak1to3, 'braak4-6' = braak4to6, 'braak1-6' = braak1to6))
-
-save(braakStages, nonBraak, file = "resources/braakStages.RData")
-
-###### Functions to convert binary vectors to single vector with Braak labels
-
-#Revert list in list
-revert.list <- function(ll){
-  lapply(donorNames, function(d){
-    t(sapply(ll, function(bs){
-      bs[[d]]
-    }))
-  })
-}
-#generate label vector for all samples
-label.vector <- function(ll){
-  lapply(donorNames, function(dn){
-    d <- ll[[dn]]
-    labels <- apply(d, 2, function(v){
-      s <- which(v == 1)
-      ifelse(length(s) == 0, 0, tail(unlist(strsplit(names(s), split = "braak")), 1))
-    })
-    names(labels) <- sampleIds[[dn]]
-    labels
+# Function to exclude cerebellum
+cerebellum <- lapply(roiSamples, function(d) d[,"cerebellum"])
+excludeCb <- function(b){
+  lapply(donorNames, function(d){ # All except braak and cerebellum
+    b[[d]] - cerebellum[[d]]
   })
 }
 
-### Braak labels 1 to 6 for each sample ###
-bsPerDonor <- revert.list(braakStages[1:6])
-braakLabels <- label.vector(bsPerDonor)
+#non-Braak regions without cerebellum
+nonBraakA2 <- excludeCb(nonBraakA1) # All except braak and cerebellum
+nonBraakB2 <- excludeCb(nonBraakB1) # All except cerebellum
+nonBraakC2 <- excludeCb(nonBraakC1) # Known unaffected regions except cerebellum
 
-### Merged Braak labels 1-3 and 4-6 for each sample ###
-mergedBsPerDonor <- revert.list(braakStages[7:8])
-mergedBraakLabels <- label.vector(mergedBsPerDonor)
+nonBraak <- mget(c("nonBraakA1", "nonBraakA2", "nonBraakB1", "nonBraakB2", "nonBraakC1", "nonBraakC2")) # named list
 
-save(braakLabels, mergedBraakLabels, file = "resources/braakLabels.RData")
-
-#Save numbers
-braakSize <- t(sapply(braakLabels, function(d){
-  sapply(as.character(c(0:6)), function(s){
-    sum(d == s)
-  })
-}))
-write.table(braakSize, file = "braakSize.txt", sep = "\t", quote = FALSE)
-
-#Count non-zero labels, if >1 there are multiple labels assigned to a sample
-countLabels <- sapply(bsPerDonor, function(d){apply(d, 2, function(v){sum(v!=0)})})
-lapply(countLabels, function(d){which(d > 2)})
+save(braakStages, braakMerged1, braakMerged2, nonBraak, file = "resources/braakStages.RData")
