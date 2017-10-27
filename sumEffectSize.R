@@ -36,7 +36,7 @@ summaryEffect <- lapply(names(diffExprRef), function(ref){ # For each non-Braak 
       varDiff <- (tab$varB / size) + (tab$varNB / sizesNB[ , ref]) # variance of mean difference for each donor
       summary <- rma(meanDiff, varDiff, method = "DL") # Summary effect size
       weight <- round(weights(summary), digits = 2)
-      donors <- sapply(rownames(tab), function(n){ paste0("Donor ", unlist(strsplit(n, split = "donor"))[2])})
+      donors <- sapply(rownames(tab), function(n){ gsub("donor", "Donor ", n)})
       tab <- cbind(donors, meanDiff, varDiff, tab[, c("lower95", "upper95", "pvalue")], size, weight)
       tab <- rbind(tab, 'summary' = list("Summary", summary$beta, summary$se^2 , summary$ci.lb, summary$ci.ub, 
                                          summary$pval, sum(size), sum(weight)))
