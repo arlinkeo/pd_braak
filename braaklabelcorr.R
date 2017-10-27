@@ -43,7 +43,7 @@ geneLabelZscore <- apply(geneLabelCor, 1, function(r){
 summaryCorr <- lapply(genes, function(g){
   tab <- geneLabelZscore[[g]]
   pvalue <- geneLabelPVal[g,]
-  donors <- sapply(rownames(tab), function(n){ paste0("Donor ", unlist(strsplit(n, split = "donor"))[2])})
+  donors <- sapply(rownames(tab), function(n){ gsub("donor", "Donor ", n)})
   summary <- rma(tab$z, tab$variance, method = "DL")
   weight <- round(weights(summary), digits = 2)
   tab <- cbind(donors, tab, pvalue, braakSize, weight)
