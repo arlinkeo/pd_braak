@@ -90,7 +90,7 @@ merge.per.donor <- function(mll, regionll){
 
 # Braak stage samples
 braakStages <- merge.per.donor(roiSamples, braakRegions)
-sapply(braakStages, function(m)apply(m, 2, sum))
+t(sapply(braakStages, function(m)apply(m, 2, sum)))
 
 #All Braak stages
 allBraak <- lapply(braakStages, collapseMerge)
