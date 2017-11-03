@@ -4,11 +4,16 @@ setwd("C:/Users/dkeo/surfdrive/Parkinson")
 
 source("PD/base_script.R")
 
+# R version should be 3.25 instead of 3.3 for RDavid
+library("ggplot2")
 library("RDAVIDWebService")
 # load("resources/correlated_genes.RData")
-load("braakRelatedGenes.RData")
+# load("braakRelatedGenes.RData")
+load("resources/profileBraakGenes.RData")
+profiles <- names(profileBraakGenes)
+names(profiles) <- profiles
 
-#Functional enrichment genes correlated in Braak 1-3, 4-6, or 1-6
+#Functional enriched genes correlated in Braak 1-3, 4-6, or 1-6
 david<-DAVIDWebService$new(email="D.L.Keo@tudelft.nl",
                            url="https://david.abcc.ncifcrf.gov/webservice/services/DAVIDWebService.DAVIDWebServiceHttpSoap12Endpoint/")
 setAnnotationCategories(david, c("GOTERM_BP_ALL", "GOTERM_MF_ALL", "GOTERM_CC_ALL"))
@@ -19,13 +24,13 @@ t <- 0.05 # EASE p-value threshold
 setTimeOut(david, 200000)
 
 # Enrichment of genes correlated across braak stages
-lapply(names(relatedGenes), function(b){
-  genes <- relatedGenes[[b]]
-  result <- addList(david, genes, idType = "ENTREZ_GENE_ID", listName = b, listType = "Gene")
+lapply(profiles, function(p){
+  genes <- profileBraakGenes[[p]]
+  result <- addList(david, genes, idType = "ENTREZ_GENE_ID", listName = p, listType = "Gene")
   print(result)
   setCurrentBackgroundPosition(david, 1)
-  getFunctionalAnnotationChartFile(david, paste0("Functional_analyses_braak/", b, "_goterms.txt"), threshold=t, count=2L)
-  getClusterReportFile(david, paste0("Functional_analyses_braak/", b, "_termclusters.txt"), type = c("Term"))
+  getFunctionalAnnotationChartFile(david, paste0("Functional_analyses_braak/", p, "_goterms.txt"), threshold=t, count=2L)
+  getClusterReportFile(david, paste0("Functional_analyses_braak/", p, "_termclusters.txt"), type = c("Term"))
 })
 
 #Read DAVID output
@@ -48,18 +53,18 @@ read.RdavidOutput <- function(fileName){
 }
 
 #Benjamini-corrected GO terms
-correctedTerms <- lapply(names(relatedGenes), function(b){
-  file <- paste0("Functional_analyses_braak/", b, "_goterms.txt")
+correctedTerms <- lapply(profiles, function(p){
+  file <- paste0("Functional_analyses_braak/", p, "_goterms.txt")
   terms <- read.csv(file, header = TRUE, sep = "\t", colClasses = "character")
   rows <- which(terms$Benjamini < 0.05)
   terms <- terms[rows, c("Category", "Term", "Bonferroni", "Benjamini")]
   terms
 })
-
+sapply(correctedTerms, nrow)
 #print top 3 significant terms in merged braak stages
-top5terms <- lapply(correctedTerms, function(b){
-  b[c(1:5),]
+top3terms <- lapply(correctedTerms, function(p){
+  p[c(1:3),]
 })
-do.call(rbind, top5terms)
-top5merged <- do.call(rbind, top5terms)
-format(as.numeric(top5merged$Benjamini), digits = 3, scientific = TRUE)
+top3merged <- do.call(rbind, top3terms)
+top3merged <- top3merged[apply(!is.na(top3merged), 1, any),]
+top3merged$Benjamini <- format(as.numeric(top3merged$Benjamini), digits = 3, scientific = TRUE)
