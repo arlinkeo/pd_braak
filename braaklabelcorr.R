@@ -30,18 +30,27 @@ geneLabelPVal <- braak.cor(brainExprNorm, "p.value")
 genes <- rownames(brainExprNorm$donor9861)
 braakSize <- sapply(braakLabels, function(x){sum(sapply(c(1:6), function(b){sum(x==b)}))})
 
-# Transform correlations to Fisher's z-scale and get corresponding sampling variances and confidence intervals
-geneLabelZscore <- apply(geneLabelCor, 1, function(r){
-  t <- escalc(measure = "ZCOR", ri = r, ni = braakSize)
+# # Transform correlations to Fisher's z-scale and get corresponding sampling variances and confidence intervals
+# geneLabelZscore <- apply(geneLabelCor, 1, function(r){
+#   t <- escalc(measure = "ZCOR", ri = r, ni = braakSize)
+#   t <- summary(t)
+#   t <- t[, c(1,2,5,6)]
+#   colnames(t) <- c("z", "variance", "lower95", "upper95")
+#   t
+# })
+#Summary correlation and corresponding sampling variances and confidence intervals
+geneLabelRawCor <- apply(geneLabelCor, 1, function(r){
+  t <- escalc(measure = "COR", ri = r, ni = braakSize)
   t <- summary(t)
   t <- t[, c(1,2,5,6)]
   colnames(t) <- c("z", "variance", "lower95", "upper95")
   t
 })
 
+
 # Get summary correlation
 summaryCorr <- lapply(genes, function(g){
-  tab <- geneLabelZscore[[g]]
+  tab <- geneLabelRawCor[[g]]
   pvalue <- geneLabelPVal[g,]
   donors <- sapply(rownames(tab), function(n){ gsub("donor", "Donor ", n)})
   summary <- rma(tab$z, tab$variance, method = "DL")
