@@ -5,10 +5,9 @@ library(ggplot2)
 library(gridExtra)
 
 source("PD/base_script.R")
-# load("resources/sumEffectSize.RData") #old
-load("resources/summaryEffect.RData") # new
+load("resources/summaryMeanDiff.RData")
 
-gene <- "SNCA"
+gene <- "GCH1"
 geneId <- name2EntrezId(gene)
 
 # Basic ggplot theme
@@ -21,7 +20,7 @@ theme.grid <- theme(panel.background = element_blank(), panel.grid = element_bla
 nonBraakRef <- "nonBraakA1"
 
 #Get values for a gene to plot
-braakList <- summaryEffect[[nonBraakRef]][[geneId]]
+braakList <- summaryMeanDiff[[nonBraakRef]][[geneId]]
 braakList$`braak1-3` <- NULL
 braakList$`braak4-6` <- NULL
 braakList <- lapply(names(braakList), function(b){
@@ -63,9 +62,9 @@ leftPanel <- fp +
   labs(title = paste0("Summary effect size of ", gene), x = "Raw mean difference") +
   scale_y_discrete(labels = rev(tab$donor)) +
   # scale_x_continuous(limits = c(x.min, x.max)) +
-  geom_text(aes(x = x.max + 0.3, label = rmd), size = 3) +
-  geom_text(aes(x = x.max + 0.7, label = size), size = 3) +
-  geom_text(aes(x = x.max + 1.0, label = weight), size = 3) +
+  geom_text(aes(x = x.max + 0.8, label = rmd), size = 3) +
+  geom_text(aes(x = x.max + 1.8, label = size), size = 3) +
+  geom_text(aes(x = x.max + 2.5, label = weight), size = 3) +
   # geom_text(data = colLabels, aes(x, y, label = label)) +
   theme.grid + theme(plot.margin = unit(c(0,4,0,4), "lines")) +
   facet.braak

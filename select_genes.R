@@ -4,14 +4,12 @@ setwd("C:/Users/dkeo/surfdrive/Parkinson")
 
 library("metap")
 
-
 source("PD/base_script.R")
-# load("resources/sumEffectSize.RData") # For each gene, a list of tables for each braak stage (donor x statistics)
-load("resources/summaryEffect.RData") # new
+load("resources/summaryMeanDiff.RData")
 load("resources/summaryCorr.RData")
 
 #Filter for summary effect
-summaryMeanDiff <- lapply(summaryEffect, function(ref){
+summaryMeanDiff <- lapply(summaryMeanDiff, function(ref){
   lapply(ref, function(g){
     as.data.frame(t(sapply(g, function(bs){
       bs["summary", ]

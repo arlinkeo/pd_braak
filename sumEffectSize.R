@@ -24,7 +24,7 @@ sizesNB <- sapply(nonBraak, function(l){sapply(l, sum)})
 genes <- rownames(diffExprRef$nonBraakA1$donor9861$braak1)
 names(genes) <- genes
 
-summaryEffect <- lapply(names(diffExprRef), function(ref){ # For each non-Braak reference
+summaryMeanDiff <- lapply(names(diffExprRef), function(ref){ # For each non-Braak reference
   dll <- diffExprRef[[ref]]
   lapply(genes, function(g){# for each gene
     print(paste0("Ref: ", ref, ", #", which(genes == g), ", gene id: ", g, ", gene name: ", entrezId2Name(g)))
@@ -48,6 +48,6 @@ summaryEffect <- lapply(names(diffExprRef), function(ref){ # For each non-Braak 
     })
   })
 })
-names(summaryEffect) <- names(nonBraak)
+names(summaryMeanDiff) <- names(nonBraak)
 
-save(summaryEffect, file = "resources/summaryEffect.RData")
+save(summaryMeanDiff, file = "resources/summaryMeanDiff.RData")
