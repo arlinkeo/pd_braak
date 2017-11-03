@@ -2,6 +2,7 @@
 
 setwd("C:/Users/dkeo/surfdrive/Parkinson")
 library(metafor)
+library("metap")
 
 source("PD/base_script.R")
 # load("../ABA_Rdata/BrainExprNorm.RData")
@@ -37,9 +38,12 @@ summaryEffect <- lapply(names(diffExprRef), function(ref){ # For each non-Braak 
       summary <- rma(meanDiff, varDiff, method = "DL") # Summary effect size
       weight <- round(weights(summary), digits = 2)
       donors <- sapply(rownames(tab), function(n){ gsub("donor", "Donor ", n)})
-      tab <- cbind(donors, meanDiff, varDiff, tab[, c("lower95", "upper95", "pvalue")], size, weight)
+      pvalue <- summary$pval
+      benjamini_hochberg <- p.adjust(pvalue , method = "BH", n = length(genes))
+      bonferroni <- p.adjust(pvalue , method = "bonferroni", n = length(genes))
+      tab <- cbind(donors, meanDiff, varDiff, tab[, c("lower95", "upper95", "pvalue", "benjamini_hochberg", "bonferroni")], size, weight)
       tab <- rbind(tab, 'summary' = list("Summary", summary$beta, summary$se^2 , summary$ci.lb, summary$ci.ub, 
-                                         summary$pval, sum(size), sum(weight)))
+                                         pvalue, benjamini_hochberg, bonferroni, sum(size), sum(weight)))
       tab
     })
   })
@@ -47,36 +51,3 @@ summaryEffect <- lapply(names(diffExprRef), function(ref){ # For each non-Braak 
 names(summaryEffect) <- names(nonBraak)
 
 save(summaryEffect, file = "resources/summaryEffect.RData")
-
-##################################################################################
-# genes <- rownames(diffGenesList$braak1$donor9861)
-# names(genes) <- genes
-# 
-# Function to get info table and calculate summary effect for a gene
-# sumTable <- function(g){
-#   print(paste(g, entrezId2Name(g)))
-#   lapply(braakNames, function(bs){
-#     donorList <- diffGenesList[[bs]]
-#     tab <- as.data.frame(t(sapply(donorList, function(t) unlist(t[g, ]))))# get gene row for each donor
-#     tab$meanDiff <- unlist(tab$meanB) - unlist(tab$meanNB)# mean difference for each donor
-#     donors <- sapply(rownames(tab), function(n){ paste0("Donor ", unlist(strsplit(n, split = "donor"))[2])})
-#     tab$donor <- donors
-#     tab$size <- sizes[, bs]
-#     tab$varDiff <- (tab$varB / tab$size) + (tab$varNB / sizesNB) # variance of mean difference for each donor
-#     tab$pvalue <- tab$benjamini_hochberg # Corrected p-value
-#     tab <- tab[, c("lower95", "upper95", "meanDiff", "varDiff", "donor", "size", "pvalue")]
-#     sumEffect <- rma(tab$meanDiff, tab$varDiff, method = "DL") # Summary effect size
-#     tab$weight <- round(weights(sumEffect), digits = 2)
-#     # Add row with summary effect statistics
-#     tab <- rbind(tab, 'SummaryEff' = list(sumEffect$ci.lb, sumEffect$ci.ub, sumEffect$beta, sumEffect$se^2, 
-#                                           "Summary", sum(tab$size), sumEffect$pval, sum(tab$weight)))
-#     tab$isSum <- tab$donor == "Summary"
-#     tab$braak <- bs
-#     tab
-#   })
-# }
-# 
-# #Get values for each gene
-# sumEffectSize <- lapply(genes, sumTable)
-# save(sumEffectSize, file = "resources/sumEffectSize.RData")
-##################################################################################
