@@ -2,6 +2,9 @@
 
 setwd("C:/Users/dkeo/surfdrive/Parkinson")
 
+library("metap")
+
+
 source("PD/base_script.R")
 # load("resources/sumEffectSize.RData") # For each gene, a list of tables for each braak stage (donor x statistics)
 load("resources/summaryEffect.RData") # new
@@ -18,7 +21,6 @@ summaryMeanDiff <- lapply(summaryEffect, function(ref){
 summaryCorr2 <- as.data.frame(t(sapply(summaryCorr, function(g){
   unlist(g["summary", ])
 })))
-
 
 # #Table of all genes per braak stage
 # genesPerBs <- lapply(braakNames, function(bs){
@@ -87,14 +89,65 @@ corrGenes <- rownames(summaryCorr2)[abs(as.numeric(summaryCorr2$z)) > 0.5]
 # save(corrGenes, file = "resources/correlated_genes1.RData")
 # load("resources/correlated_genes1.RData")
 
-# Correlated genes with diff. expression in one of the braak regions
-braakGenes <- lapply(summaryMeanDiff, function(ref){
-  tabll <- ref[corrGenes]
-  genes <- sapply(tabll, function(g){
-    any(g$meanDiff > 1 & g$pvalue <0.05)
+# Diff. expressed genes in one of the merged braak regions for each non-Braak region
+diffGenes <- lapply(summaryMeanDiff, function(ref){
+  genes <- sapply(ref, function(g){
+    g <- g[braakNamesMerged1, ] # check only in merged braak
+    any(abs(unlist(g$meanDiff)) > 1 & g$benjamini_hochberg <0.05)
   })
-  names(tabll)[genes]
+  names(genes)[genes]
 })
-overlapBraakGenes <- Reduce(intersect, braakGenes)
-sapply(braakGenes, function(x) any(x== "6622"))
- 
+
+similarity <- sapply(diffGenes, function(a){ #jaccard
+  sapply(diffGenes, function(b){
+    shared <- length(intersect(a, b))
+    unshared <- length(union(a, b))
+    shared/unshared*100
+  })
+})#[c(1,3,5,2,4,6), c(1,3,5,2,4,6)]
+
+overlapRef <- Reduce(intersect, diffGenes)
+overlapRefA <- Reduce(intersect, diffGenes[c(1,3,5)])
+overlapRefB <- Reduce(intersect, diffGenes[c(2,4,6)])
+
+# Correlated genes with diff. expression in one of the braak regions
+braakGenesPerRef <- lapply(diffGenes, function(ref){
+  intersect(ref, corrGenes)
+})
+braakGenes <- braakGenesPerRef$nonBraakA2
+
+save(braakGenes, file = "resources/braakGenes.RData")
+any(braakGenes== "6622")
+
+braakGenesList <- summaryMeanDiff$nonBraakA2[braakGenes]
+#Check which Braak regions show diff. expression in 1-2, 3-4, and/or 5-6
+braakGenesList2 <- lapply(braakGenesList, function(x)x[braakNamesMerged1, ])
+braakProfile <- sapply(braakGenesList2, function(t) {
+  diff <- unlist(t$meanDiff)
+  pval <- unlist(t$benjamini_hochberg)
+  profile <- as.numeric(abs(diff) > 1 & pval < 0.05)
+  neg <- ifelse(diff <0, -1, 1)
+  profile <- neg*profile
+  paste(as.character(profile), collapse = "")
+})
+occurences <- as.data.frame(table(braakProfile))
+profiles <- as.character(occurences$braakProfile)
+names(profiles) <- profiles
+
+profileBraakGenes <- lapply(profiles, function(p){
+  idx <- braakProfile %in% p
+  names(braakProfile)[idx]
+})
+save(profileBraakGenes, file = "resources/profileBraakGenes.RData")
+
+# Correlation of Braak profile genes
+profileCorr <- lapply(profileBraakGenes, function(p){
+  summaryCorr2[p, ]
+})
+
+#Presence of PD-implicated genes
+lapply(profileBraakGenes, function(p){
+  overlap <- lapply(pdGenesID, function(pd){intersect(pd, p)})
+  sapply(overlap, entrezId2Name)
+})
+
