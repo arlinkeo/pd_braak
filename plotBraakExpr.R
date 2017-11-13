@@ -14,6 +14,7 @@ names(donorNames) <- donorNames
 load("resources/geneLabelCor.RData")
 load("resources/diffGenesBraak.RData") # for looking up p-value (2 diff. data structures)
 load("resources/braakLabels.RData") # Braak stage label vectors
+load("resources/summaryCorr.RData")
 
 susceptibilityGenes <- as.character(name2entrezId(c("INPP5F", "TMEM175", "ASH1L", "MAPT", "RIT1", "C14orf83", "STK39", "GPNMB", "BST1", 
               "SIPA1L2", "DLG2", "NUCKS1", "GCH1", "MCCC1", "FAM47E", "BCKDK", "TMPRSS9", "UBOX5", 
@@ -115,10 +116,11 @@ plot.gene <- function(gene, d){
 ############
 
 #Average correlation across brains
-avgCor <- apply(geneLabelCor, 1, mean)
+# avgCor <- apply(geneLabelCor, 1, mean)
+sumCor <- sapply(summaryCorr, function(g)g["summary", "z"])
 #Sort genes based on avgCor
 sort.genes <- function(x){
-  x <- avgCor[x]
+  x <- sumCor[x]
   names(x) <- entrezId2Name(names(x))
   sort(x)
 }
@@ -289,7 +291,7 @@ corHiGenes <- cor.heatmap(sortHiGenes)
 
 ######## Plot heatmaps
 
-pdf(file = "expr_corr_heatmap.pdf",12,8)
+pdf(file = "expr_corr_heatmap2.pdf",12,8)
 multi.boxplot(tabLyso, main = "Expression of lysosome genes in Braak stages")
 corLyso
 multi.boxplot(tabHiGenes, main = "Expression of high impact genes in Braak stages")

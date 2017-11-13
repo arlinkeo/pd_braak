@@ -14,59 +14,6 @@ braakRegions <- list(
   braak6 = c("frontal lobe", "parietal lobe")
 )
 
-#########################################################################
-# # Function to join selections of multiple regions
-# mergeSelect <- function(r){
-#   lapply(donorNames, function(d){
-#     tab <- lapply(r, function(s){s[[d]]})
-#     as.numeric(Reduce("|", tab))
-#   })
-# }
-# 
-# braakStages <- lapply(braakStages, function(b){
-#    mergeSelect(roiSamples[b])
-# })
-# sapply(braakStages, function(s){sapply(s, sum)})
-# 
-# #All Braak stages
-# allBraak <- lapply(donorNames, function(d){
-#   tab <- lapply(braakStages, function(s){s[[d]]})
-#   as.numeric(Reduce("|", tab))
-# })
-# 
-# #Early, mid, and late stages
-# braak1to2 <- mergeSelect(braakStages[1:2])
-# braak3to4 <- mergeSelect(braakStages[3:4])
-# braak5to6 <- mergeSelect(braakStages[5:6])
-# braakStages1 <- list('braak1-2' = braak1to2, 'braak3-4' = braak3to4, 'braak5-6' = braak5to6)
-# #Early and late stages
-# braak1to3 <- mergeSelect(braakStages[1:3])
-# braak4to6 <- mergeSelect(braakStages[4:6])
-# braakStages2 <- list('braak1-3' = braak1to3, 'braak4-6' = braak4to6)
-# 
-# braakStages <- Reduce(append, list(braakStages, braakStages1, braakStages2))
-# 
-# #non-Braak regions
-# excludeCb <- function(b){
-#   lapply(donorNames, function(d){ # All except braak and cerebellum
-#     b[[d]] - roiSamples$cerebellum[[d]]
-#   })
-# }
-# 
-# nonBraakA1 <- lapply(allBraak, function(d){as.numeric(!d)}) # All except braak
-# nonBraakA2 <- excludeCb(nonBraakA1) # All except braak and cerebellum
-# nonBraakB1 <- lapply(allBraak, function(d){ d[d==0]= 1; d}) # All
-# nonBraakB2 <- excludeCb(nonBraakB1) # All except cerebellum
-# nonBraakC1 <- mergeSelect(roiSamples[c("basal part of pons", "red nucleus", "ventral tegmental area", "corpus callosum", 
-#                            "midbrain reticular formation", "cerebellum")]) # Known unaffected regions
-# nonBraakC2 <- excludeCb(nonBraakC1) # Known unaffected regions except cerebellum
-# 
-# nonBraak <- mget(c("nonBraakA1", "nonBraakA2", "nonBraakB1", "nonBraakB2", "nonBraakC1", "nonBraakC2")) # named list
-# 
-# save(braakStages, nonBraak, file = "resources/braakStages.RData")
-
-#########################################################################
-
 # Function to join selections of multiple regions
 collapseMerge <- function(m){
   apply(m, 1, function(v){
