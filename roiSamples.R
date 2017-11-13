@@ -15,28 +15,6 @@ nonBraakRoi  <-  c("cerebellum", "basal part of pons", "red nucleus", "ventral t
 regions <- c(braakRoi, nonBraakRoi)
 names(regions) <- regions
 
-############################################################################
-# # Function to select region-specific samples in all six donors
-# selectSamples <- function(r){# for a single structure
-#   row <- match(r, ontology$name)
-#   id <- ontology$id[row]
-#   rows <- grep(id, ontology$structure_id_path)
-#   selectIds <- ontology$id[rows]
-#   lapply(donorNames, function(d){
-#     expr <- brainExpr[[d]]
-#     ids <- intersect(selectIds, colnames(expr))
-#     cols <- colnames(expr) %in% ids
-#     as.integer(cols)
-#   })
-# }
-# 
-# roiSamples <- lapply(regions, function(s){
-#   selectSamples(s)
-# })
-# sapply(roiSamples, function(s){sapply(s, sum)})
-# save(roiSamples, file = "resources/roiSamples2.RData")
-
-############################################################################
 # Function to select region-specific samples in all six donors
 
 selectIds <- function(r){ # for a single structure
