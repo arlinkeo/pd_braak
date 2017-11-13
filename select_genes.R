@@ -23,9 +23,6 @@ summaryCorr2 <- as.data.frame(t(sapply(summaryCorr, function(g){
 # Get correlated genes |r>0.5|
 corrGenes <- rownames(summaryCorr2)[abs(as.numeric(summaryCorr2$z)) > 0.5]
 
-# save(corrGenes, file = "resources/correlated_genes1.RData")
-# load("resources/correlated_genes1.RData")
-
 # Diff. expressed genes in one of the merged braak regions for each non-Braak region
 diffGenes <- lapply(summaryMeanDiff, function(ref){
   genes <- sapply(ref, function(g){
@@ -88,12 +85,13 @@ lapply(profiles, function(p){
   tab <-  data.frame(id, name)
   write.table(tab, file = paste0("Braak_related_genes/BraakGenes_", p, ".txt"), quote = FALSE, sep = "\t", row.names = FALSE)
 })
-#find gene
-find.gene <- function(g){
-  lapply(profiles, function(p){
-    entrezId2Name(profileBraakGenes[p]) %in% g
-  })
-}
+
+# #find gene
+# find.gene <- function(g){
+#   lapply(profiles, function(p){
+#     entrezId2Name(profileBraakGenes[p]) %in% g
+#   })
+# }
 
 
 # Correlation of Braak profile genes
