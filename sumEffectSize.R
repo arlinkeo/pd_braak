@@ -19,7 +19,7 @@ braakStages2 <- lapply(donorNames, function(d){
 braakNames2 <- c(braakNames, braakNamesMerged1, braakNamesMerged2)
 
 sizesB <- t(sapply(braakStages2, function(m)apply(m, 2, sum)))
-sizesNB <- sapply(nonBraak, function(l){sapply(l, sum)})
+sizesNB <- sizesNB <- sapply(nonBraak, function(l){sapply(l, sum)})
 
 genes <- rownames(diffExprRef$nonBraakA1$donor9861$braak1)
 names(genes) <- genes
