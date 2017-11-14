@@ -6,11 +6,11 @@ source("PD/base_script.R")
 load("../ABA_Rdata/BrainExprNorm.RData")
 load("resources/braakLabels.RData") # Braak stage label vectors
 load("resources/summaryCorr.RData") # Expression - Braak label correlation
-# load("resources/profileBraakGenes.RData") # Binary Braak expression profile
+load("resources/Braakprofile.RData") # Binary Braak expression profile
 
 # Get gene's expression
 gene.expr <- function(g, d){
-  unlist(brainExprNorm[[d]][gene, ])
+  unlist(brainExprNorm[[d]][g, ])
 }
 
 # Default theme for boxplot
@@ -30,7 +30,8 @@ boxplot.gene <- function(g){
   exprll <- Reduce(rbind, exprll)
   
   r <- format(summaryCorr[[g]]["summary", c("z", "pvalue")], digits = 2)
-  title <- paste0(entrezId2Name(g), ", r=", r$z, ", p=", r$pvalue)
+  profile <- braakProfile[g]
+  title <- paste0(entrezId2Name(g), ", r=", r$z, ", p=", r$pvalue, ", profile=", profile)
   
   p <- ggplot(exprll) + geom_boxplot(aes(x = factor(label), y = expr, fill = factor(donor))) +
     labs(x = "Braak stage", y = "Expression") +
