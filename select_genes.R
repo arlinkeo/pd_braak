@@ -12,13 +12,12 @@ load("resources/summaryCorr.RData")
 summaryMeanDiff <- summaryMeanDiff$nonBraakA2
 
 #Filter for summary effect
-summaryMeanDiff <- lapply(summaryMeanDiff, function(ref){
-  lapply(ref, function(g){
-    as.data.frame(t(sapply(g, function(bs){
-      bs["summary", ]
-    })))
-  })
+summaryMeanDiff <- lapply(summaryMeanDiff, function(g){
+  as.data.frame(t(sapply(g, function(bs){
+    bs["summary", ]
+  })))
 })
+
 summaryCorr2 <- as.data.frame(t(sapply(summaryCorr, function(g){
   unlist(g["summary", ])
 })))
@@ -63,9 +62,19 @@ save(braakGenes, file = "resources/braakGenes.RData")
 # any(braakGenes== "6622")
 
 #Occurences of profiles for Braak-related genes (after selection)
-occurences <- as.data.frame(table(braakProfile[braakGenes]))
+braakProfile <- braakProfile[braakGenes]
+occurences <- as.data.frame(table(braakProfile))
 
-#Save as txt-file
+# Braak genes per profile
+profiles <- profiles[profiles != c("000")]
+profileList <- lapply(profiles, function(p){
+  idx <- braakProfile %in% p
+  names(braakProfile)[idx]
+})
+sapply(profileList, length)
+save(profileList, file = "resources/profileList.RData")
+
+#Save as txt-files
 lapply(profiles, function(p){
   id <- profileList[[p]]
   name <- entrezId2Name(id)
@@ -73,6 +82,14 @@ lapply(profiles, function(p){
   tab <-  data.frame(id, name)
   write.table(tab, file = paste0("Braak_related_genes/BraakGenes_", p, ".txt"), quote = FALSE, sep = "\t", row.names = FALSE)
 })
+
+#Save as one txt-file
+profileListNames <- lapply(profileList, entrezId2Name)
+profileVector <- sapply(profileList, function(l) paste(l, collapse = ","))
+profileVectorNames <- sapply(profileListNames, function(l) paste(l, collapse = ","))
+tab <- data.frame(Profile = names(profileVector), Entrez_id = profileVector, Gene_name = profileVectorNames)
+tab <- tab[lapply(tab$Gene_name, nchar) != 0, ]
+write.table(tab, file = "Braak_related_genes/Braak_related_genes.txt", quote = FALSE, sep = "\t", row.names = FALSE)
 
 #Presence of PD-implicated genes
 profilePDgenes <- unlist(lapply(pdGenesID, function(pd){intersect(pd, braakGenes)}))
