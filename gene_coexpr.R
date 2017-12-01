@@ -21,6 +21,7 @@ braakExpr <- lapply(donorNames, function(d){
 })
 sapply(braakExpr, dim)
 remove(brainExprNorm)
+braakExpr <- lapply(braakExpr, function(x)x[1:200, ])
 
 # p-values of correlations
 gene_coexpr <- lapply(donorNames, function(d){
@@ -29,4 +30,4 @@ gene_coexpr <- lapply(donorNames, function(d){
   m$n <- m$n[1, 1]
   m
 })
-save(gene_coexpr, file = "gene_coexpr.Rdata")
+save(gene_coexpr, file = "resources/gene_coexpr.Rdata")
