@@ -5,22 +5,17 @@ library(metafor)
 
 source("PD/base_script.R")
 load("resources/gene_coexpr.Rdata")
-
-# Genen pairs
-genes <- rownames(braakExpr$donor9861)
-genepairs <- as.data.frame(t(combn(genes, 2)))
-rownames(genepairs) <- apply(genepairs, 1, function(x)paste(x, collapse = "-"))
-colnames(genepairs) <- c("gene_A", "gene_B")
+load("resources/braakLabels.RData") # Braak stage label vectors
+back.transform <- dget("PD/back.transform.R")
 
 #Correlations across donors per gene pair
-genepairCor <- t(apply(genepairs, 1, function(g){
-  sapply(gene_coexpr, function(m){
-    m$r[g[1],g[2]]
-  })
-}))
+ll <- lapply(gene_coexpr, function(x) x$r)
+genepairCor <- mapply(c, ll)
 
 # Sampling size
-braakSize <- sapply(wholeBraak, sum)
+braakSize <- sapply(braakLabels, function(d){
+  sum(d != 0)
+})
 
 # Transform correlations to Fisher's z-scale and get corresponding sampling variances and confidence intervals
 genepairZscore <- apply(genepairCor, 1, function(r){
@@ -40,12 +35,6 @@ summaryCor <- lapply(genepairZscore, function(t){
   rbind(t, 'summary' = list("Summary", summary$beta, summary$se^2 , summary$ci.lb, summary$ci.ub, 
                             sum(braakSize), sum(weight)))
 })
-
-# Back transform correlations, variances and confidence intervals
-back.transform <- function(x){
-  a <- exp(1)^(2*x)
-  as.data.frame((a-1)/(a+1))
-}
 
 summaryGeneCoexpr <- lapply(summaryCor, function(t){
   t[, c("r", "variance", "lower95", "upper95")] <- back.transform(t[, c("r", "variance", "lower95", "upper95")])
