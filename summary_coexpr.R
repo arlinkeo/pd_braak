@@ -10,7 +10,7 @@ back.transform <- dget("PD/back.transform.R")
 
 #Correlations across donors per gene pair
 ll <- lapply(gene_coexpr, function(x) x$r)
-genepairCor <- mapply(c, ll)
+genepairCor <- mapply(c, ll) # Concatenate correlations from donors for each gene pair
 
 # Sampling size
 braakSize <- sapply(braakLabels, function(d){
