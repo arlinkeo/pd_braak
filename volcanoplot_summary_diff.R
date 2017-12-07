@@ -6,11 +6,12 @@ library(ggplot2)
 library(gridExtra)
 
 source("PD/base_script.R")
-load("resources/summaryMeanDiff.RData")
+load("resources/summaryDiffExpr.RData")
 
-genesPerBraak <- lapply(c(braakNames, braakNamesMerged1), function(bs){
-  as.data.frame(t(sapply(summaryMeanDiff$nonBraakA2, function(g) {
-    unlist(g[[bs]]["summary", c("meanDiff", "varDiff", "lower95", "upper95", "benjamini_hochberg")])
+# Extract summary statistics
+summaryStats <- lapply(summaryDiffExpr, function(rp){
+  as.data.frame(t(sapply(rp, function(g) {
+    unlist(g["summary", !colnames(g) %in% c("donors", "weight")])
   })))
 })
 
@@ -20,21 +21,25 @@ theme <- theme(legend.position = "none",
                axis.title =  element_text(size = 12),
                plot.title = element_text(size = 12, face = "bold"))
 
-volcano.plot <- function(tab, bs){
+volcano.plot <- function(tab, rp){
+  tab$'logp' <- -log10(tab$benjamini_hochberg)
+  tab$info <- tab$benjamini_hochberg < 0.05 & abs(tab$meanDiff) > 1
   ggplot(tab, aes(meanDiff, logp, colour = info)) +
   geom_point(size = 0.5) +
   labs(x = "fold-change", y = "-log10 p-value") +
-  ggtitle(paste("Braak stage", tail(unlist(strsplit(bs, split = "braak")), 1))) +
+  ggtitle(paste("Braak stage ", gsub("braak", "", gsub("-", " vs ", rp)))) +
   theme
 }
 
-plotll <- lapply(braakNamesMerged1, function(bs){
-  tab <- genesPerBraak[[bs]]
-  tab$'logp' <- -log10(tab$benjamini_hochberg)
-  tab$info <- tab$benjamini_hochberg < 0.05 & abs(tab$meanDiff) > 1
-  volcano.plot(tab, bs)
+plotll <- lapply(names(summaryStats), function(rp){
+  tab <- summaryStats[[rp]]
+  p <- volcano.plot(tab, rp)
+  name <- paste0("DiffExpr_braak/volcanoplot_", rp, ".pdf")
+   pdf(file = name, 4, 3)
+   print(p)
+   dev.off()
 })
-
-pdf(file = "volcanoplot_summary_diff.pdf", 12, 4)
-grid.arrange(grobs = plotll, top = "Summary differential expression", nrow = 1)
-dev.off()
+# 
+# pdf(file = "volcanoplot_summary_diff.pdf", 12, 12)
+# grid.arrange(grobs = plotll, top = "Summary differential expression", nrow = 5)
+# dev.off()
