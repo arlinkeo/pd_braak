@@ -48,15 +48,15 @@ ttest <- lapply(donorNames, function(d){
   tabll
 })
 save(ttest, file = "resources/ttest.RData")
-
+load("resources/ttest.RData")
 
 # Braak region pairs -> Genes -> Donors (table)
 diffExpr <- sapply(rownames(braakPairs), function(p){
-  lapply(genes, function(g){
+  sapply(genes, function(g){
     as.data.frame(t(sapply(donorNames, function(d){
       res <- unlist(ttest[[d]][[p]][g, ])
     })))
-  })
+  }, simplify = FALSE)
 }, simplify = FALSE)
 
 save(diffExpr, file = "resources/diffExpr.RData")
