@@ -29,7 +29,7 @@ genepairZscore <- apply(genepairCor, 1, function(r){
 # Summary correlation
 summaryCor <- lapply(genepairZscore, function(t){
   donors <- sapply(rownames(t), function(n){ gsub("donor", "Donor ", n)})
-  summary <- rma(t$r, t$variance, method = "DL")
+  summary <- rma(t$r, t$variance, method = "DL", test = "t")
   weight <- round(weights(summary), digits = 2)
   t <- cbind(donors, t, braakSize, weight)
   rbind(t, 'summary' = list("Summary", summary$beta, summary$se^2 , summary$ci.lb, summary$ci.ub, 
