@@ -22,7 +22,7 @@ summaryDiffExpr <- sapply(names(diffExpr), function(rp){ # For each Braak region
     meanDiff <- gene$meanA - gene$meanB # mean difference for each donor
     # size <- sizesB[, bs]
     varDiff <- (gene$varA / sizesB[, rA]) + (gene$varB / sizesB[, rB]) # nonpooled variance of mean difference 
-    summary <- rma(meanDiff, varDiff, method = "DL") # Summary effect size
+    summary <- rma(meanDiff, varDiff, method = "DL", test = "t") # Summary effect size
     weight <- round(weights(summary), digits = 2)
     donors <- sapply(rownames(gene), function(n){ gsub("donor", "Donor ", n)})
     pvalue <- summary$pval
