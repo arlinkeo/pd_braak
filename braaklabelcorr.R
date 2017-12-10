@@ -27,7 +27,8 @@ braak.cor <- function(dataList, stat) {
 # Correlate gene expression to Braak labels for each brain (without non-Braak region)
 geneLabelCor <- braak.cor(brainExprNorm, "estimate")
 geneLabelPVal <- braak.cor(brainExprNorm, "p.value")
-
+save(geneLabelCor, file = "resources/geneLabelCor.RData")
+save(geneLabelPVal, file = "resources/geneLabelPVal.RData")
 
 ##### Summary effect of correlations
 genes <- rownames(brainExprNorm$donor9861)
@@ -48,7 +49,7 @@ summaryCor <- lapply(genes, function(g){
   tab <- geneLabelZscore[[g]]
   pvalue <- geneLabelPVal[g,]
   donors <- sapply(rownames(tab), function(n){ gsub("donor", "Donor ", n)})
-  summary <- rma(tab$r, tab$variance, method = "DL")
+  summary <- rma(tab$r, tab$variance, method = "DL", test = "t")
   weight <- round(weights(summary), digits = 2)
   tab <- cbind(donors, tab, pvalue, braakSize, weight)
   rbind(tab, 'summary' = list("Summary", summary$beta, summary$se^2 , summary$ci.lb, summary$ci.ub, 
