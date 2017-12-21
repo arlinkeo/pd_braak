@@ -50,6 +50,14 @@ ttest <- lapply(donorNames, function(d){
 save(ttest, file = "resources/ttest.RData")
 load("resources/ttest.RData")
 
+# Number of diff. expr. genes
+sapply(ttest, function(d){
+  sapply(d, function(rp){
+    meanDiff <- rp$meanA - rp$meanB
+    sum(rp$benjamini_hochberg < 0.05 & abs(meanDiff) > 1)
+  })
+})
+
 # Braak region pairs -> Genes -> Donors (table)
 diffExpr <- sapply(rownames(braakPairs), function(p){
   sapply(genes, function(g){
