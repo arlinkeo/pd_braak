@@ -13,11 +13,18 @@ wholeBraak <- lapply(braakLabels, function(d){
 })
 sapply(wholeBraak, sum)
 
+# Random subselection of genes
+genes <- rownames(brainExprNorm$donor9861)
+subsetGenes <- sample(genes, 500)
+save(subsetGenes, file = "resources/subsetGenes.RData")
+
 # Select all Braak samples in expression data
 braakExpr <- lapply(donorNames, function(d){
-  # Subselect expression matrices
+  # Subselect brain samples
   labels <- wholeBraak[[d]]
-  brainExprNorm[[d]][, labels]
+  # brainExprNorm[[d]][, labels]
+  # subselect genes
+  brainExprNorm[[d]][subsetGenes, labels]
 })
 sapply(braakExpr, dim)
 remove(brainExprNorm)
@@ -29,4 +36,5 @@ gene_coexpr <- lapply(donorNames, function(d){
   m$n <- m$n[1, 1]
   m
 })
-save(gene_coexpr, file = "resources/gene_coexpr.Rdata")
+# save(gene_coexpr, file = "resources/gene_coexpr.Rdata")
+save(gene_coexpr, file = "resources/gene_coexpr_subset.RData")
