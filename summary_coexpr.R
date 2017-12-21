@@ -14,21 +14,21 @@ llr <- lapply(gene_coexpr, function(x) x$r)
 llp <- lapply(gene_coexpr, function(x) x$P)
 
 genes <- rownames(gene_coexpr$donor9861$r)
-geneNames <- entrezId2Name(genes)
-geneNamePairs <- as.data.frame(t(combn(geneNames, 2)))
-colnames(geneNamePairs) <- c("gene_A", "gene_B")
-rownames(geneNamePairs) <- apply(geneNamePairs, 1, function(x) paste0(x, collapse = "-"))
+# geneNames <- entrezId2Name(genes)
+# geneNamePairs <- as.data.frame(t(combn(geneNames, 2)))
+# colnames(geneNamePairs) <- c("gene_A", "gene_B")
+# rownames(geneNamePairs) <- apply(geneNamePairs, 1, function(x) paste0(x, collapse = "-"))
 genepairs <- as.data.frame(t(combn(genes, 2)))
 colnames(genepairs) <- c("gene_A", "gene_B")
-rownames(genepairs) <- rownames(geneNamePairs)
+rownames(genepairs) <- apply(genepairs, 1, function(x) paste0(x, collapse = "-"))
 
 # Values for each genepair
 genepair.mat <- function(ll, gp) {
   arr <- apply(simplify2array(ll), 1:2, c) # 3D data array genes*genes*donors
   t(apply(gp, 1, function(gene){
-    A <- gene[1]
-    B <- gene[2]
-    arr[ , A, B]
+    gene_A <- gene[1]
+    gene_B <- gene[2]
+    arr[ , gene_A, gene_B]
   }))
 }
 
@@ -50,7 +50,7 @@ genepairZscore <- apply(genepairCor, 1, function(r){
 })
 
 # Summary correlation (and uncorrected p-values)
-summaryCor <- lapply(rownames(genepairs), function(gp){
+summaryCor <- sapply(rownames(genepairs), function(gp){
   t <- genepairZscore[[gp]]
   t$pvalue <- genepairPval[gp, ]
   donors <- sapply(rownames(t), function(n){ gsub("donor", "Donor ", n)})
@@ -59,7 +59,7 @@ summaryCor <- lapply(rownames(genepairs), function(gp){
   t <- cbind(donors, t, braakSize, weight)
   rbind(t, 'summary' = list("Summary", summary$beta, summary$se^2 , summary$ci.lb, summary$ci.ub, 
                             summary$pval, sum(braakSize), sum(weight)))
-})
+}, simplify = FALSE)
 
 summaryGeneCoexpr <- lapply(summaryCor, function(t){
   t[, c("r", "variance", "lower95", "upper95")] <- back.transform(t[, c("r", "variance", "lower95", "upper95")])
