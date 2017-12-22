@@ -5,7 +5,7 @@ library(ggplot2)
 library(gridExtra)
 
 source("PD/base_script.R")
-load("resources/summaryDiffExprNonBraak.RData")
+load("resources/summaryDiffExpr.RData")
 
 gene <- "GCH1"
 geneId <- name2EntrezId(gene)
@@ -17,14 +17,12 @@ theme.grid <- theme(panel.background = element_blank(), panel.grid = element_bla
 ####################################
 # Forest plot expression change
 
-nonBraakRef <- "nonBraakA2"
-
 #Get values for a gene to plot
-braakList <- summaryMeanDiff[[nonBraakRef]][[geneId]]
-braakList <- braakList[braakNamesMerged1]
+braakList <- lapply(summaryDiffExpr[c(1:5)], function(x)x[[geneId]])
 braakList <- lapply(names(braakList), function(b){
   df <- braakList[[b]]
   df$braak <- gsub("braak", "Braak ", b)
+  df$braak <- gsub("-", " - ", df$braak)
   df
 })
 
@@ -51,7 +49,7 @@ fp <- ggplot(data = tab, aes(meanDiff, donors))
 # colLabels <- data.frame(x = x.positions, y = x.positions, label = c("Raw mean difference", "N", "Weight"))
 
 leftPanel <- fp +
-  geom_point(aes(size = size, shape = is.summary, color = is.summary)) +
+  geom_point(aes(size = weight, shape = is.summary, color = is.summary)) +
   geom_errorbarh(aes(xmin = lower95, xmax = upper95), height = 0) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   geom_vline(xintercept = 1, linetype = "dotted") +
@@ -62,13 +60,12 @@ leftPanel <- fp +
   scale_y_discrete(labels = rev(tab$donor)) +
   # scale_x_continuous(limits = c(x.min, x.max)) +
   geom_text(aes(x = 3.1, label = rmd), size = 3) +
-  geom_text(aes(x = 3.9, label = size), size = 3) +
-  geom_text(aes(x = 4.4, label = weight), size = 3) +
+  geom_text(aes(x = 4.2, label = weight), size = 3) +
   geom_text(aes(x = 5, label = benjamini_hochberg), size = 3) +
   # geom_text(data = colLabels, aes(x, y, label = label)) +
   theme.grid + theme(plot.margin = unit(c(0,4,0,4), "lines")) +
   facet.braak
-pdf(file = paste0("forestplot_", gene, ".pdf"), 12, 3.5)
+pdf(file = paste0("forestplot_", gene, ".pdf"), 12, 6)
 leftPanel
 dev.off()
 ##########################################
