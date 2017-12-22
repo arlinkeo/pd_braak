@@ -45,7 +45,7 @@ geneLabelZscore <- apply(geneLabelCor, 1, function(r){
 
 
 # Get summary correlation
-summaryCor <- lapply(genes, function(g){
+summaryCor <- sapply(genes, function(g){
   tab <- geneLabelZscore[[g]]
   pvalue <- geneLabelPVal[g,]
   donors <- sapply(rownames(tab), function(n){ gsub("donor", "Donor ", n)})
@@ -54,8 +54,7 @@ summaryCor <- lapply(genes, function(g){
   tab <- cbind(donors, tab, pvalue, braakSize, weight)
   rbind(tab, 'summary' = list("Summary", summary$beta, summary$se^2 , summary$ci.lb, summary$ci.ub, 
                               summary$pval, sum(braakSize), sum(weight)))
-})
-names(summaryCor) <- genes
+}, simplify = FALSE)
 
 # Back transform correlations, variances and confidence intervals
 summaryLabelCorr <- lapply(summaryCor, function(t){
