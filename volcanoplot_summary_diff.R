@@ -1,6 +1,6 @@
 # Volcano plot for differential expression analysis
 
-setwd("C:/Users/dkeo/surfdrive/Parkinson")
+setwd("C:/Users/dkeo/surfdrive/pd_braak")
 
 library(ggplot2)
 library(gridExtra)

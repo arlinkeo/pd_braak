@@ -1,6 +1,6 @@
 # Differential expression in braak regions of PD
 
-setwd("C:/Users/dkeo/surfdrive/Parkinson")
+setwd("C:/Users/dkeo/surfdrive/pd_braak")
 library("metap")
 library(plyr)
 

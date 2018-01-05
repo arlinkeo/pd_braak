@@ -1,5 +1,5 @@
 # Gene co-expression in whole Braak region
-setwd("C:/Users/dkeo/surfdrive/Parkinson")
+setwd("C:/Users/dkeo/surfdrive/pd_braak")
 
 library("Hmisc")
 

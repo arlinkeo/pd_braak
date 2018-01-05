@@ -1,4 +1,4 @@
-setwd("C:/Users/dkeo/surfdrive/Parkinson")
+setwd("C:/Users/dkeo/surfdrive/pd_braak")
 library("gplots")
 options(stringsAsFactors = FALSE)
 

@@ -1,5 +1,5 @@
 #CerebroViz
-setwd("C:/Users/dkeo/surfdrive/Parkinson/Images/CerebroViz")
+setwd("C:/Users/dkeo/surfdrive/pd_braak/Images/CerebroViz")
 library("cerebroViz")
 
 

@@ -1,5 +1,5 @@
 #sample IDs of ROI for PD
-setwd("C:/Users/dkeo/surfdrive/Parkinson")
+setwd("C:/Users/dkeo/surfdrive/pd_braak")
 
 load("../ABA_Rdata/BrainExprNorm.RData")
 source("PD/base_script.R")

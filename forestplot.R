@@ -1,6 +1,6 @@
 # Forest plot of differential expression in each brain for a single gene
 
-setwd("C:/Users/dkeo/surfdrive/Parkinson")
+setwd("C:/Users/dkeo/surfdrive/pd_braak")
 library(ggplot2)
 library(gridExtra)
 

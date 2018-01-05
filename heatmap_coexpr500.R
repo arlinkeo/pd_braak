@@ -1,5 +1,5 @@
 # Heatmap subset 500 genes of average co-expression and summary co-expression
-setwd("C:/Users/dkeo/surfdrive/Parkinson")
+setwd("C:/Users/dkeo/surfdrive/pd_braak")
 source("PD/base_script.R")
 
 library(ggplot2)

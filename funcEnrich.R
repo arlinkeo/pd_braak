@@ -1,6 +1,6 @@
 # Functional enrichment of genes which expression correlate with Braak regions
 
-setwd("C:/Users/dkeo/surfdrive/Parkinson")
+setwd("C:/Users/dkeo/surfdrive/pd_braak")
 
 source("PD/base_script.R")
 

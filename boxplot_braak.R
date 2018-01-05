@@ -1,5 +1,5 @@
 # Boxplot of expression in Braak regions for a single gene
-setwd("C:/Users/dkeo/surfdrive/Parkinson")
+setwd("C:/Users/dkeo/surfdrive/pd_braak")
 library(ggplot2)
 
 source("PD/base_script.R")

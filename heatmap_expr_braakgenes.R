@@ -1,23 +1,20 @@
-# Heatmap co-expression of genes
+# Heatmap expression of genes
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
 library(ggplot2)
 library(reshape2)
 
 source("PD/base_script.R")
-load("resources/avgCor.RData")
+load("../ABA_Rdata/BrainExprNorm.RData")
 load("resources/braakGenes.RData")
+load("resources/braakLabels.RData") # Braak stage label vectors
 
-# Get correlated genes |r>0.5|
+# Get expr. of braak genes in braak samples
 genes <- braakGenes
-braakGenesCoexpr <- avgCor[genes, genes]
-rownames(braakGenesCoexpr)
-
-#Cluster
-distance <- dist(braakGenesCoexpr)
-t <- hclust(distance)
-order <- genes[t$order]
-# 
-# heatmap(braakGenesCoexpr, col = colorRampPalette(c("blue", "white", "red"))(n = 200))
+exprll <- lapply(donorNames, function(d) {
+  labels <- braakLabels[[d]]
+  samples <- names(labels)[labels != 0]
+  expr <- brainExprNorm[[d]][genes, samples]
+})
 
 plot.heatmap <- function(mat, order, t){
   tab <- melt(mat[order, order])
@@ -36,4 +33,3 @@ p1 <- plot.heatmap(braakGenesCoexpr, order, "average")
 pdf("heatmap_coexpr_braakgenes.pdf", 8, 6.5)
 p1
 dev.off()
-

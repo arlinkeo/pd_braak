@@ -1,5 +1,5 @@
 #sample IDs of ROI for PD
-setwd("C:/Users/dkeo/surfdrive/Parkinson")
+setwd("C:/Users/dkeo/surfdrive/pd_braak")
 
 source("PD/base_script.R")
 load("resources/roiSamples.RData")

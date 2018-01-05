@@ -1,5 +1,5 @@
 # Heatmap of expression of genes grouped by Braak profile
-setwd("C:/Users/dkeo/surfdrive/Parkinson")
+setwd("C:/Users/dkeo/surfdrive/pd_braak")
 source("PD/base_script.R")
 
 library(ggplot2)

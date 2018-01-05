@@ -1,6 +1,6 @@
 # Plot braak stage expresssion
 options(stringsAsFactors = FALSE)
-setwd("C:/Users/dkeo/surfdrive/Parkinson")
+setwd("C:/Users/dkeo/surfdrive/pd_braak")
 library(ggplot2)
 library(gridExtra)
 library(grid)

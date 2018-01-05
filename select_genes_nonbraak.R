@@ -1,6 +1,6 @@
 # select significant genes based on significant summary estimate
 
-setwd("C:/Users/dkeo/surfdrive/Parkinson")
+setwd("C:/Users/dkeo/surfdrive/pd_braak")
 
 library("metap")
 
