@@ -17,7 +17,7 @@ summaryDiffExpr <- sapply(names(diffExpr), function(rp){ # For each Braak region
   rA <- r[1]
   rB <- r[2]
   rp <- diffExpr[[rp]]
-  lapply(rp, function(gene){
+  x =lapply(rp, function(gene){
     
     # Get variance and confidence intervals
     m1i <- gene$meanA
@@ -26,32 +26,32 @@ summaryDiffExpr <- sapply(names(diffExpr), function(rp){ # For each Braak region
     n2i <- sizesB[, rB]
     sd1i <- sqrt(gene$varA)
     sd2i <- sqrt(gene$varB)
+    # Get mean difference and its variance
     t <- escalc(measure = "MD", m1i = m1i, m2i = m2i, n1i = n1i, n2i = n2i, sd1i = sd1i, sd2i = sd2i)
     t <- summary(t)
     
     # Get summary estimate
-    summary <- rma(t$yi, t$vi, method = "DL", test = "knha") # Summary effect size
+    summary <- rma(t$yi, t$vi, method = "DL", test = "z") # Summary effect size
     
     # tscore <- summary$b/summary$se
     # pval <- 2*pt(-abs(tscore), df = 2)
     # correctedp <- p.adjust(pval, n = 19992)
     
     donors <- sapply(rownames(gene), function(n){ gsub("donor", "Donor ", n)})
-        meanDiff <- t$yi
+    meanDiff <- t$yi
     varDiff <- t$vi
     lower95 <- t$ci.lb
     upper95 <- t$ci.ub
     weight <- round(weights(summary), digits = 2)
-    benjamini_hochberg <- gene$benjamini_hochberg
-    t <- cbind(donors, meanDiff, varDiff, lower95, upper95, benjamini_hochberg, weight)
+    pvalue <- gene$pvalue
+    t <- cbind(donors, meanDiff, varDiff, lower95, upper95, pvalue, weight)
     
     # Combine into table
-    pvalue <- p.adjust(summary$pval, method = "BH", nGenes)
     t <- rbind(t, 'summary' = list("Summary", summary$beta, summary$se^2 , summary$ci.lb, summary$ci.ub, 
-                                       pvalue, sum(weight)))
+                                   summary$pval, sum(weight)))
     t
     
   })
 }, simplify = FALSE)
 
-save(summaryDiffExpr, file = "resources/summaryDiffExpr.RData")
+save(summaryDiffExpr, file = "resources/summaryDiffExpr_ztest.RData")
