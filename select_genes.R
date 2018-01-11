@@ -27,8 +27,9 @@ diffGenes <- rownames(diffExpr)[diffExpr$benjamini_hochberg < 0.05 & abs(diffExp
 
 # Correlated and diff. expressed
 braakGenes <- intersect(corrGenes, diffGenes)
-sum(labelCor[braakGenes, "r"] < 0)
-sum(labelCor[braakGenes, "r"] > 0)
+greater0 <- braakGenes[labelCor[braakGenes, "r"] < 0]
+smaller0 <- braakGenes[labelCor[braakGenes, "r"] > 0]
+braakGenes <- list(greater0 = greater0, smaller0 = smaller0)
 
 # Sort by correlation
 r <- labelCor[braakGenes, "r", drop = FALSE]
