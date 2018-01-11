@@ -18,7 +18,7 @@ rownames(braakPairs) <- apply(braakPairs, 1, paste, collapse = "-")
 colnames(braakPairs) <- c("region_A", "region_B")
 
 # Function T-test for each gene
-ttestGene <- function(a, b) {# Braak vs. non-braak
+ttestGene <- function(a, b) {
   test2tail <- t.test(a, b) # two-sided
   estimate <- test2tail$estimate
   names(estimate) <- NULL
