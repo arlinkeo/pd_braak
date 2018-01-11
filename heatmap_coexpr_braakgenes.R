@@ -16,8 +16,13 @@ rownames(braakGenesCoexpr)
 distance <- dist(braakGenesCoexpr)
 t <- hclust(distance)
 order <- genes[t$order]
-# 
-# heatmap(braakGenesCoexpr, col = colorRampPalette(c("blue", "white", "red"))(n = 200))
+
+# Cut tree
+membership <- cutree(t, k = 2)
+sum(membership == 1)
+
+# Heat stats-function with dendogram
+heatmap(braakGenesCoexpr, col = colorRampPalette(c("blue", "white", "red"))(n = 200))
 
 plot.heatmap <- function(mat, order, t){
   tab <- melt(mat[order, order])
