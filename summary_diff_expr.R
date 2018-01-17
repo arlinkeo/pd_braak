@@ -17,7 +17,7 @@ summaryDiffExpr <- sapply(names(diffExpr), function(rp){ # For each Braak region
   rA <- r[1]
   rB <- r[2]
   rp <- diffExpr[[rp]]
-  x =lapply(rp, function(gene){
+  lapply(rp, function(gene){
     
     # Get variance and confidence intervals
     m1i <- gene$meanA
@@ -38,13 +38,13 @@ summaryDiffExpr <- sapply(names(diffExpr), function(rp){ # For each Braak region
     # correctedp <- p.adjust(pval, n = 19992)
     
     donors <- sapply(rownames(gene), function(n){ gsub("donor", "Donor ", n)})
-    meanDiff <- t$yi
+    meanDiff <- as.numeric(t$yi)
     varDiff <- t$vi
     lower95 <- t$ci.lb
     upper95 <- t$ci.ub
     weight <- round(weights(summary), digits = 2)
     pvalue <- gene$pvalue
-    t <- cbind(donors, meanDiff, varDiff, lower95, upper95, pvalue, weight)
+    t <- data.frame(donors, meanDiff, varDiff, lower95, upper95, pvalue, weight)
     
     # Combine into table
     t <- rbind(t, 'summary' = list("Summary", summary$beta, summary$se^2 , summary$ci.lb, summary$ci.ub, 
