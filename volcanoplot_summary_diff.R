@@ -21,7 +21,7 @@ sapply(summaryStats, function(rp){
   sum(rp$benjamini_hochberg < 0.05 & abs(rp$meanDiff) > 1) # significance and 2-fold change
 })
 
-# Correct and transform -values
+# Correct and transform p-values
 summaryStats <- lapply(summaryStats, function(rp){
   rp$benjamini_hochberg <- p.adjust(rp$pvalue, method = "BH")
   rp$'logp' <- -log10(rp$benjamini_hochberg)
