@@ -11,7 +11,7 @@ load("resources/braakGenes.RData")
 cluster.coexpr <- function(x){
   distance <- dist(x)
   t <- hclust(distance)
-  membership <- cutree(t, h = 4)
+  membership <- cutree(t, h = 5)
   colPal <- brewer.pal(length(unique(membership)), "Set1")
   color <- sapply(membership, function(x) colPal[x] )
   id <- names(membership)
@@ -31,7 +31,7 @@ coexpr <- lapply(braakGenes, function(g){  x <- avgCor[g, g] })
 modules <- lapply(coexpr, cluster.coexpr)
 
 # Plot heatmaps of pos. and neg. correlated Braak genes
-pdf("heatmap_coexpr_braakgenes.pdf", 8, 8)
+pdf("heatmap_coexpr_braakgenes_cut5.pdf", 8, 8)
 lapply(names(braakGenes), function(r) {
   heatmap.coexpr(coexpr[[r]], modules[[r]], r)
 })
