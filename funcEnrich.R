@@ -3,11 +3,27 @@
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
 
 source("PD/base_script.R")
-
-# R version should be 3.25 instead of 3.3 for RDavid
-library("ggplot2")
-library("RDAVIDWebService")
 load("resources/modules.RData")
+# R version should be 3.25 instead of 3.3 for RDavid
+library("RDAVIDWebService")
+library("plyr")
+
+geneLists <- lapply(modules, function(df){
+  splitdf = split(df, factor(df$membership))
+  lapply(splitdf, rownames)
+})
+
+# Write lists
+nameCol <- lapply(geneLists, function(l){
+  sapply(l, function(g){
+    names <- entrezId2Name(g)
+    paste(names, collapse = ",")
+  })
+})
+gene_symbols <- data.frame( gene_symbols = Reduce(c, nameCol))
+write.table(gene_symbols, file = "module_genes.txt", row.names = FALSE)
+
+############################################################################
 
 #Functional enrichment of  genes correlated greater or smaller than 0
 david<-DAVIDWebService$new(email="D.L.Keo@tudelft.nl",
@@ -20,8 +36,8 @@ t <- 0.05 # EASE p-value threshold
 setTimeOut(david, 200000)
 
 # Enrichment of genes correlated across braak stages
-lapply(names(modules), function(r){
-  c <- modules[[r]]
+lapply(names(geneLists), function(r){
+  c <- geneLists[[r]]
   lapply(names(c), function(m){
     genes <- c[[m]]
     result <- addList(david, genes, idType = "ENTREZ_GENE_ID", listName = paste(r, m), listType = "Gene")
@@ -32,8 +48,9 @@ lapply(names(modules), function(r){
   })
 })
 
-#Read DAVID output
+##############################################################################
 
+#Read DAVID output
 
 #Function to read Rdavid output
 read.RdavidOutput <- function(fileName){
@@ -52,14 +69,25 @@ read.RdavidOutput <- function(fileName){
 }
 
 #Benjamini-corrected GO terms
-correctedTerms <- lapply(names(braakGenes), function(l){
-  file <- paste0("Functional_analyses/", l, "_goterms.txt")
-  terms <- read.csv(file, header = TRUE, sep = "\t", colClasses = "character")
-  rows <- which(as.numeric(terms$Benjamini) < 0.05)
-  terms <- terms[rows, c("Category", "Term", "Bonferroni", "Benjamini")]
-  terms
+correctedTerms <- sapply(names(geneLists), function(r){
+  c <- geneLists[[r]]
+  sapply(names(c), function(m){
+    file <- paste0("Functional_analyses/", r, "_", m, "_goterms.txt")
+    terms <- read.csv(file, header = TRUE, sep = "\t", colClasses = "character")
+    rows <- which(as.numeric(terms$Benjamini) < 0.05)
+    terms <- terms[rows, c("Category", "Term", "Bonferroni", "Benjamini")]
+    terms
+  }, simplify = FALSE)
+}, simplify = FALSE)
+sapply(correctedTerms, function(x)sapply(x, nrow))
+
+# Write text corrected go-terms
+lapply(names(correctedTerms), function(r){
+  lapply(names(correctedTerms[[r]]), function(c){
+    df <- correctedTerms[[r]][[c]]
+    write.table(df[, c("Term", "Benjamini")], file = paste0("Functional_analyses/", r, "_", c, "_correctedgo", ".txt"), sep ="\t", row.names = FALSE)
+  })
 })
-sapply(correctedTerms, nrow)
 
 #print top 3 significant terms in merged braak stages
 top3terms <- lapply(correctedTerms, function(p){
