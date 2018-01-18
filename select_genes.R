@@ -22,18 +22,22 @@ sum(labelCor[corrGenes, "r"] > 0)
 
 # Diff. expressed genes braak 1 vs. braak 6
 diffExpr$benjamini_hochberg <- p.adjust(diffExpr$pvalue, method = "BH")
-diffExpr$bonferroni <- p.adjust(diffExpr$pvalue, method = "bonferroni")
-diffGenes <- rownames(diffExpr)[diffExpr$benjamini_hochberg < 0.05 & abs(diffExpr$meanDiff) > 1]
+# diffExpr$bonferroni <- p.adjust(diffExpr$pvalue, method = "bonferroni")
+diffGenes <- rownames(diffExpr)[diffExpr$benjamini_hochberg < 0.001 & abs(diffExpr$meanDiff) > 1]
 
 # Correlated and diff. expressed
 braakGenes <- intersect(corrGenes, diffGenes)
-greater0 <- braakGenes[labelCor[braakGenes, "r"] < 0]
-smaller0 <- braakGenes[labelCor[braakGenes, "r"] > 0]
-braakGenes <- list(greater0 = greater0, smaller0 = smaller0)
+positive_r <- braakGenes[labelCor[braakGenes, "r"] > 0]
+negative_r <- braakGenes[labelCor[braakGenes, "r"] < 0]
+braakGenes <- list(positive_r = positive_r, negative_r = negative_r)
 
-# Sort by correlation
-r <- labelCor[braakGenes, "r", drop = FALSE]
-r <- r[order(r), ,drop = FALSE]
+# # Sort by correlation
+# braakGenes <- lapply(braakGenes, function(ll){
+#   r <- labelCor[ll, "r", drop = FALSE]
+#   r <- r[order(r), ,drop = FALSE]
+#   rownames(r)
+# })
+
 
 save(braakGenes, file = "resources/braakGenes.RData")
 
@@ -47,5 +51,4 @@ pd.genes <- function(x){
   })
 }
 
-pd.genes(corrGenes)
-labelCor[corrGenes,]
+pd.genes(unlist(braakGenes))
