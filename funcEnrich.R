@@ -7,7 +7,7 @@ source("PD/base_script.R")
 # R version should be 3.25 instead of 3.3 for RDavid
 library("ggplot2")
 library("RDAVIDWebService")
-load("resources/braakGenes.RData")
+load("resources/modules.RData")
 
 #Functional enrichment of  genes correlated greater or smaller than 0
 david<-DAVIDWebService$new(email="D.L.Keo@tudelft.nl",
@@ -20,13 +20,16 @@ t <- 0.05 # EASE p-value threshold
 setTimeOut(david, 200000)
 
 # Enrichment of genes correlated across braak stages
-lapply(names(braakGenes), function(l){
-  genes <- braakGenes[[l]]
-  result <- addList(david, genes, idType = "ENTREZ_GENE_ID", listName = l, listType = "Gene")
-  print(result)
-  setCurrentBackgroundPosition(david, 1)
-  getFunctionalAnnotationChartFile(david, paste0("Functional_analyses/", l, "_goterms.txt"), threshold=t, count=2L)
-  getClusterReportFile(david, paste0("Functional_analyses/", l, "_termclusters.txt"), type = c("Term"))
+lapply(names(modules), function(r){
+  c <- modules[[r]]
+  lapply(names(c), function(m){
+    genes <- c[[m]]
+    result <- addList(david, genes, idType = "ENTREZ_GENE_ID", listName = paste(r, m), listType = "Gene")
+    print(result)
+    setCurrentBackgroundPosition(david, 1)
+    getFunctionalAnnotationChartFile(david, paste0("Functional_analyses/", r, "_", m, "_goterms.txt"), threshold=t, count=2L)
+    getClusterReportFile(david, paste0("Functional_analyses/", r, "_", m, "_termclusters.txt"), type = c("Term"))
+  })
 })
 
 #Read DAVID output
