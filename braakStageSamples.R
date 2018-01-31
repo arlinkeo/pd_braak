@@ -39,6 +39,9 @@ merge.per.donor <- function(mll, regionll){
 braakStages <- merge.per.donor(roiSamples, braakRegions)
 t(sapply(braakStages, function(m)apply(m, 2, sum)))
 
+save(braakStages, braakMerged1, braakMerged2, nonBraak, file = "resources/braakStages.RData")
+
+#########################################################################################################
 #All Braak stages
 allBraak <- lapply(braakStages, collapseMerge)
 sapply(allBraak, sum)
@@ -75,6 +78,6 @@ nonBraakA2 <- excludeCb(nonBraakA1) # All except braak and cerebellum
 nonBraakB2 <- excludeCb(nonBraakB1) # All except cerebellum
 nonBraakC2 <- excludeCb(nonBraakC1) # Known unaffected regions except cerebellum
 
-nonBraak <- mget(c("nonBraakA1", "nonBraakA2", "nonBraakB1", "nonBraakB2", "nonBraakC1", "nonBraakC2")) # named list
-
-save(braakStages, braakMerged1, braakMerged2, nonBraak, file = "resources/braakStages.RData")
+nbnames <- c("nonBraakA1", "nonBraakA2", "nonBraakB1", "nonBraakB2", "nonBraakC1", "nonBraakC2")
+nonBraak <- mget(nbnames) # named list
+save(nonBraak, file = "resources/nonBraak.RData")
