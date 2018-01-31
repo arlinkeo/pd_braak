@@ -7,7 +7,6 @@ source("PD/base_script.R")
 # load("resources/gene_coexpr.Rdata")
 load("resources/gene_coexpr_subset.RData") # Subset genes
 load("resources/braakLabels.RData") # Braak stage label vectors
-back.transform <- dget("PD/back.transform.R")
 
 #Correlations across donors per gene pair
 llr <- lapply(gene_coexpr, function(x) x$r)

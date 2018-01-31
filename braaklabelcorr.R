@@ -7,9 +7,6 @@ library(metafor)
 load("../ABA_Rdata/BrainExprNorm.RData")
 load("resources/braakLabels.RData")
 
-#Functions
-back.transform <- dget("PD/back.transform.R")
-
 braak.cor <- function(dataList, stat) {
   sapply(donorNames, function(d){
     labels <- braakLabels[[d]]
