@@ -1,40 +1,34 @@
 # Gene co-expression in whole Braak region
-setwd("C:/Users/dkeo/surfdrive/pd_braak")
-
-library("Hmisc")
+setwd("/tudelft.net/staff-bulk/ewi/insy/DBL/Arlin/pd_braak")
 
 source("PD/base_script.R")
-load("../ABA_Rdata/BrainExprNorm.RData")
-load("resources/braakLabels.RData") # Braak stage label vectors
-
-# Merge labels 1-6
-wholeBraak <- lapply(braakLabels, function(d){
-  d != 0
-})
-sapply(wholeBraak, sum)
 
 # Random subselection of genes
-genes <- rownames(brainExprNorm$donor9861)
-subsetGenes <- sample(genes, 500)
-save(subsetGenes, file = "resources/subsetGenes.RData")
+genes <- ahba.genes(random = 100)
 
-# Select all Braak samples in expression data
-braakExpr <- lapply(donorNames, function(d){
-  # Subselect brain samples
-  labels <- wholeBraak[[d]]
-  # brainExprNorm[[d]][, labels]
-  # subselect genes
-  brainExprNorm[[d]][subsetGenes, labels]
-})
-sapply(braakExpr, dim)
-remove(brainExprNorm)
+# Labels for whole Braak region
+load("resources/braakLabels.RData") # Braak stage label vectors
+wholeBraak <- lapply(braakLabels, function(d){ d != 0 })# Merge labels 1-6
 
-# p-values of correlations
-gene_coexpr <- lapply(donorNames, function(d){
-  expr <- braakExpr[[d]]
-  m <- rcorr(t(expr), type = "pearson") #List with correlation-, size-, and p-value-matrix
-  m$n <- m$n[1, 1]
-  m
+# Labels for non-Braak region
+load("resources/nonBraak.RData") # Braak stage label vectors
+nonBraak <- nonBraak$nonBraakA2 # all except braak and cerebellum samples
+
+# Labels for each Braak region 
+load("resources/braakStages.RData")
+braakStages <- lapply(braakNames, function(b){
+  lapply(braakStages, function(d) unlist(d[, b]))
 })
-# save(gene_coexpr, file = "resources/gene_coexpr.Rdata")
-save(gene_coexpr, file = "resources/gene_coexpr_subset.RData")
+
+# Combine all labels of regions in list
+sampleList <- c(braakStages, 'braak1-6' = list(wholeBraak), nonbraak = list(nonBraak))
+
+# Average co-expression for all regions in sampleList
+lapply(names(sampleList), function(n){
+  r <- sampleList[[n]]
+  expr <- select.expr(genes, r)
+  gene_coexpr <- gene.coexpr(expr)
+  
+  avgCoexpr <- apply(simplify2array(gene_coexpr), 1:2, mean)
+  save(avgCoexpr, file = paste0("resources/avgCoexpr_", n, ".RData"))
+})
