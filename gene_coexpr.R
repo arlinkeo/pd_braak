@@ -4,7 +4,7 @@ setwd("/tudelft.net/staff-bulk/ewi/insy/DBL/Arlin/pd_braak")
 source("PD/base_script.R")
 
 # Random subselection of genes
-genes <- ahba.genes(random = 100)
+genes <- ahba.genes()
 
 # Labels for whole Braak region
 load("resources/braakLabels.RData") # Braak stage label vectors
