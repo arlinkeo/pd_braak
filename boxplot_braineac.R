@@ -46,13 +46,19 @@ load("../UKBEC_RData/regionExpr.RData")
 load("../UKBEC/expr.maps2.RData")
 
 ##############################################################################################
+# All genes
 probeNames <- rownames(regionExpr$CRBL)
+
+# Expression in Braak regions 1, 3-6
+braakRegions <- c("MEDU", "SNIG", "OCTX", "TCTX", "FCTX")
+braakExpr <- regionExpr[braakRegions]
 
 # Gene probe mapping functions
 geneProbeMap <- expr.map2[probeNames, ]
 tID2expxrID <- function(x){geneProbeMap$exprID[match(x, geneProbeMap$tID)]}
 AHBA2exprID<- function(x){geneProbeMap$exprID[match(x, geneProbeMap$AHBA)]}
 entrezId2exprID <- function(x) AHBA2exprID(entrezId2Name(x))
+exprID2AHBA <- function(x){geneProbeMap$AHBA[match(x, geneProbeMap$exprID)]}
 
 # Entrez ID in AHBA of Braak genes to exprID's in UKBEC
 load("resources/braakGenes.RData")
@@ -63,9 +69,7 @@ bgAll <- unlist(braakGenes)
 bgDown <- braakGenes$positive_r
 bgUp <- braakGenes$negative_r
 
-# Mean expression across donors
-braakRegions <- c("MEDU", "SNIG", "OCTX", "TCTX", "FCTX")
-braakExpr <- regionExpr[braakRegions]
+# Mean expression braak genes across donors
 meanExprll <- lapply(braakRegions, function(b) {
   expr <- braakExpr[[b]]
   geneMean <- apply(expr, 1, function(x) mean(x, na.rm = TRUE)) # mean of genes
@@ -99,3 +103,33 @@ pdf("boxplot_UKBEC.pdf", 8,6)
 print(p1)
 print(p2)
 dev.off()
+
+##### Differential expression
+
+# Differential expression MEDU (1) vs. FCTX (6)
+ttest <- as.data.frame(t(sapply(probeNames, function(p){
+  medu <- unlist(braakExpr$MEDU[p, ])
+  fctx <- unlist(braakExpr$FCTX[p, ])
+  t <- t.test(medu, fctx)
+  meanDiff <- t$estimate[1] - t$estimate[2]
+  names(meanDiff) <- NULL
+  pvalue <- t$p.value
+  c(meanDiff = meanDiff, pvalue = pvalue)
+})))
+ttest$benjamini_hochberg <- p.adjust(ttest$pvalue, method = "BH")
+ttest$bonferroni <- p.adjust(ttest$pvalue, method = "bonferroni")
+
+ttest$id <- probeNames
+ttest$gene <- exprID2AHBA(probeNames)
+
+order <- ttest$id[order(ttest$benjamini_hochberg)]
+ttest <- ttest[order, ]
+
+bgOrder <- intersect(order, bgAll)
+
+# Diff. expr. braak genes
+ttest[bgOrder,]
+ttest[intersect(order, entrezId2exprID(pdGenesID$susceptible)),]
+ttest[entrezId2exprID(pdGenesID$lysosome),]
+
+ttest[entrezId2exprID(pdGenesID$susceptible),]
