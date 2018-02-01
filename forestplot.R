@@ -1,4 +1,6 @@
-# Forest plot of differential expression in each brain for a single gene
+
+
+# Basic ggplot theme# Forest plot of differential expression in each brain for a single gene
 
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
 library(ggplot2)
@@ -7,10 +9,8 @@ library(gridExtra)
 source("PD/base_script.R")
 load("resources/summaryDiffExpr.RData")
 
-gene <- "SNCA"
+gene <- "PARK2"
 geneId <- name2EntrezId(gene)
-
-# Basic ggplot theme
 theme.grid <- theme(panel.background = element_blank(), panel.grid = element_blank(), axis.ticks.y = element_blank(), axis.line.x = element_line(colour = "black"), 
                     legend.position = "none", axis.title.y = element_blank())
 
