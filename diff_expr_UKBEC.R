@@ -29,15 +29,14 @@ ttest <- as.data.frame(t(sapply(probeNames, function(p){
 ttest$benjamini_hochberg <- p.adjust(ttest$pvalue, method = "BH")
 ttest$bonferroni <- p.adjust(ttest$pvalue, method = "bonferroni")
 
-ttest$id <- probeNames
-ttest$gene <- exprID2AHBA(probeNames)
+ttest <- cbind(id = probeNames, gene = exprID2AHBA(probeNames), ttest)
 
+# Order t-test table by p-value
 order <- ttest$id[order(ttest$benjamini_hochberg)]
 ttest <- ttest[order, ]
 
+# Braak genes ordered by p-value
 bgOrder <- intersect(order, bgAll)
-
-# Diff. expr. braak genes
 write.table(ttest[bgOrder,], file = "diffexpr_braakgenes_UKBEC.txt", quote = FALSE, row.names = FALSE)
 
 
