@@ -28,7 +28,7 @@ lapply(names(sampleList), function(n){
   r <- sampleList[[n]]
   expr <- select.expr(genes, r)
   gene_coexpr <- gene.coexpr(expr)
-  
+
   avgCoexpr <- apply(simplify2array(gene_coexpr), 1:2, mean)
-  save(avgCoexpr, file = paste0("resources/avgCoexpr_", n, ".RData"))
+  saveRDS(avgCoexpr, file = paste0("resources/avgCoexpr_", n, ".rds"))
 })
