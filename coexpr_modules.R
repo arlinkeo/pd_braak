@@ -6,8 +6,8 @@ library(WGCNA)
 
 # Load co-expression matrices
 braakCoexpr <- list(
-  '1' = readRDS("resources/avgCoexpr_braak1.rds"), 
-  '6' = readRDS("resources/avgCoexpr_braak6.rds")
+  'braak1' = readRDS("resources/avgCoexpr_braak1.rds"), 
+  'braak6' = readRDS("resources/avgCoexpr_braak6.rds")
 )
 
 ### Hierarchical clustering and module detection ###
@@ -24,7 +24,7 @@ modules <- sapply(braakCoexpr, function(coexpr){
     tree;
   }, simplify = FALSE)
 }, simplify = FALSE)
-save(modules, "resources/modules.RData")
+save(modules, file = "resources/modules.RData")
 
 # Plot dendrogram and modules 
 pdf("coexpr_modules.pdf", 12, 3)
@@ -38,12 +38,20 @@ lapply(names(modules), function(b) {
 })
 dev.off()
 
-# # Modules with gene names
-# modules_genes <- lapply(modules, function(b){
-#   tree <- b$average
-#   modNames <- sort(unique(tree$module))[-1] # Unique module names, remove module 0 (gray)
-#   names(modNames) <- modNames
-#   groups <-  lapply(modNames, function(m){
-#     tree$labels[tree$module == m]
-#   })
-# })
+# count modules
+lapply(modules, function(b){
+  lapply(b, function(t){
+    table(t$module)
+  })
+})
+
+# Modules with gene names
+modules_genes <- lapply(modules, function(b){
+  tree <- b$average
+  modNames <- sort(unique(tree$module))[-1] # Unique module names, remove module 0 (gray)
+  names(modNames) <- modNames
+  groups <-  lapply(modNames, function(m){
+    tree$labels[tree$module == m]
+  })
+})
+save(modules_genes, file = "resources/module_genes.RData")
