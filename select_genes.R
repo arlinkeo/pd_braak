@@ -1,7 +1,5 @@
 # select significant genes based on significant summary estimate
-
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
-
 library("metap")
 
 source("PD/base_script.R")
@@ -15,18 +13,28 @@ diffExpr <- summaryDiffExpr$`braak1-braak6`
 diffExpr <- do.call(rbind.data.frame, lapply(diffExpr, function(g) g["summary",]))
 labelCor <- do.call(rbind.data.frame, lapply(summaryLabelCorr, function(g) g["summary",]))
 
-# Get correlated genes |r>0.6|
-corrGenes <- rownames(labelCor)[abs(labelCor$r) > 0.65]
+# Get top 10% correlated genes |r>0.6|
+order <- rev(order(abs(labelCor$r))) # order absolute corr.
+corrGenes <- rownames(labelCor)[order[1:1992]] # top 10% genes
 sum(labelCor[corrGenes, "r"] < 0)
 sum(labelCor[corrGenes, "r"] > 0)
 
-# Diff. expressed genes braak 1 vs. braak 6
+# Top 10% significant Diff. expressed genes braak 1 vs. braak 6
 diffExpr$benjamini_hochberg <- p.adjust(diffExpr$pvalue, method = "BH")
 diffExpr$bonferroni <- p.adjust(diffExpr$pvalue, method = "bonferroni")
-diffGenes <- rownames(diffExpr)[diffExpr$benjamini_hochberg < 0.00125 & abs(diffExpr$meanDiff) > 1.5]
+order <- order(diffExpr$benjamini_hochberg) # order absolute corr.
+diffGenes1 <- rownames(diffExpr)[order[1:1992]] # top 10% genes
+sum(diffExpr[diffGenes, "meanDiff"] < 0)
+sum(diffExpr[diffGenes, "meanDiff"] > 0)
+
+# Top 10% mean Diff. expressed genes braak 1 vs. braak 6
+order <- rev(order(abs(diffExpr$meanDiff))) # order absolute corr.
+diffGenes2 <- rownames(diffExpr)[order[1:1992]] # top 10% genes
+sum(diffExpr[diffGenes2, "meanDiff"] < 0)
+sum(diffExpr[diffGenes2, "meanDiff"] > 0)
 
 # Correlated and diff. expressed
-braakGenes <- intersect(corrGenes, diffGenes)
+braakGenes <- Reduce(intersect, list(corrGenes, diffGenes1, diffGenes2))
 positive_r <- braakGenes[labelCor[braakGenes, "r"] > 0]
 negative_r <- braakGenes[labelCor[braakGenes, "r"] < 0]
 braakGenes <- list(positive_r = positive_r, negative_r = negative_r)
@@ -38,7 +46,6 @@ braakGenes <- list(positive_r = positive_r, negative_r = negative_r)
 #   rownames(r)
 # })
 
-
 save(braakGenes, file = "resources/braakGenes.RData")
 
 #Presence of PD-implicated genes
@@ -49,6 +56,7 @@ pd.genes <- function(x){
 }
 
 pd <- pd.genes(unlist(braakGenes))
+lapply(pd, entrezId2Name)
 
 # Print braak genes with correlations, mean diff, and p-values
 gene.stats <- function(g){
@@ -63,5 +71,4 @@ gene.stats <- function(g){
 }
 
 tab <- Reduce(rbind, lapply(pd , gene.stats))
-
 write.table(tab, file = "pdgenes_stats.txt", sep ="\t", quote = FALSE, row.names = FALSE)
