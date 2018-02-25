@@ -9,7 +9,7 @@ load("../ABA_Rdata/BrainExprNorm.RData")
 load("resources/braakStages.RData")
 
 # Gene info
-genes <- rownames(brainExprNorm$donor9861)
+genes <- ahba.genes()
 nGenes <- length(genes)
 
 # Pairwise combinations of Braak regions 1-6
