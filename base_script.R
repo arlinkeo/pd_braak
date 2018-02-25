@@ -15,8 +15,7 @@ names(donorNames) <- donorNames
 
 # Function to get  AHBA genes
 ahba.genes <- function(random = NULL){
-  expr <- readRDS("../ABA_Rdata/BrainExprNorm.rds")
-  genes <- rownames(expr$donor9861)
+  genes <- probeInfo$entrez_id
   if (!is.null(random)) sample(genes, random)
   else genes
 }
