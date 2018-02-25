@@ -11,7 +11,7 @@ braakCoexpr <- list(
 )
 
 ### Hierarchical clustering and module detection ###
-modules <- sapply(braakCoexpr, function(coexpr){
+hierclust_tree <- sapply(braakCoexpr, function(coexpr){
   # Distance matrix
   dist <- as.dist(1 - abs(coexpr))
   sapply(c("single", "complete", "average"), function(method){
@@ -24,16 +24,16 @@ modules <- sapply(braakCoexpr, function(coexpr){
     tree;
   }, simplify = FALSE)
 }, simplify = FALSE)
-save(modules, file = "resources/modules.RData")
+save(hierclust_tree, file = "resources/hierclust_tree.RData")
 
 # Plot dendrogram and modules 
-pdf("coexpr_modules.pdf", 12, 3)
+pdf("coexpr_modules.pdf", 12, 2)
 lapply(names(modules), function(b) {
   treeList <- modules[[b]]
   lapply(names(treeList), function(method){
-    title <- paste0("Co-expression modules in Braak ", b, ", ", method, " linkage")
+    title <- "" # paste0("Co-expression modules in Braak ", b, ", ", method, " linkage")
     tree <- treeList[[method]]
-    plotDendroAndColors(tree, colors = tree$color, dendroLabels = FALSE, main = title)
+    plotDendroAndColors(tree, colors = tree$color, dendroLabels = FALSE, marAll = c(0, 4, 0.2, 0), main = title)
   })
 })
 dev.off()
@@ -54,4 +54,4 @@ modules_genes <- lapply(modules, function(b){
     tree$labels[tree$module == m]
   })
 })
-save(modules_genes, file = "resources/module_genes.RData")
+save(modules, file = "resources/modules.RData")
