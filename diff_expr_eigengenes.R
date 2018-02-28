@@ -12,10 +12,13 @@ braakNames <- braakNames[-c(2:5)]
 eigenExpr <- lapply(donorNames, function(d){
   labels <- braakStages[[d]][, braakNames] == 1
   expr <- brainExprNorm[[d]]
+  
   lapply(modules, function(m){ # For list of modules found in Braak 1 and 6 resp.
     as.data.frame(t(sapply(m, function(genes){ # For each module with genes (grouped gene rows)
-      modExpr <- expr[genes, ] # Expr of genes in modules across all samples
-      prcomp(modExpr)$rotation[, 1] # 1st PC (eigen gene expr)
+      modExpr <- t(expr[genes, ]) # Expr of genes in modules across samples in one braak region
+      pc <- prcomp(modExpr)#$x[, 1:2]# 1st PC (eigen gene expr)
+      # plot(pc[,1], pc[,2])
+      pc[,1]
     })))
   })
 })
@@ -34,7 +37,7 @@ ttestGene <- function(a, b) {
 }
 
 # T-test eigen expression in Braak 1 vs. 6
-diffExpr_eigengene <- lapply(donorNames, function(d){
+ttest <- lapply(donorNames, function(d){
   labels <- braakStages[[d]]
   modulesets <- eigenExpr[[d]]
   lapply(modulesets, function(expr){ # For list of modules found in Braak 1 and 6 resp.
@@ -44,7 +47,17 @@ diffExpr_eigengene <- lapply(donorNames, function(d){
       ttestGene(region_a, region_b)
     })))
     genesTab$'benjamini_hochberg' <- p.adjust(genesTab$'pvalue' , method = "BH", n = nrow(genesTab)) #corrected p
-    genesTab
+    genesTab[order(genesTab$benjamini_hochberg),]
   })
+})
+
+# Saved datastructure for meta-analysis: module set -> Eigen genes -> table of Donors
+diffExpr_eigengene <- lapply(braakNames, function(b){
+  mods <- names(modules[[b]])
+  list <- sapply(mods, function(eg){
+    as.data.frame(t(sapply(donorNames, function(d){
+      unlist(ttest[[d]][[b]][eg, ])
+    })))
+  }, simplify = FALSE)
 })
 save(diffExpr_eigengene, file = "resources/diffExpr_eigengene.RData")
