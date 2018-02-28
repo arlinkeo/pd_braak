@@ -15,27 +15,20 @@ module_overlap <- lapply(modules, function(m){
     ns2 <- length(braakGenes)
     p <- phyper(overlap - 1, ns1, total - ns1, ns2, lower.tail = FALSE)
     c(overlap = overlap, module.size = ns1, pvalue = p)
-    # row$genes <- list(genes)
-    # row
   })))
   tab$benjamini_hochberg <- p.adjust(tab$pvalue)
   tab <- tab[tab$benjamini_hochberg < 0.05, ]
   tab[order(tab$benjamini_hochberg), ]
 })
 
-lapply(module_overlap, function(b){
-  # sum(b$module.size)
-  b[,-4]
-})
-
-lapply(modules, function(m){
+lapply(module_overlap, function(m){
   present <- sapply(m, function(module){
     genes <- intersect(module, braakGenes)
-    any(genes == "6622")
+    any(genes == name2EntrezId("DNAJC13"))
   })
   ll <- m[present]
-  names(ll)
-  entrezId2Name(unlist(ll))
+  # names(ll)
+  # entrezId2Name(unlist(ll))
 })
 
 lapply(names(module_overlap), function(b){
@@ -43,3 +36,8 @@ lapply(names(module_overlap), function(b){
   tab$module <- rownames(tab)
   write.table(tab, file = paste0("module_braakgene_overlap_", b, ".txt"), sep ="\t", quote = FALSE, row.names = FALSE)
 })
+modules_braak <- lapply(braakNames[-c(2:5)], function(b){
+  modNames <- rownames(module_overlap[[b]])
+  modules[[b]][modNames]
+})
+save(modules_braak, file = "resources/modules_braak.RData")
