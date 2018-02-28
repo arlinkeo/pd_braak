@@ -28,8 +28,8 @@ save(hierclust_tree, file = "resources/hierclust_tree.RData")
 
 # Plot dendrogram and modules 
 pdf("coexpr_modules.pdf", 12, 2)
-lapply(names(modules), function(b) {
-  treeList <- modules[[b]]
+lapply(names(hierclust_tree), function(b) {
+  treeList <- hierclust_tree[[b]]
   lapply(names(treeList), function(method){
     title <- "" # paste0("Co-expression modules in Braak ", b, ", ", method, " linkage")
     tree <- treeList[[method]]
@@ -39,14 +39,14 @@ lapply(names(modules), function(b) {
 dev.off()
 
 # count modules
-lapply(modules, function(b){
+lapply(hierclust_tree, function(b){
   lapply(b, function(t){
     table(t$module)
   })
 })
 
 # Modules with gene names
-modules_genes <- lapply(modules, function(b){
+modules <- lapply(hierclust_tree, function(b){
   tree <- b$average
   modNames <- sort(unique(tree$module))[-1] # Unique module names, remove module 0 (gray)
   names(modNames) <- modNames
