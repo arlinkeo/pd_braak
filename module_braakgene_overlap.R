@@ -21,16 +21,6 @@ module_overlap <- lapply(modules, function(m){
   tab[order(tab$benjamini_hochberg), ]
 })
 
-lapply(module_overlap, function(m){
-  present <- sapply(m, function(module){
-    genes <- intersect(module, braakGenes)
-    any(genes == name2EntrezId("DNAJC13"))
-  })
-  ll <- m[present]
-  # names(ll)
-  # entrezId2Name(unlist(ll))
-})
-
 lapply(names(module_overlap), function(b){
   tab <-  module_overlap[[b]]
   tab$module <- rownames(tab)
@@ -41,3 +31,15 @@ modules_braak <- lapply(braakNames[-c(2:5)], function(b){
   modules[[b]][modNames]
 })
 save(modules_braak, file = "resources/modules_braak.RData")
+
+sapply(modules_braak, function(m){
+  present <- sapply(names(m), function(n){
+    module <- m[[n]]
+    present <- sapply(pdGenes$hiImpact, function(g){
+      any(module == name2EntrezId(g))
+    })
+    present <- present[!is.na(present)]
+    paste0(names(present)[present], collapse = ",")
+  })
+  
+})
