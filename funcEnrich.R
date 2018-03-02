@@ -3,14 +3,11 @@
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
 
 source("PD/base_script.R")
-load("resources/modules.RData")
+load("resources/modules_braak.RData")
 # R version should be 3.25 instead of 3.3 for RDavid
 library("RDAVIDWebService")
-library("plyr")
+# library("plyr")
 
-# Functional analysis only for modules enriched for Braak genes
-modules$braak1 <- modules$braak1[c("16", "150", "44", "53", "59", "24", "80", "34", "3")]
-modules$braak6 <- modules$braak6[c("97", "93", "16", "152", "65", "110", "161", "54", "87", "94", "145", "20", "77", "106", "122")]
 ############################################################################
 
 #Functional enrichment of  genes correlated greater or smaller than 0
@@ -24,8 +21,8 @@ t <- 0.05 # EASE p-value threshold
 setTimeOut(david, 200000)
 
 # Enrichment of genes correlated across braak stages
-lapply(names(modules), function(r){
-  m <- modules[[r]]
+lapply(names(modules_braak), function(r){
+  m <- modules_braak[[r]]
   lapply(names(m), function(l){
     genes <- m[[l]]
     result <- addList(david, genes, idType = "ENTREZ_GENE_ID", listName = paste(r, ",", l), listType = "Gene")
@@ -57,8 +54,8 @@ read.RdavidOutput <- function(fileName){
 }
 
 #Benjamini-corrected GO terms
-correctedTerms <- sapply(names(modules), function(r){
-  m <- modules[[r]]
+correctedTerms <- sapply(names(modules_braak), function(r){
+  m <- modules_braak[[r]]
   sapply(names(m), function(l){
     file <- paste0("Functional_analyses/", r, "_modules/", l, "_goterms.txt")
     terms <- read.csv(file, header = TRUE, sep = "\t", colClasses = "character")
@@ -85,6 +82,6 @@ top3terms <- lapply(correctedTerms, function(r){
   data <- do.call(rbind, dfll)
   data[rowSums(is.na(data)) == 0,]
 })
-top3merged <- 
+# top3merged <- 
 top3merged <- top3merged[apply(!is.na(top3merged), 1, any),]
 top3merged$Benjamini <- format(as.numeric(top3merged$Benjamini), digits = 3, scientific = TRUE)
