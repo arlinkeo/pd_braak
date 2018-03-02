@@ -45,12 +45,12 @@ names(braakNamesMerged1) <- braakNamesMerged1
 braakNamesMerged2 <- c("braak1-3", "braak4-6")
 names(braakNamesMerged2) <- braakNamesMerged2
 
-pdGenes <- list(hiImpact = c("GBA", "LRRK2", "PINK1", "PARK7", "SNCA", "VPS35", "DNAJC13", "CHCHD2"),
+pdGenes <- list(hiImpact = c("GBA", "LRRK2", "PINK1", "PARK7", "SNCA", "VPS35", "ATP13A2", "PLA2G6", "FBXO7", "DNAJC6", "SYNJ1", "EIF4G1", "DNAJC13", "CHCHD2", "TMEM230", "RIC3"),
                 susceptible = c("INPP5F", "TMEM175", "ASH1L", "MAPT", "RIT1", "C14orf83", "STK39", "GPNMB", "BST1", 
                                 "SIPA1L2", "DLG2", "NUCKS1", "GCH1", "MCCC1", "FAM47E", "BCKDK", "TMPRSS9", "UBOX5", 
-                                "CCDC62", "SYNJ1", "EIF4G1", "FBXO7", "C20orf30", "POLG", "VSP13C", "PLA2G6"),
+                                "CCDC62", "SYNJ1", "EIF4G1", "FBXO7", "C20orf30", "POLG", "VPS13C", "PLA2G6"),
                 hla = c("HLA-DRA", "HLA-DRB1", "HLA-DRB5", "HLA-DQB1"),
-                lysosome = unlist(read.table("lysosome_geneset.txt", header = FALSE, comment.char = "#", sep = "\n", row.names = NULL))
+                lysosome = read.table("lysosome_geneset.txt", header = FALSE, comment.char = "#", sep = "\n", row.names = NULL)[, 1]
 )
 
 pdGenesID <- lapply(pdGenes, function(l){
