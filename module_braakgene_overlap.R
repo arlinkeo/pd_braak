@@ -1,7 +1,7 @@
 # Braak gene enrichment of modules
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
 source("PD/base_script.R")
-load("resources/modules.RData")
+load("resources/modules_absCor.RData")
 load("resources/braakGenes.RData")
 
 braakGenes <- unlist(braakGenes)
@@ -24,22 +24,29 @@ module_overlap <- lapply(modules, function(m){
 lapply(names(module_overlap), function(b){
   tab <-  module_overlap[[b]]
   tab$module <- rownames(tab)
-  write.table(tab, file = paste0("module_braakgene_overlap_", b, ".txt"), sep ="\t", quote = FALSE, row.names = FALSE)
+  write.table(tab, file = paste0("module_braakgene_overlap_", b, "_absCor.txt"), sep ="\t", quote = FALSE, row.names = FALSE)
 })
-modules_braak <- lapply(braakNames[-c(2:5)], function(b){
+modules_braak <- sapply(c("braak1", "braak6", "braak1-6"), function(b){
   modNames <- rownames(module_overlap[[b]])
   modules[[b]][modNames]
-})
-save(modules_braak, file = "resources/modules_braak.RData")
+}, simplify = FALSE)
+save(modules_braak, file = "resources/modules_braak_absCor.RData")
 
 sapply(modules_braak, function(m){
   present <- sapply(names(m), function(n){
     module <- m[[n]]
-    present <- sapply(pdGenes$hiImpact, function(g){
+    present <- sapply(pdGenes$lysosome, function(g){
       any(module == name2EntrezId(g))
     })
     present <- present[!is.na(present)]
     paste0(names(present)[present], collapse = ",")
   })
   
+})
+
+# overlap of genes between modules in B1 and B6
+sapply(modules_braak$braak1, function(m1){
+  sapply(modules_braak$braak6, function(m6){
+    round(length(intersect(m1, m6)) / min(length(m1), length(m6)) *100, digits = 0)
+  })
 })
