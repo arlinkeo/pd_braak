@@ -37,18 +37,35 @@ save(eigenExpr, file = "resources/eigenExpr.RData")
 ontology <- read.csv("../ABA_human_processed/Ontology_edited.csv")
 load("resources/modules_braak_absCor.RData")
 
+load("resources/hierclust_tree_absCor.RData")
+
 pdf("eigengene_expr.pdf", 8, 4)
-lapply(regions[3], function(b){
+lapply(regions, function(b){
   braakmods <- names(modules_braak[[b]])
+  tree <- hierclust_tree[[b]][["average"]]
+  color <- unique(cbind(tree$module, tree$color))
+  rownames(color) <- color[,1]
+  color <- color[braakmods, 2]
+  
   lapply(donorNames, function(d){
     mat <- eigenExpr[[d]][[b]]
+    
     labels <- colnames(mat)
     graph_order <- ontology$graph_order[match(labels, ontology$id)]
     braakorder <- braakLabels[[d]][labels]
-    order <- order(braakorder, graph_order)
+    order <- order(braakorder, -graph_order)
     mat <- mat[braakmods, order]
-    matplot(t(mat), type = "l")
+  
+    ahbacolor <- paste0("#", ontology$color_hex_triplet[match(labels, ontology$id)])[order]
+    
+    matplot(t(mat), type = "l", 
+            col = color, xlab = "Braak regions", ylab = "Expression",
+            xaxt = "n")
     title(paste0(b, ", ", d))
+    lapply(1:length(labels), function(x){
+      axis(1, at = x, col = ahbacolor[x], labels = c(""), lwd = 10, lwd.ticks = 0)
+    })
+    
   })
 })
 dev.off()
