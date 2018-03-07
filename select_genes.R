@@ -24,8 +24,8 @@ diffExpr$benjamini_hochberg <- p.adjust(diffExpr$pvalue, method = "BH")
 diffExpr$bonferroni <- p.adjust(diffExpr$pvalue, method = "bonferroni")
 order <- order(diffExpr$benjamini_hochberg) # order absolute corr.
 diffGenes1 <- rownames(diffExpr)[order[1:1992]] # top 10% genes
-sum(diffExpr[diffGenes, "meanDiff"] < 0)
-sum(diffExpr[diffGenes, "meanDiff"] > 0)
+sum(diffExpr[diffGenes1, "meanDiff"] < 0)
+sum(diffExpr[diffGenes1, "meanDiff"] > 0)
 
 # Top 10% mean Diff. expressed genes braak 1 vs. braak 6
 order <- rev(order(abs(diffExpr$meanDiff))) # order absolute corr.
@@ -50,7 +50,7 @@ save(braakGenes, file = "resources/braakGenes.RData")
 
 #Presence of PD-implicated genes
 pd.genes <- function(x){
-  lapply(pdGenesID, function(l){
+  lapply(name2EntrezId(c("SNCA", "MAPT", "LAG3", "RAB5A", "LPAR2", "FOXO1")), function(l){
    intersect(l, x)
   })
 }
