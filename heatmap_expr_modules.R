@@ -6,12 +6,11 @@ load("../ABA_Rdata/BrainExprNorm.RData")
 load("resources/modules_braak_absCor.RData")
 modules_braak <- lapply(modules_braak, unlist)
 load("resources/braakStages.RData")
-braakNames <- braakNames[-c(2:5)]
 load("resources/hierclust_tree_absCor.RData")
 
 # Plotting method 2 using gplot2 and colors to indicate modules and braak regions
-d= donorNames[1]
-b= braakNames[1]
+# d= donorNames[1]
+# b= braakNames[1]
 
 library(gplots)
 ontology <- read.csv("../ABA_human_processed/Ontology_edited.csv")
@@ -32,7 +31,7 @@ pdf("heatmap_expr_modules_absCor.pdf", 8, 4)
 # layout(matrix(c(1:12), 2, 6), weights = rep(2, 6), heights = rep(1, 2))
 
 # lapply(braakNames, function(b){
-lapply(c("braak1-6"), function(b){
+lapply(names(modules_braak)[3], function(b){
   genes <- modules_braak[[b]]
   tree <- hierclust_tree[[b]][["average"]]
   

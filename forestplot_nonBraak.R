@@ -7,7 +7,7 @@ library(gridExtra)
 source("PD/base_script.R")
 load("resources/summaryDiffExprNonBraak.RData")
 
-gene <- "GCH1"
+gene <- "SNCA"
 geneId <- name2EntrezId(gene)
 
 # Basic ggplot theme
