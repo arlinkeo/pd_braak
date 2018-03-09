@@ -13,7 +13,7 @@ diffExpr <- summaryDiffExpr$`braak1-braak6`
 diffExpr <- do.call(rbind.data.frame, lapply(diffExpr, function(g) g["summary",]))
 labelCor <- do.call(rbind.data.frame, lapply(summaryLabelCorr, function(g) g["summary",]))
 
-# Get top 10% correlated genes |r>0.6|
+# Get top 10% correlated genes
 order <- rev(order(abs(labelCor$r))) # order absolute corr.
 corrGenes <- rownames(labelCor)[order[1:1992]] # top 10% genes
 sum(labelCor[corrGenes, "r"] < 0)
