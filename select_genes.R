@@ -48,6 +48,12 @@ braakGenes <- list(positive_r = positive_r, negative_r = negative_r)
 
 save(braakGenes, file = "resources/braakGenes.RData")
 
+# Print list of progression genes
+progressionList <- unlist(braakGenes)
+names <- entrezId2Name(progressionList)
+tab <- cbind(entrez_id = progressionList, gene_symbol = names)
+write.table(tab, file = "progression_genes.txt", row.names = FALSE, quote = FALSE, sep = "\t")
+
 #Presence of PD-implicated genes
 pd.genes <- function(x){
   lapply(name2EntrezId(c("SNCA", "MAPT", "LAG3", "RAB5A", "LPAR2", "FOXO1")), function(l){
