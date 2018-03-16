@@ -16,8 +16,8 @@ names(donorNames) <- donorNames
 # Function to get  AHBA genes
 ahba.genes <- function(random = NULL){
   genes <- probeInfo$entrez_id
-  if (!is.null(random)) sample(genes, random)
-  else genes
+  genes <- if (!is.null(random)) sample(genes, random) else genes
+  as.character(genes)
 }
 
 # Function to get list of subselected expression matrices for each donor
