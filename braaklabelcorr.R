@@ -5,8 +5,8 @@ source("PD/base_script.R")
 library(metafor)
 
 load("resources/braakLabels.RData")
+
 braakSize <- sapply(braakLabels, function(x){sum(sapply(c(1:6), function(b){sum(x==b)}))})
-samples <- lapply(braakLabels, function(x) x != "0")
 
 ### FUNCTIONS ###
 
@@ -65,6 +65,7 @@ summary.braak.cor <- function(matList){
 # For all genes
 
 # Get correlations, transformed correlation and pvalues
+samples <- lapply(braakLabels, function(x) x != "0")
 expr <- select.expr(samples = samples) #AHBA expression
 summaryCor <- summary.braak.cor(expr)
 
