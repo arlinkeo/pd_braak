@@ -33,11 +33,13 @@ genes.split <- function(x) {unlist(strsplit(x, split = ","))}
 
 # Add names of AHBA genes in t.map and expr.map
 AHBAgenes <- probeInfo$gene_symbol # all AHBA genes
-mappedGenes<- apply(t.map[1:10,], 1, function(t){ # For each gene, check overlap in name symbols
+mappedGenes<- apply(t.map, 1, function(t){ # For each gene, check overlap in name symbols
   genes <- unique(c(genes.split(t["Gene"]), genes.split(t["Symbol.NA31"])))
   overlap <- intersect(genes, AHBAgenes)
   if (length(overlap) != 1) NA else overlap
 })
-t.map2 <- cbind(t.map, AHBA = mappedGenes)
-expr.map2 <- cbind(expr.map, AHBA = t.map2$AHBA[match(expr.map$tID, t.map2$tID)], Gene = t.map2$Gene)
+probe2gene <- expr.map2[expr.map2$selected_probe, c("exprID", "tID")]
+exprID <- probe2gene$exprID[match(rownames(t.map), probe2gene$tID)]
+t.map2 <- cbind(t.map, AHBA = mappedGenes, exprID)
+# expr.map2 <- cbind(expr.map2, AHBA = t.map2$AHBA[match(expr.map$tID, t.map2$tID)], Gene = t.map2$Gene)
 save(t.map2, expr.map2, file = "../UKBEC/expr.maps2.RData")
