@@ -3,7 +3,8 @@
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
 
 source("PD/base_script.R")
-load("resources/modules_braak.RData")
+load("resources/modules_braak_absCor.RData")
+load( "resources/braakGenes.RData")
 # R version should be 3.25 instead of 3.3 for RDavid
 library("RDAVIDWebService")
 # library("plyr")
@@ -20,7 +21,17 @@ bg
 t <- 0.05 # EASE p-value threshold
 setTimeOut(david, 200000)
 
-# Enrichment of genes correlated across braak stages
+# Enrichment of positively and negatively correlated progression genes
+lapply(names(braakGenes), function(r){
+  genes <- braakGenes[[r]]
+  result <- addList(david, genes, idType = "ENTREZ_GENE_ID", listName = r, listType = "Gene")
+  print(result)
+  setCurrentBackgroundPosition(david, 1)
+  getFunctionalAnnotationChartFile(david, paste0("Functional_analyses/", r, "_goterms.txt"), threshold=t, count=2L)
+  getClusterReportFile(david, paste0("Functional_analyses/", r, "_termclusters.txt"), type = c("Term"))
+})
+
+# Enrichment of genes in modules enriched for progression genes
 lapply(names(modules_braak), function(r){
   m <- modules_braak[[r]]
   lapply(names(m), function(l){
