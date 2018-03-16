@@ -62,6 +62,8 @@ summary.braak.cor <- function(matList){
 
 ###########
 
+# For all genes
+
 # Get correlations, transformed correlation and pvalues
 expr <- select.expr(samples = samples) #AHBA expression
 summaryCor <- summary.braak.cor(expr)
