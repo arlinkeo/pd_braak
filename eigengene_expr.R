@@ -3,7 +3,7 @@ setwd("C:/Users/dkeo/surfdrive/pd_braak")
 source("PD/base_script.R")
 
 load("../ABA_Rdata/BrainExprNorm.RData")
-load("resources/modules_absCor.RData")
+load("resources/modules.RData")
 load("resources/braakLabels.RData")
 
 regions <- c("braak1", "braak6", "braak1-6")
@@ -18,58 +18,20 @@ samples <- lapply(braakLabels, function(labels){
 # PCA first component of subselection expr. matrices
 eigenExpr <- lapply(donorNames, function(d){
   expr <- brainExprNorm[[d]]
-  
   sapply(regions, function(r){ # For list of modules found in different brain regions
     m <-modules[[r]]
     s <- samples[[d]][[r]]
     df <- as.data.frame(t(sapply(m, function(genes){ # For each module with genes (grouped gene rows)
       modExpr <- t(expr[genes, s]) # Expr of genes in modules across samples in one braak region
-      eg=prcomp(modExpr, scale. = TRUE)$x[, 1]# 1st PC (eigen gene expr)
+      eg <- prcomp(modExpr)$x[, 1]# 1st PC (eigen gene expr)
+      mean <- apply(modExpr, 1, mean)
+      if (cor(eg, mean) > 0) eg else -eg # flip sign of eigen gene based on the data
     })))
     colnames(df) <- names(s)[s]
     df
   }, simplify = FALSE)
 })
-save(eigenExpr, file = "resources/eigenExpr_absCor.RData")
-
-# plot 
-
-ontology <- read.csv("../ABA_human_processed/Ontology_edited.csv")
-load("resources/modules_braak_absCor.RData")
-
-load("resources/hierclust_tree_absCor.RData")
-
-pdf("eigengene_expr_scaled.pdf", 8, 4)
-lapply(regions, function(b){
-  braakmods <- names(modules_braak[[b]])
-  tree <- hierclust_tree[[b]][["average"]]
-  color <- unique(cbind(tree$module, tree$color))
-  rownames(color) <- color[,1]
-  color <- color[braakmods, 2]
-  
-  lapply(donorNames, function(d){
-    mat <- eigenExpr[[d]][[b]]
-    
-    labels <- colnames(mat)
-    onto_rows <- match(labels, ontology$id)
-    graph_order <- ontology$graph_order[onto_rows]
-    braak_order <- braakLabels[[d]][labels]
-    order <- order(braak_order, -graph_order)
-    mat <- mat[braakmods, order] # module selection by id?
-  
-    ahbacolor <- paste0("#", ontology$color_hex_triplet[match(labels, ontology$id)])[order]
-    mat[, 1:10]
-    # matplot(t(mat), type = "l", 
-    #         col = color, xlab = "Braak regions", ylab = "Expression",
-    #         xaxt = "n")
-    # title(paste0(b, ", ", d))
-    # lapply(1:length(labels), function(x){
-    #   axis(1, at = x, col = ahbacolor[x], labels = c(""), lwd = 10, lwd.ticks = 0);
-    # })
-    
-  })
-})
-dev.off()
+save(eigenExpr, file = "resources/eigenExpr.RData")
 
 
 # # Function T-test for each gene
