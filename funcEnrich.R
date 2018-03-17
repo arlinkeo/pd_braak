@@ -3,7 +3,7 @@
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
 
 source("PD/base_script.R")
-load("resources/modules_braak_absCor.RData")
+load("resources/modules.RData")
 load( "resources/braakGenes.RData")
 # R version should be 3.25 instead of 3.3 for RDavid
 library("RDAVIDWebService")
@@ -32,8 +32,8 @@ lapply(names(braakGenes), function(r){
 })
 
 # Enrichment of genes in modules enriched for progression genes
-lapply(names(modules_braak), function(r){
-  m <- modules_braak[[r]]
+lapply(names(modules[3]), function(r){
+  m <- modules[[r]]
   lapply(names(m), function(l){
     genes <- m[[l]]
     result <- addList(david, genes, idType = "ENTREZ_GENE_ID", listName = paste(r, ",", l), listType = "Gene")
@@ -81,7 +81,9 @@ sapply(correctedTerms, function(x)sapply(x, nrow))
 lapply(names(correctedTerms), function(r){
   lapply(names(correctedTerms[[r]]), function(l){
     df <- correctedTerms[[r]][[l]]
-    write.table(df[, c("Term", "Benjamini")], file = paste0("Functional_analyses/", r, "_modules/", l, "_correctedgo", ".txt"), sep ="\t", row.names = FALSE)
+    write.table(df[, c("Term", "Benjamini")], 
+                file = paste0("Functional_analyses/", r, "_modules/", l, "_correctedgo", ".txt"), 
+                sep ="\t", row.names = FALSE)
   })
 })
 
