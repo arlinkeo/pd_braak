@@ -20,8 +20,6 @@ braak.cor <- function(x, l, stat){ #x: data, l: labels
 braak.cor.data <- function(matList, stat, labelList) {
   as.data.frame(sapply(names(matList), function(d){
     labels <- labelList[[d]] # of all samples
-    # labels <- as.numeric(labels)
-    # labels <- labels[labels != 0] # All Braak labels
     expr <- matList[[d]]
     braak.cor(expr, labels, stat)
   }))
@@ -58,7 +56,7 @@ summary.braak.cor <- function(matList, labelList){
     weight <- round(weights(summary), digits = 2)
     tab <- cbind(donors, tab, pvalue, size, weight)
     t <- rbind(tab, 'summary' = list("Summary", summary$beta, summary$se^2 , summary$ci.lb, summary$ci.ub, 
-                                summary$pval, sum(size), sum(weight)))
+                                     summary$pval, sum(size), sum(weight)))
     
     t[, c("r", "variance", "lower95", "upper95")] <- back.transform(t[, c("r", "variance", "lower95", "upper95")])
     t
