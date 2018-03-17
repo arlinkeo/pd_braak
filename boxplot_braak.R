@@ -27,7 +27,7 @@ boxplot.gene <- function(g){
     df <- data.frame(expr, label, donor)
   })
   exprll <- Reduce(rbind, exprll)
-  exprll <- exprll[exprll$label != "0", ]#Remove Braak 0
+  # exprll <- exprll[exprll$label != "0", ]#Remove Braak 0
   
   r <- format(summaryLabelCorr[[g]]["summary", c("r", "pvalue")], digits = 2)
   title <- paste0(entrezId2Name(g), ", r=", r$r)
