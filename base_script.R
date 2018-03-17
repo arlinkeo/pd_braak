@@ -50,7 +50,8 @@ pdGenes <- list(hiImpact = c("GBA", "LRRK2", "PINK1", "PARK7", "SNCA", "VPS35", 
                                 "SIPA1L2", "DLG2", "NUCKS1", "GCH1", "MCCC1", "FAM47E", "BCKDK", "TMPRSS9", "UBOX5", 
                                 "CCDC62", "SYNJ1", "EIF4G1", "FBXO7", "C20orf30", "POLG", "VPS13C", "PLA2G6"),
                 hla = c("HLA-DRA", "HLA-DRB1", "HLA-DRB5", "HLA-DQB1"),
-                lysosome = read.table("lysosome_geneset.txt", header = FALSE, comment.char = "#", sep = "\n", row.names = NULL)[, 1]
+                lysosome = read.table("lysosome_geneset.txt", header = FALSE, comment.char = "#", sep = "\n", row.names = NULL)[, 1],
+                chang2017 = read.table("chang2017_riskgenes.txt", comment.char = "#", sep = "\n", row.names = NULL)[, 1] 
 )
 
 pdGenesID <- lapply(pdGenes, function(l){
