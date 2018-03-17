@@ -65,8 +65,8 @@ read.RdavidOutput <- function(fileName){
 }
 
 #Benjamini-corrected GO terms
-correctedTerms <- sapply(names(modules_braak), function(r){
-  m <- modules_braak[[r]]
+correctedTerms <- sapply(names(modules[[3]]), function(r){
+  m <- modules[[r]]
   sapply(names(m), function(l){
     file <- paste0("Functional_analyses/", r, "_modules/", l, "_goterms.txt")
     terms <- read.csv(file, header = TRUE, sep = "\t", colClasses = "character")
