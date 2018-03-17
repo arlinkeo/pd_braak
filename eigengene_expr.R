@@ -15,59 +15,30 @@ samples <- lapply(braakLabels, function(labels){
   list(braak1 = braak1, braak6 = braak6, 'braak1-6' = braak1to6)
 })
 
+# eigen gene function for data matrix (samples x genes)
+eigen.gene <- function(x){
+  eg <- prcomp(x)$x[, 1]# 1st PC (eigen gene expr)
+  mean <- apply(x, 1, mean)
+  if (cor(eg, mean) > 0) eg else -eg # flip sign of eigen gene based on the data
+}
+
+# Function for eigen gene expression for each module in the same region
+# x: data, l: list of modules with genes, s: logical vector of samples (columns)
+eigen.data <- function(x, l, s){ 
+  df <- as.data.frame(t(sapply(l, function(genes){ # For each module with genes (grouped gene rows)
+    eigen.gene(t(x[genes, s]))
+  })))
+  colnames(df) <- names(s)[s]
+  df
+}
+
 # PCA first component of subselection expr. matrices
-eigenExpr <- lapply(donorNames, function(d){
-  expr <- brainExprNorm[[d]]
-  sapply(regions, function(r){ # For list of modules found in different brain regions
-    m <-modules[[r]]
-    s <- samples[[d]][[r]]
-    df <- as.data.frame(t(sapply(m, function(genes){ # For each module with genes (grouped gene rows)
-      modExpr <- t(expr[genes, s]) # Expr of genes in modules across samples in one braak region
-      eg <- prcomp(modExpr)$x[, 1]# 1st PC (eigen gene expr)
-      mean <- apply(modExpr, 1, mean)
-      if (cor(eg, mean) > 0) eg else -eg # flip sign of eigen gene based on the data
-    })))
-    colnames(df) <- names(s)[s]
-    df
-  }, simplify = FALSE)
-})
+eigenExpr <- sapply(regions, function(r){ # For list of modules found in different brain regions  
+  m <-modules[[r]] # modules with lists of genes
+  lapply(donorNames, function(d){
+    s <- samples[[d]][[r]] # logical vector
+    expr <- brainExprNorm[[d]]
+    eigen.data(expr, m, s)
+  })
+}, simplify = FALSE)
 save(eigenExpr, file = "resources/eigenExpr.RData")
-
-
-# # Function T-test for each gene
-# ttestGene <- function(a, b) {
-#   test2tail <- t.test(a, b) # two-sided
-#   estimate <- test2tail$estimate
-#   names(estimate) <- NULL
-#   confidence95 <- test2tail$conf.int
-#   c('pvalue' = test2tail$p.value, 
-#     'meanA' = estimate[1], 'varA' = var(unlist(a)), 
-#     'meanB' = estimate[2], 'varB' = var(unlist(b)), 
-#     'lower95' = confidence95[1], 'upper95' = confidence95[2])
-# }
-# 
-# # T-test eigen expression in Braak 1 vs. 6
-# ttest <- lapply(donorNames, function(d){
-#   labels <- braakStages[[d]]
-#   modulesets <- eigenExpr[[d]]
-#   lapply(modulesets, function(expr){ # For list of modules found in Braak 1 and 6 resp.
-#     genesTab <- as.data.frame(t(apply(expr, 1, function(eg){ # For each eigen gene row
-#       region_a <- eg[as.logical(labels[, "braak1"])]
-#       region_b <- eg[as.logical(labels[, "braak6"])]
-#       ttestGene(region_a, region_b)
-#     })))
-#     genesTab$'benjamini_hochberg' <- p.adjust(genesTab$'pvalue' , method = "BH", n = nrow(genesTab)) #corrected p
-#     genesTab[order(genesTab$benjamini_hochberg),]
-#   })
-# })
-# 
-# # Saved datastructure for meta-analysis: module set -> Eigen genes -> table of Donors
-# diffExpr_eigengene <- lapply(braakNames, function(b){
-#   mods <- names(modules[[b]])
-#   list <- sapply(mods, function(eg){
-#     as.data.frame(t(sapply(donorNames, function(d){
-#       unlist(ttest[[d]][[b]][eg, ])
-#     })))
-#   }, simplify = FALSE)
-# })
-# save(diffExpr_eigengene, file = "resources/diffExpr_eigengene.RData")

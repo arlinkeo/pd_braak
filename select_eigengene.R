@@ -10,13 +10,15 @@ load("resources/hierclust_tree.RData")
 
 # Get top 10% correlated genes
 labelCor <- do.call(rbind.data.frame, lapply(summaryLabelCorrEG, function(g) g["summary",]))
-order <- rev(order(abs(labelCor$r))) # order absolute corr.
+order <- rev(order(labelCor$r)) # order absolute corr.
 corrEG <- rownames(labelCor)[order[1:floor(nrow(labelCor)*0.1)]] # top 10% genes
-labelCor[order,]
+plot(labelCor[order,]$r, -log10(labelCor[order,]$pvalue))
+hist(labelCor[order,]$r, breaks = 30)
 
 # plot 
 ontology <- read.csv("../ABA_human_processed/Ontology_edited.csv")
 
+# plot line graph
 pdf("eigengene_expr.pdf", 8, 4)
 # lapply(regions, function(b){
 b="braak1-6"
