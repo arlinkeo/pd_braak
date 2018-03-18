@@ -1,6 +1,8 @@
 #Eigen gene co-expression
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
 source("PD/base_script.R")
+library(gplots)
+
 load("resources/eigenExpr.RData")
 eigenExpr <- eigenExpr$`braak1-6`
 load("resources/summaryLabelCorrEG.RData")
@@ -13,7 +15,7 @@ coexpr <- lapply(eigenExpr, function(x){
 coexpr <- apply(simplify2array(coexpr), 1:2, mean)
 
 colPal <- c("darkblue", "white", "darkred")
-rampcols <- colorRampPalette(colors = colPal, space="Lab")(200)
+rampcols <- colorRampPalette(colors = colPal, space="Lab")(201)
 
 rowColor <- rampcols[as.numeric(cut(labelCor$r, breaks = 201))]
 
