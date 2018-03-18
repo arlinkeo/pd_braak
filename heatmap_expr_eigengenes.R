@@ -3,15 +3,17 @@ setwd("C:/Users/dkeo/surfdrive/pd_braak")
 source("PD/base_script.R")
 
 load("resources/eigenExpr.RData")
-eigenExpr <- lapply(eigenExpr, function(d) d[["braak1-6"]])
+eigenExpr <- eigenExpr[["braak1-6"]]
 load("resources/braakStages.RData")
 load("resources/braakLabels.RData")
-load("resources/hierclust_tree.RData")
-tree <- hierclust_tree[["braak1-6"]][["average"]]
-
-# Plotting method 2 using gplot2 and colors to indicate modules and braak regions
+# load("resources/hierclust_tree.RData")
+load("resources/modules.RData")
 library(gplots)
 ontology <- read.csv("../ABA_human_processed/Ontology_edited.csv")
+load("resources/summaryLabelCorrEG.RData")
+labelCor <- do.call(rbind.data.frame, lapply(summaryLabelCorrEG, function(g) g["summary",]))
+
+# heatmap
 
 # IDs and AHBA colors for each sample per donor
 sampleInfo <- lapply(donorNames, function(d){
@@ -23,19 +25,14 @@ sampleInfo <- lapply(donorNames, function(d){
   info
 })
 
-pdf("heatmap_expr_eigengenes.pdf", 8, 9)
-
-
-# genes <- modules_braak[[b]]
-tree <- hierclust_tree[[b]][["average"]]
-
-gene_idx <- match(genes, tree$labels)
-modules <- tree$module[gene_idx]
-names(modules) <- genes
-colors <- tree$color[gene_idx]
+modules <- names(modules[["braak1-6"]])
+rowOrder <- order(-labelCor$r)
+  colPal <- c("darkblue", "white", "darkred")
+  rampcols <- colorRampPalette(colors = colPal, space="Lab")(200)
+  
+pdf("heatmap_expr_eigengenes.pdf", 8, 6)
 
 lapply(donorNames, function(d){
-  
   # Subselect expression matrices
   samples <- braakStages[[d]]
   # samples <- as.logical(bitwOr(samples[, "braak1"], samples[, "braak6"]))
@@ -43,24 +40,21 @@ lapply(donorNames, function(d){
   samples <- as.logical(apply(samples, 1, sum))
   df <- sampleInfo[[d]][samples,]
   labels <- braakLabels[[d]][samples]
-  exprMat <- as.matrix(brainExprNorm[[d]][genes, samples])
+  exprMat <- as.matrix(eigenExpr[[d]])
   
   colOrder <- order(labels, -df$graph_order)
   df <- df[colOrder, ]
-  exprMat <- exprMat[, colOrder]
+  exprMat <- exprMat[rowOrder, colOrder]
   
-  colPal <- c("darkblue", "white", "darkred")
-  rampcols <- colorRampPalette(colors = colPal, space="Lab")(200)
+
   heatmap.2(exprMat, col = rampcols, 
-            labRow = NA, labCol = df$acronym, 
+            labCol = df$name, 
             Rowv=FALSE, Colv=FALSE, 
-            cexCol = 1, cexRow = 1,
+            cexCol = 0.1, cexRow = 0.5,
             scale = "none", trace = "none", dendrogram = "none", key = FALSE, 
-            RowSideColors = colors, ColSideColors = df$color_hex_triplet,
-            main = paste0("Expression of modules in ", b, " and ", d),
-            margins = c(8, 5))
-  #, lwid = c(1, 10), lhei = c(1,10))
-  
+            ColSideColors = df$color_hex_triplet,
+            main = paste0("Expression of modules in Braak 1-6"),
+            margins = c(15, 5))
 })
 
 dev.off()
