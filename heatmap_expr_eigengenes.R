@@ -27,8 +27,8 @@ sampleInfo <- lapply(donorNames, function(d){
 
 modules <- names(modules[["braak1-6"]])
 rowOrder <- order(-labelCor$r)
-  colPal <- c("darkblue", "white", "darkred")
-  rampcols <- colorRampPalette(colors = colPal, space="Lab")(200)
+colPal <- c("darkblue", "white", "darkred")
+rampcols <- colorRampPalette(colors = colPal, space="Lab")(200)
   
 pdf("heatmap_expr_eigengenes.pdf", 8, 6)
 
