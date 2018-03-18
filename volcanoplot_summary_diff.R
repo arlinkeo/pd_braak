@@ -1,33 +1,28 @@
 # Volcano plot for differential expression analysis
 
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
+source("PD/base_script.R")
 
 library(ggplot2)
 library(gridExtra)
 library(ggrepel)
-
-source("PD/base_script.R")
+load("resources/braakGenes.RData")
+braakGenes <- unlist(braakGenes)
 load("resources/summaryDiffExpr.RData")
 
-# Extract summary statistics, correct p-values
+# Extract summary statistics
 diffExpr <- lapply(summaryDiffExpr, function(rp){
-  # as.data.frame(t(sapply(rp, function(g) {
-  #   unlist(g["summary", !colnames(g) %in% c("donors", "weight")])
-  # })))
-  rp <- do.call(rbind.data.frame, lapply(rp, function(g) g["summary",]))
-  rp$benjamini_hochberg <- p.adjust(rp$pvalue, method = "BH")
-  rp$'logp' <- -log10(rp$benjamini_hochberg)
-  rp
+  do.call(rbind.data.frame, lapply(rp, function(g) g["summary",]))
 })
 
-# Number of diff. expr. genes for each region pair after correction
-diffGenes <- sapply(diffExpr, function(rp){
-  order <- order(rp$benjamini_hochberg) # order absolute corr.
-  diffGenes1 <- rownames(rp)[order[1:1992]] # top 10% genes
-  order <- rev(order(abs(rp$meanDiff))) # order absolute corr.
-  diffGenes2 <- rownames(rp)[order[1:1992]] # top 10% genes
-  intersect(diffGenes1, diffGenes2)
-})
+# # Number of diff. expr. genes for each region pair after correction
+# diffGenes <- sapply(diffExpr, function(rp){
+#   order <- order(rp$benjamini_hochberg) # order absolute corr.
+#   diffGenes1 <- rownames(rp)[order[1:1992]] # top 10% genes
+#   order <- rev(order(abs(rp$meanDiff))) # order absolute corr.
+#   diffGenes2 <- rownames(rp)[order[1:1992]] # top 10% genes
+#   intersect(diffGenes1, diffGenes2)
+# })
 
 ##### Volcano plot #####
 
@@ -35,14 +30,29 @@ theme <- theme(legend.position = "none",
                panel.background = element_blank(),
                axis.line = element_line(colour = "black"),
                axis.title =  element_text(size = 12),
-               plot.title = element_text(size = 12, face = "bold"))
+               plot.title = element_text(size = 12, face = "bold")) +
+  
+  
 
-xmax <- max(sapply(diffExpr, function(rp){max(rp$mean)}))
-xmin <- min(sapply(diffExpr, function(rp){min(rp$mean)}))
-ymax <- max(sapply(diffExpr, function(rp){  max(rp$'logp'[is.finite(rp$'logp')])}))
-
-
-volcano.plot <- function(tab, rp){
+plotll <- lapply(names(diffExpr), function(rp){
+  tab <- diffExpr[[rp]]
+  tab$benjamini_hochberg <- p.adjust(tab$pvalue, method = "BH")
+  tab$'logp' <- -log10(tab$benjamini_hochberg)
+  tab$info <- as.numeric(rownames(tab) %in% braakGenes)
+  
+  tab$labels <- entrezId2Name(rownames(tab))
+  pd <- c("DNAJC13","SNCA","GCH1","INPP5F", "ASH1L", "SPACA3", "NPC2", "IFI30", "TSPAN8", "CORO1A")
+  tab$labels[!tab$labels %in% pd] <- ""
+  tab[name2EntrezId(pd), "info"] <- 2
+  
+  # Plotting order of data points 
+  tab$info <- as.factor(tab$info)
+  order <- order(tab$info)
+  tab <- tab[order, ]
+  
+  xmax <- max(tab$meanDiff)
+  xmin <- min(tab$meanDiff)
+  ymax <-  max(tab$'logp'[is.finite(tab$'logp')])
   ggplot(tab, aes(meanDiff, logp, colour = info)) +
     geom_point(size = 0.25) +
     scale_colour_manual(values = c("0"="#F8766D", "1"="#00BFC4", "2"="black")) +
@@ -52,21 +62,7 @@ volcano.plot <- function(tab, rp){
     scale_y_continuous(limits = c(0, ymax), expand = c(0,0)) +
     ggtitle(paste("Braak stage ", gsub("braak", "", gsub("-", " vs ", rp)))) +
     theme
-}
-
-plotll <- lapply(names(diffExpr), function(rp){
-  tab <- diffExpr[[rp]]
-  deg <- diffGenes[[rp]]
-  tab$info <- as.numeric(rownames(tab) %in% deg)
-  # tab$info <- as.numeric(tab$benjamini_hochberg < 0.05 & abs(tab$meanDiff) > 1.54)
-  tab$labels <- entrezId2Name(rownames(tab))
-  tab$labels[!tab$labels %in% c("SNCA")] <- ""
-  tab[name2EntrezId(c("SNCA")), "info"] <- 2
-  tab$info <- as.factor(tab$info)
-  order <- order(tab$info)
-  tab <- tab[order, ]
   
-  p <- volcano.plot(tab, rp)
   name <- paste0("DiffExpr_braak/volcano_ttest/volcanoplot_", rp, ".pdf")
   pdf(file = name, 4, 3)
   print(p)

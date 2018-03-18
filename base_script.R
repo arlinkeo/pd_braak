@@ -51,7 +51,7 @@ pdGenes <- list(hiImpact = c("GBA", "LRRK2", "PINK1", "PARK7", "SNCA", "VPS35", 
                                 "CCDC62", "SYNJ1", "EIF4G1", "FBXO7", "C20orf30", "POLG", "VPS13C", "PLA2G6"),
                 hla = c("HLA-DRA", "HLA-DRB1", "HLA-DRB5", "HLA-DQB1"),
                 lysosome = read.table("lysosome_geneset.txt", header = FALSE, comment.char = "#", sep = "\n", row.names = NULL)[, 1],
-                chang2017 = read.table("chang2017_riskgenes.txt", comment.char = "#", sep = "\n", row.names = NULL)[, 1] 
+                chang2017 = read.table("chang2017_riskgenes.txt", comment.char = "#", sep = "\n", row.names = NULL)[, 1]
 )
 
 pdGenesID <- lapply(pdGenes, function(l){
@@ -59,6 +59,10 @@ pdGenesID <- lapply(pdGenes, function(l){
   as.character(geneInfo[ , 6])
 })
 
+celltype_genes <- sapply(c("Astrocytes", "Endothelial_cells", "Microglia", "Neurons", "Oligodendrocytes"), function(type){
+  file = paste0("brainscope_celltypes/", type, ".txt")
+  as.character(read.csv(file, header = TRUE)$entrez_id)
+}, simplify = FALSE)
 
 ##### Basic functions #####
 
