@@ -48,8 +48,8 @@ tab <- cbind(tab, pdOverlap)
 
 orderEG <- rev(order(labelCor$r))
 tab <- tab[orderEG, ]
-
-# Print results in text-file
 tab$pvalue <- NULL
 tab <- cbind(module = rownames(tab), tab)
+
+# Print results in text-file
 write.table(tab, file = paste0("module_braakgene_overlap_", b, ".txt"), sep ="\t", quote = FALSE, row.names = FALSE)
