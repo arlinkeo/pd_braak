@@ -8,8 +8,8 @@ load("resources/summaryLabelCorrEG.RData")
 braakGenes <- unlist(braakGenes)
 labelCor <- do.call(rbind.data.frame, lapply(summaryLabelCorrEG, function(g) g["summary",]))
 total <- length(ahba.genes())
-orderEG <- rev(order(labelCor$r))
 
+# Overlap with Braak genes
 b= "braak1-6"
 m <- modules[[b]]
 tab <- as.data.frame(t(sapply(m, function(module){ # for each module
@@ -21,17 +21,22 @@ tab <- as.data.frame(t(sapply(m, function(module){ # for each module
   c(overlap = overlap, module.size = ns1, pvalue = p)
 })))
 tab$benjamini_hochberg <- p.adjust(tab$pvalue)
-# tab <- tab[tab$benjamini_hochberg < 0.05, ] # select only significant modules
-# tab[order(tab$benjamini_hochberg), ]
+
+# Add numbers of significant GO terms
+m <- modules[[b]]
+correctedTerms <- sapply(names(m), function(l){
+  file <- paste0("Functional_analyses/", b, "_modules/", l, "_goterms.txt")
+  terms <- read.csv(file, header = TRUE, sep = "\t", colClasses = "character")
+  rows <- which(as.numeric(terms$Benjamini) < 0.05)
+  terms <- terms[rows, c("Category", "Term", "Bonferroni", "Benjamini")]
+  terms
+}, simplify = FALSE)
+tab$numer_goterms <- sapply(correctedTerms, nrow)
+
+# Add eigengene-braak correlations
 tab$r_braak <- labelCor$r
 
-# modules_braak <- sapply(c("braak1", "braak6", "braak1-6"), function(b){
-#   modNames <- rownames(module_overlap[[b]])
-#   modules[[b]][modNames]
-# }, simplify = FALSE)
-# save(modules_braak, file = "resources/modules_braak.RData")
-
-# Add enrichment of PD genes
+# Add enrichment of PD-implicated genes
 pdGenesID$progression <- braakGenes
 pdOverlap <-  sapply(pdGenesID, function(pd){
   sapply(m, function(genes){
@@ -39,10 +44,10 @@ pdOverlap <-  sapply(pdGenesID, function(pd){
     paste0(entrezId2Name(res), collapse = ",")
   })
 })
-
 tab <- cbind(tab, pdOverlap)
-tab <- tab[orderEG, ]
 
+orderEG <- rev(order(labelCor$r))
+tab <- tab[orderEG, ]
 
 # Print results in text-file
 tab$pvalue <- NULL
