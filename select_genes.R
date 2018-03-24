@@ -56,7 +56,7 @@ write.table(tab, file = "progression_genes.txt", row.names = FALSE, quote = FALS
 
 #Presence of PD-implicated genes
 pd.genes <- function(x){
-  lapply(name2EntrezId(c("SNCA", "MAPT", "LAG3", "RAB5A", "LPAR2", "FOXO1")), function(l){
+  lapply(pdGenesID, function(l){
    intersect(l, x)
   })
 }
@@ -69,7 +69,10 @@ gene.stats <- function(g){
   r <- labelCor[g, "r", drop = FALSE] 
   geneorder <- rownames(r)[order(r)]
   r <- r[geneorder, ]
+  r <- round(r, digits = 2)
   de <- diffExpr[geneorder, c("meanDiff", "benjamini_hochberg")]
+  de$meanDiff <- round(de$meanDiff, digits = 2)
+  de$benjamini_hochberg <- format(de$benjamini_hochberg, digits = 3, scientific = TRUE)
   id <- geneorder
   name <- entrezId2Name(geneorder)
   df <- data.frame(id, name, r, de)
