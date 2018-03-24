@@ -9,9 +9,10 @@ load("resources/braakLabels.RData")
 
 # Correlate labels with genes
 braak.cor <- function(x, l, stat){ #x: data, l: labels
-  apply(x, 1, function(g){# corr. each gene/row
-    g <- unlist(g)
-    r <- cor.test(g, as.numeric(l)) # Pearson's r by default
+  apply(x, 1, function(gene){# corr. each gene/row
+    gene <- unlist(gene)
+    labels <- as.numeric(l)
+    r <- cor.test(gene, labels) # Pearson's r by default
     r[[stat]]
   }) # vector with stats
 }

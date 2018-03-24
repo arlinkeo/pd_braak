@@ -34,17 +34,20 @@ lapply(names(hierclust_tree), function(b) {
 })
 dev.off()
 
-# count modules
+# count modules and missed genes
 lapply(hierclust_tree, function(b){
-  lapply(b, function(t){
-    table(t$module)
-  })
+  t(sapply(b, function(t){
+    n <- max(t$module)
+    missed <- table(t$module)["0"]
+    c(modules= n, missed_genes = missed)
+  }))
 })
 
 # Modules with gene names
 modules <- lapply(hierclust_tree, function(b){
-  tree <- b$average
-  modNames <- sort(unique(tree$module))[-1] # Unique module names, remove module 0 (gray)
+  tree <- b$complete#b$average
+  modNames <- sort(unique(tree$module)) # Unique module names, remove module 0 (gray)
+  modNames <- modNames[modNames!="0"]
   names(modNames) <- modNames
   groups <-  lapply(modNames, function(m){
     tree$labels[tree$module == m]
