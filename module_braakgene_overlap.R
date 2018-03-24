@@ -66,6 +66,8 @@ pdOverlap <-  sapply(geneLists, function(pd){
   })
 })
 tab <- cbind(tab, pdOverlap)
+module_enrichment <- tab
+save(module_enrichment, file = "resources/module_enrichment.RData")
 
 # Order genes based on summary correlation with Braak labels
 orderEG <- rev(order(labelCor$r))
