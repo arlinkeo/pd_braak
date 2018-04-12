@@ -31,7 +31,7 @@ summaryDiffExpr <- sapply(names(diffExpr), function(rp){ # For each Braak region
     t <- summary(t)
     
     # Get summary estimate
-    summary <- rma(t$yi, t$vi, method = "DL", test = "z") # Summary effect size
+    summary <- rma(t$yi, t$vi, method = "DL", test = "t") # Summary effect size
     
     # tscore <- summary$b/summary$se
     # pval <- 2*pt(-abs(tscore), df = 2)
@@ -54,4 +54,4 @@ summaryDiffExpr <- sapply(names(diffExpr), function(rp){ # For each Braak region
   })
 }, simplify = FALSE)
 
-save(summaryDiffExpr, file = "resources/summaryDiffExpr_ztest.RData")
+save(summaryDiffExpr, file = "resources/summaryDiffExpr.RData")
