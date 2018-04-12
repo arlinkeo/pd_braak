@@ -27,9 +27,9 @@ pdf("coexpr_modules.pdf", 12, 2)
 lapply(names(hierclust_tree), function(b) {
   treeList <- hierclust_tree[[b]]
   lapply(names(treeList), function(method){
-    title <- paste0("Co-expression modules in Braak ", b, ", ", method, " linkage")
+    title <- ""#paste0("Co-expression modules in Braak ", b, ", ", method, " linkage")
     tree <- treeList[[method]]
-    plotDendroAndColors(tree, colors = tree$color, dendroLabels = FALSE, marAll = c(0, 4, 0.2, 0), main = title)
+    plotDendroAndColors(tree, colors = tree$color, dendroLabels = FALSE, marAll = c(0, 4, 1, 0), main = title)
   })
 })
 dev.off()
