@@ -5,6 +5,7 @@ source("PD/base_script.R")
 library(ggplot2)
 library(gridExtra)
 library(ggrepel)
+library(ggpubr)
 load("resources/module_enrichment.RData")
 load("resources/summaryLabelCorrEG.RData")
 labelCor <- do.call(rbind.data.frame, lapply(summaryLabelCorrEG, function(g) g["summary",]))
@@ -26,6 +27,7 @@ braakMod <- module_enrichment$module[module_enrichment$pvalue_progression < 0.00
 tab$labels <- module_enrichment$module
 tab$labels[!tab$labels %in% braakMod] <- ""
 tab[tab$labels %in% braakMod, "info"] <- 2
+tab$module <- paste0("M", rownames(tab))
 
 # Plotting order of data points 
 tab$info <- as.factor(tab$info)
@@ -35,20 +37,55 @@ tab <- tab[order, ]
 xmax <- max(tab$r)+.2
 xmin <- min(tab$r)-.2
 ymax <-  ceiling(max(tab$'logp'))
-p <- ggplot(tab, aes(r, logp, colour = info)) +
+p1 <- ggplot(tab, aes(r, logp, colour = info)) +
   geom_point(size = 2) +
   scale_colour_manual(values = c("0"="#F8766D", "1"="#00BFC4", "2"="black")) +
   geom_text_repel(label = tab$labels, colour = "black", size = 3, nudge_x = 0) +
-  labs(x = "Pearson's r", y = "-log10 p-value") +
+  labs(y = "-log10 p-value") +
   scale_x_continuous(limits = c(xmin, xmax), expand = c(0,0)) +
   scale_y_continuous(limits = c(0, ymax), expand = c(0,0)) +
-  ggtitle("Eigen gene-Braak label correlation") +
   annotate("label", label ="Downregulated", x=0.7, y=0.5) +
   annotate("label", label ="Upregulated", x=-0.7, y=0.5) +
-  theme
-p
+  theme + theme(axis.title.x = element_blank())
+p1
+####################################################################################
 
-name <- paste0("eigengene_r_volcanoplot.pdf")
-pdf(file = name, 6, 4.5)
+# Braak label correlation plot
+orderEG <- order(tab$r)
+tab <- tab[orderEG, ]
+
+# significance stars
+star <- function(v){
+  sapply(v, function(x) 
+    if (x<0.001) "*" 
+    # else if (x<0.01) "**" 
+    # else if (x<0.05) "*" 
+    else ""
+  )
+}
+
+tab$star <- star(tab$benjamini_hochberg)
+tab$module <- factor(tab$module, levels = unique(tab$module))
+offset <- 0.1
+tab$y <- sapply(tab$r, function(x) if (x>0) x+offset else x-offset)
+
+colPal <- c("darkblue", "white", "darkred")
+rampcols <- colorRampPalette(colors = colPal, space="Lab")(201)
+tab$color <- rampcols[as.numeric(cut(tab$r, breaks = 201))]
+tab$color<- factor(tab$color, levels = unique(tab$color))
+
+p2 <- ggplot(tab) + 
+  geom_col(aes(x=module, y = r, fill=r)) +
+  geom_text(aes(x=module, y=y, label=star), size = 4, vjust = 0.75) +
+  scale_y_continuous(limits = c(xmin, xmax), expand = c(0,0)) +
+  labs(y ="Pearson's r") +
+  scale_fill_gradientn(colours = rampcols) +
+  theme + theme(axis.text.y=element_blank(), axis.ticks.y = element_blank()) +
+  coord_flip()
+p2
+
+p <- ggarrange(p1, p2+coord_flip(), nrow = 2, heights = c(4, 3),  labels = c("A", "B"), align = "v")
+p
+pdf("eigengene_r_volcanoplot.pdf", 8, 6)
 print(p)
 dev.off()
