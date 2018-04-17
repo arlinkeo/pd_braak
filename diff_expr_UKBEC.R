@@ -28,7 +28,7 @@ ttest_ukbec <- as.data.frame(t(sapply(probe2gene.map$exprID, function(p){
   pvalue <- t$p.value
   c(meanDiff = meanDiff, pvalue = pvalue)
 })))
-ttest_ukbec$benjamini_hochberg <- p.adjust(ttest$pvalue, method = "BH")
+ttest_ukbec$benjamini_hochberg <- p.adjust(ttest_ukbec$pvalue, method = "BH")
 save(ttest_ukbec, file = "resources/ttest_ukbec.RData")
 # 
 # # Differential expressed genes top 10% based on corrected p-value and mean difference
