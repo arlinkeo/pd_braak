@@ -1,7 +1,7 @@
 # select significant genes based on significant summary estimate
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
 library("metap")
-
+library(gplots)
 source("PD/base_script.R")
 load("resources/summaryDiffExpr.RData")
 load("resources/summaryLabelCorr.RData")
@@ -39,7 +39,15 @@ diffGenes2_up <- diffGenes2[diffExpr[diffGenes2, "meanDiff"] > 0]
 diffGenes2_down <- diffGenes2[diffExpr[diffGenes2, "meanDiff"] < 0]
 min(abs(diffExpr[diffGenes2, "meanDiff"]))
 
-braakGenes <- Reduce(intersect, list(corrGenes, diffGenes1, diffGenes2))
+# Venn
+ll <- list("P<1.26e-3" = diffGenes1, "MeanDiff" = diffGenes2, "|r|>0.065" = corrGenes)
+venn <- venn(ll)
+ll_up <- list("P<1.26e-3" = diffGenes1_up, "MeanDiff" = diffGenes2_up, "|r|>0.065" = corrGenes_neg)
+venn_up <- venn(ll_up)
+ll_down <- list("P<1.26e-3" = diffGenes1_down, "MeanDiff" = diffGenes2_down, "|r|>0.065" = corrGenes_pos)
+venn_down <- venn(ll_down)
+
+braakGenes <- attr(venn, "intersections")$"P<1.26e-3:MeanDiff:|r|>0.065"
 positive_r <- braakGenes[labelCor[braakGenes, "r"] > 0]
 negative_r <- braakGenes[labelCor[braakGenes, "r"] < 0]
 braakGenes <- list(positive_r = positive_r, negative_r = negative_r)
