@@ -7,7 +7,10 @@ load("resources/roiSamples.RData")
 
 ontology <- read.csv("../ABA_human_processed/Ontology_edited.csv")
 
-roi <- c("myelencephalon", "substantia nigra") 
+# roi <- c("myelencephalon", "substantia nigra") 
+roi <- c("myelencephalon", "pontine tegmentum", "substantia nigra", "CA2 field", 
+         "occipito-temporal gyrus", "cingulate gyrus", "temporal lobe", 
+         "frontal lobe", "parietal lobe") 
 
 # select probe IDs for left and right hemisphere of roi
 selectIds <- function(r){ # for a single structure
@@ -44,9 +47,6 @@ sizes <- lapply(roiSamples, function(r){
   })
 })
 
-# Use only first two donors for which samples are available for left and right hemisphere
-
-
 # T-test function
 ttestGene <- function(a, b) {
   test2tail <- t.test(a, b) # two-sided
@@ -76,12 +76,12 @@ ttest <- lapply(roiSamples, function(roi){
 })
 
 # Number of differentially expressed genes
-sapply(ttest, function(roi){
+t(sapply(ttest, function(roi){
   sapply(roi, function(d){
     d$benjamini_hochberg <- p.adjust(d$pvalue)
-    sum(d$pvalue < 0.05)
+    sum(d$benjamini_hochberg < 0.05)
   })
-})
+}))
 
 
 # Prepare data for meta-analysis: Tables with effect sizes per donor for each gene
