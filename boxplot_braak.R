@@ -3,13 +3,14 @@ setwd("C:/Users/dkeo/surfdrive/pd_braak")
 library(ggplot2)
 
 source("PD/base_script.R")
+# load("../ABA_Rdata/BrainExpr.RData")
 load("../ABA_Rdata/BrainExprNorm.RData")
 load("resources/braakLabels.RData") # Braak stage label vectors
 load("resources/summaryLabelCorr.RData")
 
 # Get gene's expression
 gene.expr <- function(g, d){
-  unlist(brainExprNorm[[d]][g, ])
+  unlist(brainExpr[[d]][g, ])
 }
 
 # Default theme for boxplot
@@ -33,14 +34,14 @@ boxplot.gene <- function(g){
   title <- paste0(entrezId2Name(g), ", r=", r$r)
   
   p <- ggplot(exprll) + geom_boxplot(aes(x = factor(label), y = expr, fill = factor(donor))) +
-    labs(x = "Braak stage", y = "Expression") +
+    labs(x = "Braak stage", y = "Expression (log2-transformed)") +
     ggtitle(title) +
     theme
   p
 }
 
 plot.pdf <- function(name, genes){
-  pdf(name, 8, 6)
+  pdf(name, 8, 5)
   lapply(genes, function(gene){
     p <- boxplot.gene(gene)
     print(p)
