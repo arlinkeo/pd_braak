@@ -2,9 +2,11 @@
 
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
 source("PD/base_script.R")
+library(reshape)
+library(ggplot2)
 
 df <- read.table("../GTEX/GTEx_Analysis_2016-01-15_v7_RNASeQCv1.1.8_gene_tpm.gct", sep = "\t", comment.char = "#", header = TRUE, skip = 2)
-# rownames(df) <- df$Name
+rownames(df) <- df$Name
 
 # Filter IDs for protein coding genes only
 gene.annot <- read.table("../GTEX/gencode.v19.genes.v7.patched_contigs.gtf", sep = "\t")
@@ -93,16 +95,15 @@ braak_ensembl <- lapply(id_conversion, function(x){ # For + and - correlated pro
 
 # Correct p-value for number of progression genes
 braak_gtex <- lapply(ttest.all, function(rp){
-  sapply(names(id_conversion), function(r){ # For + and - correlated progression genes
-    x <- id_conversion[[r]]
-    ens <- x$ensembl_gene_id
-    rows <- intersect(ens, rownames(rp))
+  sapply(names(braak_ensembl), function(r){ # For + and - correlated progression genes
+    rows <- braak_ensembl[[r]]
     t <- rp[rows,]
     t$BH <- p.adjust(t$pvalue)
     if (r== "positive_r") t[t$meanDiff < 2 & t$BH < 0.05, ]
     else t[t$meanDiff > 2 & t$BH < 0.05, ]
   }, simplify = FALSE)
 })
+
 sapply(braak_gtex, function(rp)sapply(rp,  nrow))
 gtex_pos <- lapply(braak_gtex, function(x){
   rownames(x$positive_r)
@@ -112,3 +113,47 @@ gtex_neg <- lapply(braak_gtex, function(x){
 })
 length(Reduce(union, gtex_pos[1:3]))
 length(Reduce(union, gtex_neg[c(1,3)]))
+
+# Box plot of all Braak genes
+meanExpr <- lapply(braak_ensembl, function(r){
+  t <- sapply(dfList, function(df){
+    apply(df[r, ], 1, mean) # mean expression of progression genes
+  })
+  melt(t)
+})
+meanExpr <- melt.list(meanExpr)
+colnames(meanExpr) <- c("gene", "region", "value", "mean_expr", "r")
+meanExpr$region <- factor(meanExpr$region, levels = names(roi))
+
+theme <- theme(panel.background = element_blank(), panel.grid = element_blank(), 
+               axis.line = element_line(colour = "black"),
+               legend.title = element_blank())
+
+p <- ggplot(meanExpr) + 
+  geom_boxplot(aes(y = mean_expr, x = region, fill = region)) +
+  labs(x = "Braak stage region", y = "Expression (TPM)") +
+  ggtitle("Expression of Braak-related genes in GTEx") +
+  scale_x_discrete(expand=c(0.2,0), labels = c(3:6)) +
+  facet_grid(.~r, scales = 'free', space = 'free', switch = "y") +
+  theme
+p
+
+#boxplot of SNCA
+ens_snca <- id_conversion$positive_r$ensembl_gene_id[which(id_conversion$positive_r$entrezgene== name2EntrezId("SNCA"))]
+expr_snca <- lapply(dfList, function(x) unlist(x[ens_snca,]))
+
+sapply(expr_snca, median)
+
+expr_snca <- melt.list(expr_snca)
+colnames(expr_snca) <- c("expr", "region")
+expr_snca$region <- factor(expr_snca$region, levels = names(roi))
+
+p <- ggplot(expr_snca) + 
+  geom_boxplot(aes(y = expr, x = region, fill = region)) +
+  labs(x = "Braak stage region", y = "Expression (TPM)") +
+  ggtitle("Expression of SNCA in GTEx") +
+  scale_x_discrete(expand=c(0.2,0), labels = c(3:6)) +
+  theme
+pdf("snca_gtex.pdf", 4, 4)
+print(p)
+dev.off()
