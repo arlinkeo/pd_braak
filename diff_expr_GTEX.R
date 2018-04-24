@@ -5,52 +5,37 @@ source("PD/base_script.R")
 library(reshape)
 library(ggplot2)
 
-df <- read.table("../GTEX/GTEx_Analysis_2016-01-15_v7_RNASeQCv1.1.8_gene_tpm.gct", sep = "\t", comment.char = "#", header = TRUE, skip = 2)
-rownames(df) <- df$Name
-
-# Filter IDs for protein coding genes only
-gene.annot <- read.table("../GTEX/gencode.v19.genes.v7.patched_contigs.gtf", sep = "\t")
-gene.annot <- gene.annot[which(gene.annot$V3 == "gene"), ]
-gene_info <- strsplit(gene.annot$V9, split = ";")
-gene_type <- sapply(gene_info,  function(x){
-  gt <- x[[grep("gene_type", x)]]
-  gsub(" gene_type ", "", gt)
-})
-gene_id <- sapply(gene_info,  function(x){
-  id <- x[[grep("gene_id", x)]]
-  gsub("gene_id ", "", id)
-})
-genes <- gene_id[gene_type == "protein_coding"]
-
-df <- df[genes, ]
-genes <- sapply(genes, function(s) {# remove version from ID
-  unlist(strsplit(s, split = "\\."))[1]
-})
-names(genes) <- genes
-rownames(df) <- genes
+df <- readRDS("../GTEX/gtex_expr.rds")
 
 # Select samples corresponding to brain tissues of Braak regions
 sample.annot <- read.table("../GTEX/GTEx_v7_Annotations_SampleAttributesDS.txt", sep = "\t", header = TRUE, fill = T, quote = "")
-
-roi <- c("Substantia nigra", "Amygdala", "Anterior cingulate cortex", "Frontal Cortex")
-names(roi) <- c("SN", "AMG", "ACC", "FC")
+roi <- c(SN = "Substantia nigra", AMG = "Amygdala", ACC = "Anterior cingulate cortex", FC = "Frontal Cortex")
 samples <- lapply(roi, function(r){
   rows <- grep(r, sample.annot$SMTSD)
   ids <- gsub("-", ".", sample.annot[rows, "SAMPID"])
   intersect(ids, colnames(df))
 })
 
-# select samples for each region
-dfList <- lapply(samples, function(s){ 
-  df[, s]
+# remove genes with 0's in all selected regions
+zerorows <- lapply(samples, function(s){
+  apply(df[, s], 1, sum) == 0
 })
+zerorows <- Reduce("|", zerorows)
+
+df <- readRDS("../GTEX/gtex_expr_norm.rds")
+df <- df[!zerorows, ]
+genes <- rownames(df)
 
 # T-test function for 2 regions
 ttest.regions <- function(a,b){
+  s1 <- samples[[a]]
+  s2 <- samples[[b]]
+  df1 <- df[, s1]
+  df2 <- df[, s2]
   as.data.frame(t(sapply(genes, function(g){
     print(paste0(a, "-", b, "; ", which(genes %in% g), "; ", g))
-    r1 <- unlist(dfList[[a]][g, ])
-    r2 <- unlist(dfList[[b]][g, ])
+    r1 <- df1[g, ]
+    r2 <- df2[g, ]
     t <- t.test(r1, r2)
     meanDiff <- t$estimate[1]-t$estimate[2]
     pvalue <- t$p.value
@@ -93,16 +78,28 @@ braak_ensembl <- lapply(id_conversion, function(x){ # For + and - correlated pro
   intersect(ens, genes)
 })
 
-# Correct p-value for number of progression genes
+
+# Correct p-value for number of all genes
 braak_gtex <- lapply(ttest.all, function(rp){
+  rp$BH <- p.adjust(rp$pvalue)
   sapply(names(braak_ensembl), function(r){ # For + and - correlated progression genes
     rows <- braak_ensembl[[r]]
     t <- rp[rows,]
-    t$BH <- p.adjust(t$pvalue)
     if (r== "positive_r") t[t$meanDiff < 2 & t$BH < 0.05, ]
     else t[t$meanDiff > 2 & t$BH < 0.05, ]
   }, simplify = FALSE)
 })
+# 
+# # Correct p-value for number of progression genes
+# braak_gtex <- lapply(ttest.all, function(rp){
+#   sapply(names(braak_ensembl), function(r){ # For + and - correlated progression genes
+#     rows <- braak_ensembl[[r]]
+#     t <- rp[rows,]
+#     t$BH <- p.adjust(t$pvalue)
+#     if (r== "positive_r") t[t$meanDiff < 2 & t$BH < 0.05, ]
+#     else t[t$meanDiff > 2 & t$BH < 0.05, ]
+#   }, simplify = FALSE)
+# })
 
 sapply(braak_gtex, function(rp)sapply(rp,  nrow))
 gtex_pos <- lapply(braak_gtex, function(x){
@@ -116,8 +113,9 @@ length(Reduce(union, gtex_neg[c(1,3)]))
 
 # Box plot of all Braak genes
 meanExpr <- lapply(braak_ensembl, function(r){
-  t <- sapply(dfList, function(df){
-    apply(df[r, ], 1, mean) # mean expression of progression genes
+  t <- sapply(samples, function(s){
+    d <- df[, s]
+    apply(d[r, ], 1, mean) # mean expression of progression genes
   })
   melt(t)
 })
@@ -140,7 +138,7 @@ p
 
 #boxplot of SNCA
 ens_snca <- id_conversion$positive_r$ensembl_gene_id[which(id_conversion$positive_r$entrezgene== name2EntrezId("SNCA"))]
-expr_snca <- lapply(dfList, function(x) unlist(x[ens_snca,]))
+expr_snca <- lapply(samples, function(s) unlist(df[ens_snca,s]))
 
 sapply(expr_snca, median)
 
