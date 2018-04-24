@@ -127,14 +127,13 @@ theme <- theme(panel.background = element_blank(), panel.grid = element_blank(),
                axis.line = element_line(colour = "black"),
                legend.title = element_blank())
 
-p <- ggplot(meanExpr) + 
+p1 <- ggplot(meanExpr) + 
   geom_boxplot(aes(y = mean_expr, x = region, fill = region)) +
   labs(x = "Braak stage region", y = "Expression (TPM)") +
-  ggtitle("Expression of Braak-related genes in GTEx") +
+  ggtitle("Expression of progression genes in GTEx") +
   scale_x_discrete(expand=c(0.2,0), labels = c(3:6)) +
   facet_grid(.~r, scales = 'free', space = 'free', switch = "y") +
   theme
-p
 
 #boxplot of SNCA
 ens_snca <- id_conversion$positive_r$ensembl_gene_id[which(id_conversion$positive_r$entrezgene== name2EntrezId("SNCA"))]
@@ -146,12 +145,13 @@ expr_snca <- melt.list(expr_snca)
 colnames(expr_snca) <- c("expr", "region")
 expr_snca$region <- factor(expr_snca$region, levels = names(roi))
 
-p <- ggplot(expr_snca) + 
+p2 <- ggplot(expr_snca) + 
   geom_boxplot(aes(y = expr, x = region, fill = region)) +
   labs(x = "Braak stage region", y = "Expression (TPM)") +
   ggtitle("Expression of SNCA in GTEx") +
   scale_x_discrete(expand=c(0.2,0), labels = c(3:6)) +
   theme
-pdf("snca_gtex.pdf", 4, 4)
-print(p)
+pdf("boxplot_GTEX.pdf", 4, 3)
+print(p1)
+print(p2)
 dev.off()
