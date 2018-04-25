@@ -38,23 +38,23 @@ select.expr <- function(genes = NULL, samples = NULL){
 
 ##### PD info about brain regions and genes #####
 
-braakNames <- c("braak1","braak2","braak3","braak4","braak5","braak6")
-names(braakNames) <- braakNames
-braakNamesMerged1 <- c("braak1-2", "braak3-4", "braak5-6")
-names(braakNamesMerged1) <- braakNamesMerged1
-braakNamesMerged2 <- c("braak1-3", "braak4-6")
-names(braakNamesMerged2) <- braakNamesMerged2
+# braakNames <- c("braak1","braak2","braak3","braak4","braak5","braak6")
+# names(braakNames) <- braakNames
+# braakNamesMerged1 <- c("braak1-2", "braak3-4", "braak5-6")
+# names(braakNamesMerged1) <- braakNamesMerged1
+# braakNamesMerged2 <- c("braak1-3", "braak4-6")
+# names(braakNamesMerged2) <- braakNamesMerged2
 
 pdGenes <- list(hiImpact = c("SNCA", "LRRK2", "GBA", "VPS35", "PARK2", "PINK1", "PARK7", "ATP13A2", "PLA2G6", "FBXO7", "DNAJC6", "SYNJ1", 
                              "EIF4G1", "DNAJC13", "CHCHD2", "C20orf30", "RIC3"), #TMEM230 is C20orf30
                 jansen2017 = c("INPP5F", "TMEM175", "ASH1L", "MAPT", "RIT1", "C14orf83", "STK39", "GPNMB", "BST1", 
                                 "SIPA1L2", "DLG2", "NUCKS1", "GCH1", "MCCC1", "FAM47E", "BCKDK", "TMPRSS9", "UBOX5", 
                                 "CCDC62", "SYNJ1", "EIF4G1", "FBXO7", "C20orf30", "POLG", "VPS13C", "PLA2G6"),
-                hla = c("HLA-DRA", "HLA-DRB1", "HLA-DRB5", "HLA-DQB1"),
-                lysosome = read.table("lysosome_geneset.txt", header = FALSE, comment.char = "#", sep = "\n", row.names = NULL)[, 1],
-                chang2017 = read.table("chang2017_riskgenes.txt", comment.char = "#", sep = "\n", row.names = NULL)[, 1], 
-                nalls2014 = read.table("nalls2014_riskgenes.txt", comment.char = "#", sep = "\n", row.names = NULL)[, 1],
-                liscovitch2014 = read.table("ifn_signaling_genes.txt", comment.char = "#", sep = "\n", row.names = NULL)[, 1]
+                hla = c("HLA-DRA", "HLA-DRB1", "HLA-DRB5", "HLA-DQB1")
+                # lysosome = read.table("lysosome_geneset.txt", header = FALSE, comment.char = "#", sep = "\n", row.names = NULL)[, 1],
+                # chang2017 = read.table("chang2017_riskgenes.txt", comment.char = "#", sep = "\n", row.names = NULL)[, 1], 
+                # nalls2014 = read.table("nalls2014_riskgenes.txt", comment.char = "#", sep = "\n", row.names = NULL)[, 1],
+                # liscovitch2014 = read.table("ifn_signaling_genes.txt", comment.char = "#", sep = "\n", row.names = NULL)[, 1]
 )
 
 pdGenesID <- lapply(pdGenes, function(l){
@@ -62,10 +62,10 @@ pdGenesID <- lapply(pdGenes, function(l){
   as.character(geneInfo[ , 6])
 })
 
-celltype_genes <- sapply(c("Astrocytes", "Endothelial_cells", "Microglia", "Neurons", "Oligodendrocytes"), function(type){
-  file = paste0("brainscope_celltypes/", type, ".txt")
-  as.character(read.csv(file, header = TRUE)$entrez_id)
-}, simplify = FALSE)
+# celltype_genes <- sapply(c("Astrocytes", "Endothelial_cells", "Microglia", "Neurons", "Oligodendrocytes"), function(type){
+#   file = paste0("brainscope_celltypes/", type, ".txt")
+#   as.character(read.csv(file, header = TRUE)$entrez_id)
+# }, simplify = FALSE)
 
 ##### Basic functions #####
 
