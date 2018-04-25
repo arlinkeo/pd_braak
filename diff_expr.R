@@ -1,16 +1,9 @@
 # Differential expression in braak regions of PD
-
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
-library("metap")
-library(plyr)
-
 source("PD/base_script.R")
-load("../ABA_Rdata/BrainExprNorm.RData")
+library(metafor)
+library(plyr)
 load("resources/braakStages.RData")
-
-# Gene info
-genes <- ahba.genes()
-nGenes <- length(genes)
 
 # Pairwise combinations of Braak regions 1-6
 braakPairs <- t(combn(braakNames, 2))
@@ -26,29 +19,32 @@ ttestGene <- function(a, b) {
   c('pvalue' = test2tail$p.value, 
     'meanA' = estimate[1], 'varA' = var(unlist(a)), 
     'meanB' = estimate[2], 'varB' = var(unlist(b)), 
+    'sizeA' = length(a), 'sizeB' = length(b),
     'lower95' = confidence95[1], 'upper95' = confidence95[2])
 }
 
+# T-test to get p-values and CI's
 # Donors -> Braak region pairs -> genes (table)
+brainExpr <- readRDS("../ABA_Rdata/BrainExprNorm.rds")
+genes <- ahba.genes()
 ttest <- lapply(donorNames, function(d){
-  labels <- braakStages[[d]] == 1
-  expr <- brainExprNorm[[d]]
+  labels <- braakStages[[d]]
+  expr <- brainExpr[[d]]
   exprll <- apply(labels, 2, function(v){ # expr. in Braak regions 1-6
     expr[, v]
   })
-  tabll <- alply(braakPairs, 1, function(p){
+  alply(braakPairs, 1, function(p){
     region_a <- exprll[[p[1]]]
     region_b <- exprll[[p[2]]]
     genesTab <- as.data.frame(t(sapply(genes, function(g){
       ttestGene(region_a[g, ], region_b[g, ])
     })))
-    genesTab$'benjamini_hochberg' <- p.adjust(genesTab$'pvalue' , method = "BH", n = nGenes) #corrected p
+    genesTab$benjamini_hochberg <- p.adjust(genesTab$'pvalue' , method = "BH")
     genesTab
   }, .dims = TRUE) # keep names
-  tabll
 })
-save(ttest, file = "resources/ttest.RData")
-load("resources/ttest.RData")
+# save(ttest, file = "resources/ttest.RData")
+# load("resources/ttest.RData")
 
 # Number of diff. expr. genes
 sapply(ttest, function(d){
@@ -66,5 +62,40 @@ diffExpr <- sapply(rownames(braakPairs), function(p){
     })))
   }, simplify = FALSE)
 }, simplify = FALSE)
+# save(diffExpr, file = "resources/diffExpr.RData")
 
-save(diffExpr, file = "resources/diffExpr.RData")
+# Meta-analysis of mean expression difference across donors
+summaryDiffExpr <- sapply(names(diffExpr), function(rp){ # For each Braak region pair
+  print(rp)
+  rp <- diffExpr[[rp]]
+  lapply(rp, function(gene){
+    
+    # Get variance and confidence intervals
+    m1i <- gene$meanA
+    m2i <- gene$meanB
+    n1i <- gene$sizeA
+    n2i <- gene$sizeB
+    sd1i <- sqrt(gene$varA)
+    sd2i <- sqrt(gene$varB)
+    # Get mean difference and its variance
+    t <- escalc(measure = "MD", m1i = m1i, m2i = m2i, n1i = n1i, n2i = n2i, sd1i = sd1i, sd2i = sd2i)
+    t <- summary(t)
+    
+    # Get summary estimate
+    summary <- rma(t$yi, t$vi, method = "DL", test = "t") # Summary effect size
+    
+    donors <- sapply(rownames(gene), function(n){ gsub("donor", "Donor ", n)})
+    meanDiff <- as.numeric(t$yi)
+    varDiff <- t$vi
+    lower95 <- t$ci.lb
+    upper95 <- t$ci.ub
+    weight <- round(weights(summary), digits = 2)
+    pvalue <- gene$pvalue
+    t <- data.frame(donors, meanDiff, varDiff, lower95, upper95, pvalue, weight)
+    
+    # Combine into table
+    rbind(t, 'summary' = list("Summary", summary$beta, summary$se^2 , summary$ci.lb, summary$ci.ub, 
+                                   summary$pval, sum(weight)))
+  })
+}, simplify = FALSE)
+save(summaryDiffExpr, file = "resources/summaryDiffExpr.RData")
