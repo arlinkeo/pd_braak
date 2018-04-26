@@ -26,7 +26,7 @@ select.expr <- function(genes = NULL, samples = NULL){
   lapply(donorNames, function(d){
     e <- expr[[d]]
     if (!is.null(samples)){
-      labels <- as.logical(samples[[d]])
+      labels <- samples[[d]]
       if (is.null(genes)) e[, labels]
       else e[genes, labels]
     } else {
@@ -38,8 +38,8 @@ select.expr <- function(genes = NULL, samples = NULL){
 
 ##### PD info about brain regions and genes #####
 
-# braakNames <- c("braak1","braak2","braak3","braak4","braak5","braak6")
-# names(braakNames) <- braakNames
+braakNames <- c("braak1","braak2","braak3","braak4","braak5","braak6")
+names(braakNames) <- braakNames
 # braakNamesMerged1 <- c("braak1-2", "braak3-4", "braak5-6")
 # names(braakNamesMerged1) <- braakNamesMerged1
 # braakNamesMerged2 <- c("braak1-3", "braak4-6")
