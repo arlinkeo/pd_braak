@@ -15,15 +15,6 @@ diffExpr <- lapply(summaryDiffExpr, function(rp){
   do.call(rbind.data.frame, lapply(rp, function(g) g["summary",]))
 })
 
-# # Number of diff. expr. genes for each region pair after correction
-# diffGenes <- sapply(diffExpr, function(rp){
-#   order <- order(rp$benjamini_hochberg) # order absolute corr.
-#   diffGenes1 <- rownames(rp)[order[1:1992]] # top 10% genes
-#   order <- rev(order(abs(rp$meanDiff))) # order absolute corr.
-#   diffGenes2 <- rownames(rp)[order[1:1992]] # top 10% genes
-#   intersect(diffGenes1, diffGenes2)
-# })
-
 ##### Volcano plot #####
 
 theme <- theme(legend.position = "none",
