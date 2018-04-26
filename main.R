@@ -6,9 +6,7 @@ source("PD/braakStageSamples.R")
 
 source("PD/braaklabelcorr.R")
 
-source("PD/diff_expr_braakstages.R")
-
-source("PD/summary_diff_expr.R")
+source("PD/diff_expr.R")
 
 source("PD/volcanoplot_summary_diff.R")
 
