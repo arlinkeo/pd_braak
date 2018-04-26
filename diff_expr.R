@@ -28,12 +28,14 @@ ttestGene <- function(a, b) {
 brainExpr <- readRDS("../ABA_Rdata/BrainExprNorm.rds")
 genes <- ahba.genes()
 ttest <- lapply(donorNames, function(d){
+  print(d)
   labels <- braakStages[[d]]
   expr <- brainExpr[[d]]
   exprll <- apply(labels, 2, function(v){ # expr. in Braak regions 1-6
     expr[, v]
   })
   alply(braakPairs, 1, function(p){
+    print(p)
     region_a <- exprll[[p[1]]]
     region_b <- exprll[[p[2]]]
     genesTab <- as.data.frame(t(sapply(genes, function(g){
@@ -43,7 +45,7 @@ ttest <- lapply(donorNames, function(d){
     genesTab
   }, .dims = TRUE) # keep names
 })
-# save(ttest, file = "resources/ttest.RData")
+save(ttest, file = "resources/ttest.RData")
 # load("resources/ttest.RData")
 
 # Number of diff. expr. genes
@@ -62,7 +64,7 @@ diffExpr <- sapply(rownames(braakPairs), function(p){
     })))
   }, simplify = FALSE)
 }, simplify = FALSE)
-# save(diffExpr, file = "resources/diffExpr.RData")
+save(diffExpr, file = "resources/diffExpr.RData")
 
 # Meta-analysis of mean expression difference across donors
 summaryDiffExpr <- sapply(names(diffExpr), function(rp){ # For each Braak region pair
