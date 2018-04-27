@@ -52,13 +52,6 @@ positive_r <- braakGenes[labelCor[braakGenes, "r"] > 0]
 negative_r <- braakGenes[labelCor[braakGenes, "r"] < 0]
 braakGenes <- list(positive_r = positive_r, negative_r = negative_r)
 
-# # Sort by correlation
-# braakGenes <- lapply(braakGenes, function(ll){
-#   r <- labelCor[ll, "r", drop = FALSE]
-#   r <- r[order(r), ,drop = FALSE]
-#   rownames(r)
-# })
-
 save(braakGenes, file = "resources/braakGenes.RData")
 
 # Print list of progression genes
@@ -92,5 +85,5 @@ gene.stats <- function(g){
   df
 }
 
-tab <- Reduce(rbind, lapply(pd , gene.stats))
+tab <- Reduce(rbind, lapply(pd, gene.stats))
 write.table(tab, file = "pdgenes_stats.txt", sep ="\t", quote = FALSE, row.names = FALSE)
