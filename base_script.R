@@ -70,5 +70,5 @@ pdGenesID <- lapply(pdGenes, function(l){
 ##### Basic functions #####
 
 # Back transform fischer z-score correlations
-back.transform <- dget("PD/back.transform.R")
+# back.transform <- dget("PD/back.transform.R")
 gene.coexpr <- dget("PD/gene.coexpr.R")
