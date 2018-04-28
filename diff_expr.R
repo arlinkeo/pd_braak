@@ -2,6 +2,8 @@
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
 source("PD/base_script.R")
 library(metafor)
+library(reshape2)
+library(ggplot2)
 library(plyr)
 load("resources/braakStages.RData")
 
@@ -101,3 +103,38 @@ summaryDiffExpr <- sapply(names(diffExpr), function(rp){ # For each Braak region
   })
 }, simplify = FALSE)
 save(summaryDiffExpr, file = "resources/summaryDiffExpr.RData")
+
+# Bar plot
+load("resources/summaryDiffExpr.RData")
+summTables <- lapply(summaryDiffExpr, function(l){
+  t <- do.call(rbind.data.frame, lapply(l, function(g) g["summary",]))
+  t$BH <- p.adjust(t$pvalue, method = "BH")
+  t
+})
+degLists <- t(sapply(summTables, function(t){
+  positive_r <- sum(t$meanDiff < -1 & t$BH < 0.05)
+  negative_r <- -sum(t$meanDiff > 1 & t$BH < 0.05)
+  c('r>0' = positive_r, 'r<0' = negative_r)
+}))
+rownames(degLists) <- sapply(rownames(degLists), function(x){
+  x <- gsub("braak", "Braak ", x)
+  gsub("-", " - ", x)
+})
+df <- melt(degLists)
+colnames(df) <- c("region_pair", "r", "deg")
+df$region_pair <- factor(df$region_pair, levels = rev(unique(df$region_pair)))
+df$y <- sapply(df$deg, function(x) ifelse(x>=0, x + 700, x - 700))
+# df$group <- ...
+
+p1 <- ggplot(df) + 
+  geom_col(aes(x=region_pair, y = deg, fill=r)) + 
+  geom_text(aes(x=region_pair, y= y, label=format(abs(df$deg), big.mark=","))) + 
+  scale_fill_manual(values = c("red", "blue")) +
+  coord_flip() +
+    theme(
+      axis.text = element_text(size = 11),
+      axis.text.x = element_blank(),
+      axis.ticks = element_blank(),
+      panel.background = element_blank()
+    ) 
+p1
