@@ -14,8 +14,11 @@ labelCor <- do.call(rbind.data.frame, lapply(summaryLabelCorrEG, function(g) g["
 theme <- theme(legend.position = "none",
                panel.background = element_blank(),
                axis.line = element_line(colour = "black"),
-               axis.title =  element_text(size = 12),
-               plot.title = element_text(size = 12, face = "bold"))
+               axis.title =  element_text(size = 16),
+               plot.title = element_text(size = 16),
+               axis.text = element_text(size = 16),
+               axis.title.x = element_text(face="italic")
+               )
 
 tab <- labelCor
 tab$benjamini_hochberg <- p.adjust(tab$pvalue, method = "BH")
@@ -38,15 +41,15 @@ xmax <- max(tab$r)+.2
 xmin <- min(tab$r)-.2
 ymax <-  ceiling(max(tab$'logp'))
 p1 <- ggplot(tab, aes(r, logp, colour = info)) +
-  geom_point(size = 2) +
+  geom_point(size = 4) +
   scale_colour_manual(values = c("0"="#F8766D", "1"="#00BFC4", "2"="black")) +
-  geom_text_repel(label = tab$labels, colour = "black", size = 3, nudge_x = 0) +
+  geom_text_repel(label = tab$labels, colour = "black", size = 6, nudge_x = 0) +
   labs(y = "-log10 p-value") +
   scale_x_continuous(limits = c(xmin, xmax), expand = c(0,0)) +
   scale_y_continuous(limits = c(0, ymax), expand = c(0,0)) +
   annotate("label", label ="Downregulated", x=0.7, y=0.5) +
   annotate("label", label ="Upregulated", x=-0.7, y=0.5) +
-  theme + theme(axis.title.x = element_blank())
+  theme
 p1
 ####################################################################################
 
@@ -88,4 +91,5 @@ p <- ggarrange(p1, p2+coord_flip(), nrow = 2, heights = c(4, 3),  labels = c("A"
 p
 pdf("eigengene_r_volcanoplot.pdf", 8, 6)
 print(p)
+p1
 dev.off()
