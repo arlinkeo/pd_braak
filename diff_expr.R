@@ -114,27 +114,31 @@ summTables <- lapply(summaryDiffExpr, function(l){
 degLists <- t(sapply(summTables, function(t){
   positive_r <- sum(t$meanDiff < -1 & t$BH < 0.05)
   negative_r <- -sum(t$meanDiff > 1 & t$BH < 0.05)
-  c('r>0' = positive_r, 'r<0' = negative_r)
+  c('higher' = positive_r, 'lower' = negative_r)
 }))
 rownames(degLists) <- sapply(rownames(degLists), function(x){
   x <- gsub("braak", "Braak ", x)
   gsub("-", " - ", x)
 })
 df <- melt(degLists)
-colnames(df) <- c("region_pair", "r", "deg")
+colnames(df) <- c("region_pair", "dir", "deg")
 df$region_pair <- factor(df$region_pair, levels = rev(unique(df$region_pair)))
-df$y <- sapply(df$deg, function(x) ifelse(x>=0, x + 700, x - 700))
-# df$group <- ...
+df$y <- ifelse(df$dir == "higher", df$deg+700, df$deg-800)
 
 p1 <- ggplot(df) + 
-  geom_col(aes(x=region_pair, y = deg, fill=r)) + 
+  geom_col(aes(x=region_pair, y = deg, fill=dir)) + 
   geom_text(aes(x=region_pair, y= y, label=format(abs(df$deg), big.mark=","))) + 
   scale_fill_manual(values = c("red", "blue")) +
+  scale_y_continuous(expand = c(0.1,0.1)) +
   coord_flip() +
-    theme(
+  labs(x = "", y = "Number of differentially expressed genes") +
+  theme(
       axis.text = element_text(size = 11),
       axis.text.x = element_blank(),
       axis.ticks = element_blank(),
-      panel.background = element_blank()
-    ) 
-p1
+      panel.background = element_blank(),
+      legend.title = element_blank()
+    )
+pdf("diff_expr_barplot.pdf", 6, 4)
+print(p1)
+dev.off()
