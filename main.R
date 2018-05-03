@@ -5,7 +5,7 @@ source("PD/roiSamples.R")
 
 source("PD/braakStageSamples.R")
 
-# Progression genes
+# Select progression genes
 
 source("PD/braaklabelcorr.R")
 source("PD/diff_expr.R")
@@ -20,7 +20,7 @@ source("PD/diff_expr_GTEX.R")
 source("PD/diff_expr_UKBEC.R")
 source("PD/boxplot_UKBEC.R")
 
-# Modules
+# Braak co-expression modules
 source("PD/coexpr_modules.R")
 source("PD/eigengene_expr.R")
 source("PD/eigengene_r_volcanoplot.R")
