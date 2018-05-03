@@ -13,9 +13,3 @@ samples <- lapply(braakLabels, function(x) x != 0)
 expr <- select.expr(samples = samples) #AHBA expression
 summaryLabelCor <- summary.braak.cor(expr, labels)
 save(summaryLabelCor, file = "resources/summaryLabelCor.RData")
-# 
-# # same for eigen genes
-# load("resources/eigenExpr.RData") # expression of module eigen genes
-# eigenExpr <- eigenExpr[["braak1-6"]]
-# summaryLabelCorrEG <- summary.braak.cor(eigenExpr, labels)
-# save(summaryLabelCorrEG, file = "resources/summaryLabelCorrEG.RData")
