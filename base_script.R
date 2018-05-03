@@ -62,13 +62,5 @@ pdGenesID <- lapply(pdGenes, function(l){
   as.character(geneInfo[ , 6])
 })
 
-# celltype_genes <- sapply(c("Astrocytes", "Endothelial_cells", "Microglia", "Neurons", "Oligodendrocytes"), function(type){
-#   file = paste0("brainscope_celltypes/", type, ".txt")
-#   as.character(read.csv(file, header = TRUE)$entrez_id)
-# }, simplify = FALSE)
-
 ##### Basic functions #####
-
-# Back transform fischer z-score correlations
-# back.transform <- dget("PD/back.transform.R")
 gene.coexpr <- dget("PD/gene.coexpr.R")
