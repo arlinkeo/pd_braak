@@ -114,7 +114,7 @@ summTables <- lapply(summaryDiffExpr, function(l){
 degLists <- t(sapply(summTables, function(t){
   positive_r <- sum(t$meanDiff < -1 & t$BH < 0.05)
   negative_r <- -sum(t$meanDiff > 1 & t$BH < 0.05)
-  c('higher' = positive_r, 'lower' = negative_r)
+  c('positive' = positive_r, 'negative' = negative_r)
 }))
 rownames(degLists) <- sapply(rownames(degLists), function(x){
   x <- gsub("braak", "Braak ", x)
@@ -123,10 +123,10 @@ rownames(degLists) <- sapply(rownames(degLists), function(x){
 df <- melt(degLists)
 colnames(df) <- c("region_pair", "dir", "deg")
 df$region_pair <- factor(df$region_pair, levels = rev(unique(df$region_pair)))
-df$y <- ifelse(df$dir == "higher", df$deg+700, df$deg-800)
+df$y <- ifelse(df$dir == "positive", df$deg+700, df$deg-800)
 
-p1 <- ggplot(df) + 
-  geom_col(aes(x=region_pair, y = deg, fill=dir)) + 
+p <- ggplot(df) + 
+  geom_col(aes(x=region_pair, y = deg, fill=dir), size = 0.5, colour = "black") + 
   geom_text(aes(x=region_pair, y= y, label=format(abs(df$deg), big.mark=","))) + 
   scale_fill_manual(values = c("red", "blue")) +
   scale_y_continuous(expand = c(0.1,0.1)) +
@@ -139,6 +139,8 @@ p1 <- ggplot(df) +
       panel.background = element_blank(),
       legend.title = element_blank()
     )
+p
 pdf("diff_expr_barplot.pdf", 6, 4)
-print(p1)
+print(p)
 dev.off()
+  
