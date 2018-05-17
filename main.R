@@ -2,12 +2,10 @@ setwd("C:/Users/dkeo/surfdrive/pd_braak")
 
 # Prepare data
 source("PD/roiSamples.R")
-
 source("PD/braakStageSamples.R")
 
 # Select progression genes
-
-source("PD/braaklabelcorr.R")
+source("PD/braaklabel_cor.R")
 source("PD/diff_expr.R")
 source("PD/select_genes.R")
 source("PD/volcanoplot_summary_diff.R")
@@ -15,7 +13,6 @@ source("PD/boxplot_braak.R")
 source("PD/diff_expr_hemispheres.R")
 
 # Validate progression genes
-
 source("PD/diff_expr_GTEX.R")
 source("PD/diff_expr_UKBEC.R")
 source("PD/boxplot_UKBEC.R")
