@@ -104,7 +104,7 @@ summaryDiffExpr <- sapply(names(diffExpr), function(rp){ # For each Braak region
 }, simplify = FALSE)
 save(summaryDiffExpr, file = "resources/summaryDiffExpr.RData")
 
-# Bar plot
+# Bar plot of differentially expressed genes between all Braak regions
 load("resources/summaryDiffExpr.RData")
 summTables <- lapply(summaryDiffExpr, function(l){
   t <- do.call(rbind.data.frame, lapply(l, function(g) g["summary",]))
