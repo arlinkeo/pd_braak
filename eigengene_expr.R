@@ -44,8 +44,9 @@ eigenExpr <- sapply(regions, function(r){ # For list of modules found in differe
 }, simplify = FALSE)
 save(eigenExpr, file = "resources/eigenExpr.RData")
 
-
 # Braak-correlation for eigengenes
+summary.braak.cor <- dget("PD/summary.braak.cor.R")
+
 load("resources/eigenExpr.RData") # expression of module eigen genes
 eigenExpr <- eigenExpr[["braak1-6"]]
 summaryLabelCorrEG <- summary.braak.cor(eigenExpr, labels)
