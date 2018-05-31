@@ -1,12 +1,10 @@
 # Volcano plot for differential expression analysis
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
 source("PD/base_script.R")
-
 library(ggplot2)
 library(gridExtra)
 library(ggrepel)
 load("resources/braakGenes.RData")
-# braakGenes <- unlist(braakGenes)
 load("resources/summaryDiffExpr.RData")
 
 braak_pos <- braakGenes$entrez_id[braakGenes$braak_r>0]
@@ -18,7 +16,6 @@ diffExpr <- lapply(summaryDiffExpr, function(rp){
 })
 
 ##### Volcano plot #####
-
 theme <- theme(legend.position = "none",
                panel.background = element_blank(),
                axis.line = element_line(colour = "black"),
