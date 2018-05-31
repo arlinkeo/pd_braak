@@ -4,6 +4,7 @@ library("metap")
 library(gplots)
 library(ggplot2)
 library(reshape2)
+library(biomaRt)
 source("PD/base_script.R")
 load("resources/summaryDiffExpr.RData")
 load("resources/summaryLabelCorr.RData")
@@ -15,8 +16,9 @@ diffExpr <- summaryDiffExpr$`braak1-braak6`
 diffExpr <- do.call(rbind.data.frame, lapply(diffExpr, function(g) g["summary",]))
 labelCor <- do.call(rbind.data.frame, lapply(summaryLabelCorr, function(g) g["summary",]))
 
-# number of genes in top 10%
-top10 <- floor(nrow(labelCor)*0.1)
+### Selecting Braak-related genes ###
+
+top10 <- floor(nrow(labelCor)*0.1) # number of genes in top 10%
 
 # Get top 10% correlated genes
 order <- rev(order(abs(labelCor$r))) # order absolute corr.
@@ -26,22 +28,22 @@ corrGenes_pos <- corrGenes[labelCor[corrGenes, "r"] > 0]
 
 # Top 10% mean Diff. expressed genes braak 1 vs. braak 6
 order <- rev(order(abs(diffExpr$meanDiff))) # order absolute corr.
-diffGenes2 <- rownames(diffExpr)[order[1:top10]] # top 10% genes
-diffGenes2_up <- diffGenes2[diffExpr[diffGenes2, "meanDiff"] > 0]
-diffGenes2_down <- diffGenes2[diffExpr[diffGenes2, "meanDiff"] < 0]
+diffGenes1 <- rownames(diffExpr)[order[1:top10]] # top 10% genes
+diffGenes1_pos <- diffGenes1[diffExpr[diffGenes1, "meanDiff"] > 0]
+diffGenes1_neg <- diffGenes1[diffExpr[diffGenes1, "meanDiff"] < 0]
 
 # Top 10% significant Diff. expressed genes braak 1 vs. braak 6
 diffExpr$BH <- p.adjust(diffExpr$pvalue, method = "BH")
 order <- order(diffExpr$BH) # order absolute corr.
-diffGenes1 <- rownames(diffExpr)[order[1:top10]] # top 10% genes
-diffGenes1_up <- diffGenes1[diffExpr[diffGenes1, "meanDiff"] > 0]
-diffGenes1_down <- diffGenes1[diffExpr[diffGenes1, "meanDiff"] < 0]
+diffGenes2 <- rownames(diffExpr)[order[1:top10]] # top 10% genes
+diffGenes2_pos <- diffGenes2[diffExpr[diffGenes2, "meanDiff"] > 0]
+diffGenes2_neg <- diffGenes2[diffExpr[diffGenes2, "meanDiff"] < 0]
 
-# Venn
+# Venn diagram to visualize overlap of selections
 criteria <- c("r", "fc", "pval_fc")
-ll <- list(corrGenes, diffGenes2, diffGenes1)
-ll1 <- list(corrGenes_neg, diffGenes2_up, diffGenes1_up)
-ll2 <- list(corrGenes_pos, diffGenes2_down, diffGenes1_down)
+ll <- list(corrGenes, diffGenes1, diffGenes2)
+ll1 <- list(corrGenes_neg, diffGenes2_neg, diffGenes1_neg)
+ll2 <- list(corrGenes_pos, diffGenes2_pos, diffGenes1_pos)
 names(ll) <- criteria
 names(ll1) <- criteria
 names(ll2) <- criteria
@@ -49,28 +51,21 @@ venn <- venn(ll)
 venn1 <- venn(ll1)
 venn2 <- venn(ll2)
 
+# Selection based on 3 criteria and collect info of selected genes
 braakGenes <- attr(venn, "intersections")[[paste0(criteria, collapse = ":")]]
-names <- entrezId2Name(braakGenes)
-braakGenes <- data.frame(entrez_id = braakGenes, gene_symbol = names)
+braakGenes <- data.frame(entrez_id = braakGenes, gene_symbol = entrezId2Name(braakGenes))
 braakGenes$braak_r <- labelCor[braakGenes$entrez_id, "r"]
 braakGenes$FC <- diffExpr[braakGenes$entrez_id, "meanDiff"]
 braakGenes$BH <- diffExpr[braakGenes$entrez_id, "BH"]
 braakGenes$dir <- ifelse(braakGenes$braak_r>0, "pos", "neg")
-braakGenes <- braakGenes[order(braakGenes$braak_r), ]
 write.table(braakGenes, file = "braakGenes.txt", row.names = FALSE, quote = FALSE, sep = "\t")
-
-# positive_r <- braakGenes[labelCor[braakGenes, "r"] > 0]
-# negative_r <- braakGenes[labelCor[braakGenes, "r"] < 0]
-# braakGenes <- list(positive_r = positive_r, negative_r = negative_r)
 save(braakGenes, file = "resources/braakGenes.RData")
 
-#thresholds
+# Bar plot of selected genes
 t1 <- paste("|r| >", floor(min(abs(braakGenes$braak_r))*100)/100)
 t2 <- paste("|FC| >", floor(min(abs(braakGenes$FC))*100)/100)
 t3 <- paste("Pfc <", floor(max(braakGenes$BH)*1e5)/1e5)
 labels <- c(t1, t2, t3)
-
-# Bar plot of selected genes
 tab <- cbind(negative = -sapply(ll1, length), positive = sapply(ll2, length))
 rownames(tab) <- labels
 tab <- rbind(tab, Overlap = c(-sum(braakGenes$dir=="neg"), sum(braakGenes$dir=="pos")))
@@ -98,31 +93,22 @@ p
 pdf("braakgenes_barplot.pdf", 5, 2)
 print(p)
 dev.off()
-# 
-# #Presence of PD-implicated genes
-# pd.genes <- function(x){
-#   lapply(pdGenesID, function(l){
-#    intersect(l, x)
-#   })
-# }
-# 
-# pd <- pd.genes(unlist(braakGenes))
-# lapply(pd, entrezId2Name)
-# 
-# # Print braak genes with correlations, mean diff, and p-values
-# gene.stats <- function(g){
-#   r <- labelCor[g, "r", drop = FALSE] 
-#   geneorder <- rownames(r)[order(r)]
-#   r <- r[geneorder, ]
-#   r <- round(r, digits = 2)
-#   de <- diffExpr[geneorder, c("meanDiff", "benjamini_hochberg")]
-#   de$meanDiff <- round(de$meanDiff, digits = 2)
-#   de$benjamini_hochberg <- format(de$benjamini_hochberg, digits = 3, scientific = TRUE)
-#   id <- geneorder
-#   name <- entrezId2Name(geneorder)
-#   df <- data.frame(id, name, r, de)
-#   df
-# }
-# 
-# tab <- Reduce(rbind, lapply(pd, gene.stats))
-# write.table(tab, file = "pdgenes_stats.txt", sep ="\t", quote = FALSE, row.names = FALSE)
+ 
+#Presence of PD-implicated genes
+pdGenes <- list(hiImpact = c("SNCA", "LRRK2", "GBA", "VPS35", "PARK2", "PINK1", "PARK7", "ATP13A2", "PLA2G6", "FBXO7", "DNAJC6", "SYNJ1", 
+                             "EIF4G1", "DNAJC13", "CHCHD2", "C20orf30", "RIC3"), #TMEM230 is C20orf30
+                jansen2017 = c("INPP5F", "TMEM175", "ASH1L", "MAPT", "RIT1", "C14orf83", "STK39", "GPNMB", "BST1", 
+                               "SIPA1L2", "DLG2", "NUCKS1", "GCH1", "MCCC1", "FAM47E", "BCKDK", "TMPRSS9", "UBOX5", 
+                               "CCDC62", "SYNJ1", "EIF4G1", "FBXO7", "C20orf30", "POLG", "VPS13C", "PLA2G6"),
+                hla = c("HLA-DRA", "HLA-DRB1", "HLA-DRB5", "HLA-DQB1"),
+                'Chang et al. 2017' = read.table("chang2017_riskgenes.txt", comment.char = "#", sep = "\n", row.names = NULL, stringsAsFactors = FALSE)[, 1], 
+                'Nalls et al. 2014' = read.table("nalls2014_riskgenes.txt", comment.char = "#", sep = "\n", row.names = NULL, stringsAsFactors = FALSE)[, 1]
+)
+pdGenesID <- lapply(pdGenes, name2EntrezId)
+tab <- lapply(names(pdGenesID), function(n){
+  x <- pdGenesID[[n]]
+  g <- intersect(braakGenes$entrez_id, x)
+  cbind(study = rep(n, length(g)), braakGenes[braakGenes$entrez_id %in% g,])
+})
+tab <- Reduce(rbind, tab)
+write.table(tab, file = "pdgenes_stats.txt", sep ="\t", quote = FALSE, row.names = FALSE)

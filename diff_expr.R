@@ -81,8 +81,9 @@ summaryDiffExpr <- sapply(names(diffExpr), function(rp){ # For each Braak region
     n2i <- gene$sizeB
     sd1i <- sqrt(gene$varA)
     sd2i <- sqrt(gene$varB)
-    # Get mean difference and its variance
-    t <- escalc(measure = "MD", m1i = m1i, m2i = m2i, n1i = n1i, n2i = n2i, sd1i = sd1i, sd2i = sd2i)
+    # Get mean difference and its variance 
+    # Flipped values so that +ve correlated genes have +ve fold-change, and vice versa
+    t <- escalc(measure = "MD", m1i = m2i, m2i = m1i, n1i = n2i, n2i = n1i, sd1i = sd2i, sd2i = sd1i)
     t <- summary(t)
     
     # Get summary estimate
@@ -112,9 +113,9 @@ summTables <- lapply(summaryDiffExpr, function(l){
   t
 })
 degLists <- t(sapply(summTables, function(t){
-  positive_r <- sum(t$meanDiff < -1 & t$BH < 0.05)
-  negative_r <- -sum(t$meanDiff > 1 & t$BH < 0.05)
-  c('positive' = positive_r, 'negative' = negative_r)
+  negative_r <- -sum(t$meanDiff < -1 & t$BH < 0.05)
+  positive_r <- sum(t$meanDiff > 1 & t$BH < 0.05)
+  c('negative' = negative_r, 'positive' = positive_r)
 }))
 rownames(degLists) <- sapply(rownames(degLists), function(x){
   x <- gsub("braak", "Braak ", x)
@@ -128,7 +129,7 @@ df$y <- ifelse(df$dir == "positive", df$deg+700, df$deg-800)
 p <- ggplot(df) + 
   geom_col(aes(x=region_pair, y = deg, fill=dir), size = 0.5, colour = "black") + 
   geom_text(aes(x=region_pair, y= y, label=format(abs(df$deg), big.mark=","))) + 
-  scale_fill_manual(values = c("red", "blue")) +
+  scale_fill_manual(values = c("blue", "red")) +
   scale_y_continuous(expand = c(0.1,0.1)) +
   coord_flip() +
   labs(x = "", y = "Number of differentially expressed genes") +
@@ -143,4 +144,3 @@ p
 pdf("diff_expr_barplot.pdf", 6, 4)
 print(p)
 dev.off()
-  
