@@ -12,6 +12,9 @@ source("PD/volcanoplot_summary_diff.R")
 source("PD/boxplot_braak.R")
 source("PD/diff_expr_hemispheres.R")
 
+# Gene conversion table
+source("ahba_entrez2ensembl.R")
+
 # Validate progression genes
 source("PD/diff_expr_GTEX.R")
 source("PD/diff_expr_UKBEC.R")
