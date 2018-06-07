@@ -58,14 +58,14 @@ plotll <- lapply(names(diffExpr), function(rp){
     geom_point(size = 0.25, alpha = 0.3) +
     scale_colour_manual(values = c("0"="grey", "1"="red", "2"="blue")) +
     # geom_text_repel(label = tab$labels, fontface = "italic", colour = "black", size = 3, nudge_x = 0.2) +
-    labs(x = "fold-change", y = "-log10 p-value") +
+    labs(x = "Fold-change", y = "-log10 P-value") +
     scale_x_continuous(limits = c(xmin, xmax), expand = c(0,0)) +
     scale_y_continuous(limits = c(0, ymax), expand = c(0,0)) +
     ggtitle(paste("Braak stage ", gsub("braak", "", gsub("-", " vs ", rp)))) +
     theme
   
   name <- paste0("DiffExpr_braak/volcano_ttest/volcanoplot_", rp, ".pdf")
-  pdf(file = name, 3, 2)
+  pdf(file = name, 4, 3)
   print(p)
   dev.off()
 })
