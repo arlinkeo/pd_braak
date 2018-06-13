@@ -1,4 +1,5 @@
 # Function for summary Braak label correlation
+require(metafor)
 
 # correlation with Braak labels for all genes and donors
 braak.cor.data <- function(matList, labelList) {
