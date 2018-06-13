@@ -1,20 +1,14 @@
 # Eigen gene differential expression
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
+library(ggplot2)
+library(ggrepel)
 source("PD/base_script.R")
-
 load("../ABA_Rdata/BrainExprNorm.RData")
 load("resources/modules.RData")
-
 load("resources/braakLabels.RData")
 
-regions <- c("braak1", "braak6", "braak1-6")
-
-samples <- lapply(braakLabels, function(labels){
-  braak1 <- labels == "1"
-  braak6 <- labels == "6"
-  braak1to6 <- labels != "0"
-  list(braak1 = braak1, braak6 = braak6, 'braak1-6' = braak1to6)
-})
+##############################################################################################
+# Functions
 
 # eigen gene function for data matrix (samples x genes)
 eigen.gene <- function(x){
@@ -33,21 +27,69 @@ eigen.data <- function(x, l, s){
   df
 }
 
-# PCA first component of subselection expr. matrices
-eigenExpr <- sapply(regions, function(r){ # For list of modules found in different brain regions  
-  m <-modules[[r]] # modules with lists of genes
-  lapply(donorNames, function(d){
-    s <- samples[[d]][[r]] # logical vector
-    expr <- brainExprNorm[[d]]
-    eigen.data(expr, m, s)
-  })
-}, simplify = FALSE)
-save(eigenExpr, file = "resources/eigenExpr.RData")
-
 # Braak-correlation for eigengenes
 summary.braak.cor <- dget("PD/summary.braak.cor.R")
 
-load("resources/eigenExpr.RData") # expression of module eigen genes
-eigenExpr <- eigenExpr[["braak1-6"]]
+##############################################################################################
+
+# PCA first component of subselection expr. matrices
+eigenExpr <- lapply(donorNames, function(d){
+  s <- braakLabels[[d]] != 0 # logical vector
+  expr <- brainExprNorm[[d]]
+  eigen.data(expr, modules, s)
+})
+save(eigenExpr, file = "resources/eigenExpr.RData")
+
+# Summary Braak correlation
+labels <- lapply(braakLabels, function(labels){labels[labels != "0"]})
 summaryLabelCorrEG <- summary.braak.cor(eigenExpr, labels)
 save(summaryLabelCorrEG, file = "resources/summaryLabelCorrEG.RData")
+
+##############################################################################################
+
+# Volcano plot
+theme <- theme(legend.position = "none",
+               panel.background = element_blank(),
+               axis.line = element_line(colour = "black"),
+               axis.title =  element_text(size = 16),
+               plot.title = element_text(size = 16),
+               axis.text = element_text(size = 16),
+               axis.title.x = element_text(face="italic")
+)
+
+labelCor <- do.call(rbind.data.frame, lapply(summaryLabelCorrEG, function(g) g["summary",]))
+tab <- labelCor
+tab$BH <- p.adjust(tab$pvalue, method = "BH")
+tab$'logp' <- -log10(tab$BH)
+mod_pos <- rownames(tab)[tab$BH < 0.001 & tab$r > 0] # significant correlated modules
+mod_neg <- rownames(tab)[tab$BH < 0.001 & tab$r < 0] # significant correlated modules
+tab$info <- sapply(rownames(tab), function(m){
+  if (m %in% mod_neg) 1
+  else if (m %in% mod_pos) 2
+  else 0
+})
+tab$label <- rownames(tab)
+tab$label[!tab$label %in% c(mod_neg, mod_pos)] <- ""
+
+# Plotting order of data points 
+tab$info <- as.factor(tab$info)
+order <- order(tab$info)
+tab <- tab[order, ]
+
+xmax <- max(tab$r)+.2
+xmin <- min(tab$r)-.2
+ymax <-  ceiling(max(tab$'logp'))
+
+p <- ggplot(tab, aes(r, logp, colour = info)) +
+  geom_point(size = 2, alpha = 0.5) +
+  # geom_text(aes(label=label)) +
+  geom_text_repel(aes(label=label), colour = "black", size = 4, nudge_x = 0) +
+  scale_colour_manual(values = c("0"="grey", "1"="blue", "2"="red")) +
+  labs(y = "-log10 p-value") +
+  scale_x_continuous(limits = c(xmin, xmax), expand = c(0,0)) +
+  scale_y_continuous(limits = c(0, ymax), expand = c(0,0)) +
+  theme
+p
+pdf("eigengene_r_volcanoplot.pdf", 6, 4.5)
+p
+dev.off()
