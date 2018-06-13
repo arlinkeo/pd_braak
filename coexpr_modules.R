@@ -39,12 +39,11 @@ t(sapply(hierclust_tree, function(t){
 }))
 
 # Modules with gene names
-modules <- lapply(hierclust_tree, function(t){
-  modNames <- sort(unique(t$module)) # Unique module names, remove module 0 (gray)
-  modNames <- modNames[modNames!="0"]
-  names(modNames) <- paste0("M", modNames)
-  groups <- lapply(modNames, function(m){
-    t$labels[t$module == m]
-  })
+t <- hierclust_tree$average
+modNames <- sort(unique(t$module)) # Unique module names, remove module 0 (gray)
+modNames <- modNames[modNames!="0"]
+names(modNames) <- paste0("M", modNames)
+modules <- lapply(modNames, function(m){
+  t$labels[t$module == m]
 })
 save(modules, file = "resources/modules.RData")
