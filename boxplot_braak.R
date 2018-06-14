@@ -1,10 +1,9 @@
 # Boxplot of expression in Braak regions for a single gene
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
 library(ggplot2)
-
 source("PD/base_script.R")
-# load("../ABA_Rdata/BrainExpr.RData")
-load("../ABA_Rdata/BrainExprNorm.RData")
+load("../ABA_Rdata/BrainExpr.RData")
+# load("../ABA_Rdata/BrainExprNorm.RData")
 load("resources/braakLabels.RData") # Braak stage label vectors
 load("resources/summaryLabelCorr.RData")
 
@@ -28,7 +27,7 @@ boxplot.gene <- function(g){
     df <- data.frame(expr, label, donor)
   })
   exprll <- Reduce(rbind, exprll)
-  # exprll <- exprll[exprll$label != "0", ]#Remove Braak 0
+  exprll <- exprll[exprll$label != "0", ]#Remove Braak 0
   
   r <- format(summaryLabelCorr[[g]]["summary", c("r", "pvalue")], digits = 2)
   title <- paste0(entrezId2Name(g), ", r=", r$r)
