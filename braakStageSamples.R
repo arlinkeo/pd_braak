@@ -42,7 +42,7 @@ braakLabels <- lapply(braakStages, function(m) label.vector(m))
 # save(braakLabels, file = "resources/braakLabels.RData")
 
 # Fixed colors for Braak related regions
-braak.colors <- brewer.pal(6, "Set2")
-names(braak.colors) <- braakNames
+braakColors <- brewer.pal(6, "Set2")
+names(braakColors) <- braakNames
 
-save(braakStages, braakLabels, file = "resources/braakInfo.RData")
+save(braakStages, braakLabels, braakColors, file = "resources/braakInfo.RData")
