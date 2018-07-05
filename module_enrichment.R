@@ -118,7 +118,7 @@ mod_names <- list(
 prepare.table <- function(l) {
   t <- lapply(l, function(n){
     m <- modEnrich[[n]]
-    m <- ifelse(m < 0.05, "<0.05", ">=0.5")
+    m <- ifelse(m < 0.05, "<0.05", ">=0.05")
     rownames(m) <- paste0(rownames(m), " (", sapply(genelists[[n]], length)[rownames(m)], ")") # Add gene set size
     rownames(m) <- paste0(toupper(substring(rownames(m),1,1)), substring(rownames(m),2))
     t <- lapply(names(mod_names), function(dir){
