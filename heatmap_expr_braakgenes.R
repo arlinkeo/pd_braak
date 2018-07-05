@@ -5,8 +5,7 @@ library(reshape2)
 
 source("PD/base_script.R")
 load("../ABA_Rdata/BrainExprNorm.RData")
-load("resources/braakGenes.RData")
-load("resources/braakLabels.RData") # Braak stage label vectors
+load("resources/braakInfo.RData") # Braak stage label vectors
 
 # Get expr. of braak genes in braak samples
 genes <- braakGenes

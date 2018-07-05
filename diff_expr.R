@@ -5,7 +5,7 @@ library(metafor)
 library(reshape2)
 library(ggplot2)
 library(plyr)
-load("resources/braakStages.RData")
+load("resources/braakInfo.RData")
 
 # Pairwise combinations of Braak regions 1-6
 braakPairs <- t(combn(braakNames, 2))

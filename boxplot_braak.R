@@ -4,7 +4,7 @@ library(ggplot2)
 source("PD/base_script.R")
 load("../ABA_Rdata/BrainExpr.RData")
 # load("../ABA_Rdata/BrainExprNorm.RData")
-load("resources/braakLabels.RData") # Braak stage label vectors
+load("resources/braakInfo.RData") # Braak stage label vectors
 load("resources/summaryLabelCorr.RData")
 
 # Get gene's expression
