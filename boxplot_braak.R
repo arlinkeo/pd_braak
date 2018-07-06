@@ -15,25 +15,32 @@ gene.expr <- function(g, d){
 # Default theme for boxplot
 theme <- theme(panel.background = element_blank(), panel.grid = element_blank(), 
                axis.line = element_line(colour = "black"),
-               legend.title = element_blank())
+               legend.title = element_blank(),
+               legend.key = element_blank())
 
 # Boxplot for a gene
 boxplot.gene <- function(g){
-  exprll <- lapply(donorNames, function(d) {
+  df <- lapply(donorNames, function(d) {
     expr <- gene.expr(g, d)
     label <- braakLabels[[d]]
-    donor <- paste("Donor", tail(unlist(strsplit(d, split = "donor")), 1))
+    donor <- d
     donor <- rep(donor, length(expr))
-    df <- data.frame(expr, label, donor)
+    data.frame(expr, label, donor)
   })
-  exprll <- Reduce(rbind, exprll)
-  exprll <- exprll[exprll$label != "0", ]#Remove Braak 0
+  df <- Reduce(rbind, df)
+  df <- df[df$label != "0", ]#Remove Braak 0
+  df$label <- factor(df$label, levels = sort(unique(df$label)))
+  df$donor <- factor(df$donor, levels = unique(df$donor))
   
   r <- format(summaryLabelCorr[[g]]["summary", c("r", "pvalue")], digits = 2)
   title <- paste0(entrezId2Name(g), ", r=", r$r)
   
-  p <- ggplot(exprll) + geom_boxplot(aes(x = factor(label), y = expr, fill = factor(donor))) +
+  p <- ggplot(df) + 
+    geom_boxplot(aes(x = label, y = expr, alpha = donor, fill = label)) +
     labs(x = "Braak stage", y = "Expression (log2-transformed)") +
+    guides(alpha=guide_legend(override.aes=list(fill=hcl(c(15,195),100,0), colour=NA))) +
+    scale_alpha_discrete(labels = gsub("donor", "Donor ", donorNames)) +
+    scale_fill_manual(values = unname(braakColors), guide = FALSE) +
     ggtitle(title) +
     theme
   p
