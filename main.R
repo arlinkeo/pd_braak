@@ -8,9 +8,11 @@ source("PD/braakStageSamples.R")
 source("PD/braaklabel_cor.R")
 source("PD/diff_expr.R")
 source("PD/select_genes.R")
+source("PD/diff_expr_hemispheres.R")
+
+# Visualize data
 source("PD/volcanoplot_summary_diff.R")
 source("PD/boxplot_braak.R")
-source("PD/diff_expr_hemispheres.R")
 
 # Gene conversion table
 source("ahba_entrez2ensembl.R")
