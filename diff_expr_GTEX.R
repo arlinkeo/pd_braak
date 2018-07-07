@@ -4,12 +4,14 @@ setwd("C:/Users/dkeo/surfdrive/pd_braak")
 source("PD/base_script.R")
 library(reshape)
 library(ggplot2)
+load("resources/braakInfo.RData") # Braak colors
 
 df <- readRDS("../GTEX/gtex_expr.rds")
+# df <- readRDS("../GTEX/gtex_expr_norm.rds")
 
 # Select samples corresponding to brain tissues of Braak regions
 sample.annot <- read.table("../GTEX/GTEx_v7_Annotations_SampleAttributesDS.txt", sep = "\t", header = TRUE, fill = T, quote = "")
-roi <- c(SN = "Substantia nigra", AMG = "Amygdala", ACC = "Anterior cingulate cortex", FC = "Frontal Cortex")
+roi <- c('3' = "Substantia nigra", '4' = "Amygdala", '5' = "Anterior cingulate cortex", '6' = "Frontal Cortex")
 samples <- lapply(roi, function(r){
   rows <- grep(r, sample.annot$SMTSD)
   ids <- gsub("-", ".", sample.annot[rows, "SAMPID"])
@@ -22,7 +24,6 @@ zerorows <- lapply(samples, function(s){
 })
 zerorows <- Reduce("|", zerorows)
 
-df <- readRDS("../GTEX/gtex_expr_norm.rds")
 df <- df[!zerorows, ]
 genes <- rownames(df)
 
@@ -57,38 +58,22 @@ save(ttest.all, file = "Resources/ttest.all_gtex.RData")
 diffGenes <- lapply(ttest.all, function(rp){
   rp$BH <- p.adjust(rp$pvalue)
   rp[abs(rp$meanDiff) > 2 & rp$BH < 0.01, ]
-  
 })
 sapply(diffGenes, nrow)
 
 # Overlap with progression genes
-load("resources/braakGenes.RData")
-library(biomaRt)
-ensembl <- useEnsembl(biomart="ensembl", dataset="hsapiens_gene_ensembl", version=91)
-id_conversion <- lapply(braakGenes, function(x){ # Get ensemble ID and HGNC gene symbol
-  getBM(c('ensembl_gene_id', 'entrezgene', 'hgnc_symbol'), filters=c('entrezgene'), mart=ensembl, values=x)
-})
-id_conversion <- lapply(id_conversion, function(x){ # Add AHBA gene symbols
-  x$AHBAsymbol <- entrezId2Name(x$entrezgene)
-  x
-})
-
-braak_ensembl <- lapply(id_conversion, function(x){ # For + and - correlated progression genes
-  ens <- x$ensembl_gene_id
-  intersect(ens, genes)
-})
-
+# load("resources/braakGenes.RData")
 
 # Correct p-value for number of all genes
-braak_gtex <- lapply(ttest.all, function(rp){
-  rp$BH <- p.adjust(rp$pvalue)
-  sapply(names(braak_ensembl), function(r){ # For + and - correlated progression genes
-    rows <- braak_ensembl[[r]]
-    t <- rp[rows,]
-    if (r== "positive_r") t[t$meanDiff < 2 & t$BH < 0.05, ]
-    else t[t$meanDiff > 2 & t$BH < 0.05, ]
-  }, simplify = FALSE)
-})
+# braak_gtex <- lapply(ttest.all, function(rp){
+#   rp$BH <- p.adjust(rp$pvalue)
+#   sapply(names(braak_ensembl), function(r){ # For + and - correlated progression genes
+#     rows <- braak_ensembl[[r]]
+#     t <- rp[rows,]
+#     if (r== "positive_r") t[t$meanDiff < 2 & t$BH < 0.05, ]
+#     else t[t$meanDiff > 2 & t$BH < 0.05, ]
+#   }, simplify = FALSE)
+# })
 # 
 # # Correct p-value for number of progression genes
 # braak_gtex <- lapply(ttest.all, function(rp){
@@ -100,57 +85,77 @@ braak_gtex <- lapply(ttest.all, function(rp){
 #     else t[t$meanDiff > 2 & t$BH < 0.05, ]
 #   }, simplify = FALSE)
 # })
-
-sapply(braak_gtex, function(rp)sapply(rp,  nrow))
-gtex_pos <- lapply(braak_gtex, function(x){
-  rownames(x$positive_r)
-})
-gtex_neg <- lapply(braak_gtex, function(x){
-  rownames(x$negative_r)
-})
-length(Reduce(union, gtex_pos[1:3]))
-length(Reduce(union, gtex_neg[c(1,3)]))
+# 
+# sapply(braak_gtex, function(rp)sapply(rp,  nrow))
+# gtex_pos <- lapply(braak_gtex, function(x){
+#   rownames(x$positive_r)
+# })
+# gtex_neg <- lapply(braak_gtex, function(x){
+#   rownames(x$negative_r)
+# })
+# length(Reduce(union, gtex_pos[1:3]))
+# length(Reduce(union, gtex_neg[c(1,3)]))
 
 # Box plot of all Braak genes
-meanExpr <- lapply(braak_ensembl, function(r){
-  t <- sapply(samples, function(s){
-    d <- df[, s]
-    apply(d[r, ], 1, mean) # mean expression of progression genes
+
+# Braak genes
+conversion_tab <- read.csv("ahba_entrez2ensembl_braak.txt", sep = "\t")
+braak_pos <- conversion_tab$ensembl_gene_id[conversion_tab$dir == "pos"]
+braak_neg <- conversion_tab$ensembl_gene_id[conversion_tab$dir == "neg"]
+braak_pos <- intersect(rownames(df), braak_pos)
+braak_neg <- intersect(rownames(df), braak_neg)
+
+# Mean expression across Braak genes
+meanExpr <- lapply(samples, function(s){
+  t <- sapply(list("r<0" = braak_neg, "r>0" = braak_pos), function(g){
+    apply(df[g, s], 2, mean)
   })
-  melt(t)
+  t=melt(t)
 })
 meanExpr <- melt.list(meanExpr)
-colnames(meanExpr) <- c("gene", "region", "value", "mean_expr", "r")
-meanExpr$region <- factor(meanExpr$region, levels = names(roi))
+colnames(meanExpr) <- c("sample", "r", "variable", "expr", "region")
+meanExpr$region <- factor(meanExpr$region, levels = unique(meanExpr$region))
+
+# meanExpr <- lapply(braak_ensembl, function(r){
+#   t <- sapply(samples, function(s){
+#     d <- df[, s]
+#     apply(d[r, ], 1, mean) # mean expression of progression genes
+#   })
+#   melt(t)
+# })
+# meanExpr <- melt.list(meanExpr)
+# colnames(meanExpr) <- c("gene", "region", "value", "mean_expr", "r")
+# meanExpr$region <- factor(meanExpr$region, levels = names(roi))
 
 theme <- theme(panel.background = element_blank(), panel.grid = element_blank(), 
-               axis.line = element_line(colour = "black"),
-               legend.title = element_blank())
+               axis.line = element_line(colour = "black"))
 
-p1 <- ggplot(meanExpr) + 
-  geom_boxplot(aes(y = mean_expr, x = region, fill = region)) +
-  labs(x = "Braak stage region", y = "Expression (TPM)") +
-  ggtitle("Expression of progression genes in GTEx") +
-  scale_x_discrete(expand=c(0.2,0), labels = c(3:6)) +
-  facet_grid(.~r, scales = 'free', space = 'free', switch = "y") +
-  theme
+names(braakColors) <- gsub("braak", "", names(braakColors))
+
+box.plot <- function(df, title){
+  ggplot(df) + 
+    geom_boxplot(aes(y = expr, x = region, fill = region)) +
+    labs(x = "Braak stage", y = "Expression (TPM)") +
+    ggtitle(title) +
+    scale_x_discrete(expand=c(0.2,0)) +
+    scale_fill_manual(values = braakColors, guide = FALSE) +
+    theme
+}
+p1 <- box.plot(meanExpr, "Expression of Braak genes in GTEx") +
+  facet_grid(.~r, scales = 'free', space = 'free', switch = "y")
 
 #boxplot of SNCA
-ens_snca <- id_conversion$positive_r$ensembl_gene_id[which(id_conversion$positive_r$entrezgene== name2EntrezId("SNCA"))]
+ens_snca <- conversion_tab$ensembl_gene_id[which(conversion_tab$ahba_symbol == "SNCA")]
 expr_snca <- lapply(samples, function(s) unlist(df[ens_snca,s]))
 
 sapply(expr_snca, median)
 
 expr_snca <- melt.list(expr_snca)
 colnames(expr_snca) <- c("expr", "region")
-expr_snca$region <- factor(expr_snca$region, levels = names(roi))
+expr_snca$region <- factor(expr_snca$region, levels = unique(expr_snca$region))
 
-p2 <- ggplot(expr_snca) + 
-  geom_boxplot(aes(y = expr, x = region, fill = region)) +
-  labs(x = "Braak stage region", y = "Expression (TPM)") +
-  ggtitle("Expression of SNCA in GTEx") +
-  scale_x_discrete(expand=c(0.2,0), labels = c(3:6)) +
-  theme
+p2 <- box.plot(expr_snca, "Expression of SNCA in GTEx")
+p2
 pdf("boxplot_GTEX.pdf", 4, 3)
 print(p1)
 print(p2)
