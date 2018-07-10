@@ -54,9 +54,9 @@ venn2 <- venn(ll2)
 # Selection based on 3 criteria and collect info of selected genes
 braakGenes <- attr(venn, "intersections")[[paste0(criteria, collapse = ":")]]
 braakGenes <- data.frame(entrez_id = braakGenes, gene_symbol = entrezId2Name(braakGenes))
-braakGenes$braak_r <- labelCor[braakGenes$entrez_id, "r"]
-braakGenes$FC <- diffExpr[braakGenes$entrez_id, "meanDiff"]
-braakGenes$BH <- diffExpr[braakGenes$entrez_id, "BH"]
+braakGenes$braak_r <- round(labelCor[braakGenes$entrez_id, "r"], digits = 2)
+braakGenes$FC <- round(diffExpr[braakGenes$entrez_id, "meanDiff"], digits = 2)
+braakGenes$BH <- format(diffExpr[braakGenes$entrez_id, "BH"], digits = 2)
 braakGenes$dir <- ifelse(braakGenes$braak_r>0, "pos", "neg")
 write.table(braakGenes, file = "braakGenes.txt", row.names = FALSE, quote = FALSE, sep = "\t")
 save(braakGenes, file = "resources/braakGenes.RData")
