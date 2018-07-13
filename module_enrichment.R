@@ -12,15 +12,13 @@ load("resources/summaryLabelCorrEG.RData")
 
 labelCor <- do.call(rbind.data.frame, lapply(summaryLabelCorrEG, function(g) g["summary",]))
 labelCor$pvalue <- p.adjust(labelCor$pvalue, method = "BH")
-rownames(labelCor) <- paste0("M", rownames(labelCor))
 orderEG <- order(labelCor$r)
 labelCor <- labelCor[orderEG, ]
 total <- length(ahba.genes())
 
 # Sorted, significant modules
-m <- modules[["braak1-6"]][orderEG]
-names(m) <- paste0("M", names(m))
-signif_modules <- m[labelCor$pvalue < 0.001]
+signif_modules <- modules[orderEG]
+signif_modules <- signif_modules[labelCor$pvalue < 0.001]
 # save(signif_modules, file = "resources/signif_modules.RData")
 
 ##### Prepare list of Braak genes, cell types, GO-term, and diseases #####
@@ -69,8 +67,6 @@ save(genelists, file = "resources/genelists.RData")
 
 ##### Module enrichment #####
 
-# Ran actual tests on server: module_enrichment2.R
-
 # hypergeometric test
 hyper.test <- function(a, b, total){
   genes <- intersect(a, b)
@@ -92,7 +88,7 @@ modEnrich <- sapply(names(genelists), function(n1){
     })
   }))
   pvalue <- melt(pvalue)
-  pvalue$value <- p.adjust(pvalue$value, method = "BH")
+  pvalue$value <- p.adjust(pvalue$value, method = "BH") # corrected for significant modules and tested gene sets
   m <- dcast(pvalue, Var1 ~ Var2)
   rownames(m) <- m$Var1
   x=m[,-1]
@@ -111,7 +107,7 @@ modEnrich$disease <- modEnrich$disease[apply(modEnrich$disease, 1, function(x){
   any(x < 0.05)
 }), ]
 
-# Heatmaps
+# Heatmap
 mod_names <- list(
   'r<0' = names(m)[labelCor$pvalue < 0.001 & labelCor$r < 0], 
   'r>0' = names(m)[labelCor$pvalue < 0.001 & labelCor$r > 0]
@@ -196,6 +192,15 @@ studies <- lapply(studies, name2EntrezId)
 studies <- lapply(studies, function(x) x[!is.na(x)])
 studies <- unique(Reduce(c, studies))
 
-presence_pd <- sapply(signif_modules, function(m){
+# Presence PD genes
+sapply(signif_modules, function(m){
   paste0(entrezId2Name(intersect(studies,m)), collapse = ", ")
 })
+
+##### Print table with module enrichment #####
+
+m <- names(signif_modules)
+t <- as.data.frame(t(cbind(size = sapply(modules[m], length), labelCor[m, c("r", "pvalue")])))
+t <- rbind(t, Reduce(rbind, modEnrich))
+  
+
