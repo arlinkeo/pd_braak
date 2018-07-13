@@ -23,6 +23,8 @@ names(m) <- paste0("M", names(m))
 signif_modules <- m[labelCor$pvalue < 0.001]
 # save(signif_modules, file = "resources/signif_modules.RData")
 
+##### Prepare list of Braak genes, cell types, GO-term, and diseases #####
+
 # Braak genes
 braak <- lapply(c(positive = "pos", negative = "neg"), function(x){
   braakGenes$entrez_id[braakGenes$dir %in% x]
@@ -65,7 +67,7 @@ genelists <- lapply(genelists, function(t){
 })
 save(genelists, file = "resources/genelists.RData")
 
-#########################################################################
+##### Module enrichment #####
 
 # Ran actual tests on server: module_enrichment2.R
 
@@ -97,7 +99,7 @@ modEnrich <- sapply(names(genelists), function(n1){
 }, simplify = FALSE)
 save(modEnrich, file = "resources/modEnrich.RData")
 
-#########################################################################
+##### Plot table with module enrichment #####
 
 load("resources/modEnrich.RData")
 
@@ -179,6 +181,8 @@ levels(t2$type) <- c("BSGs", "Cell-types", "GO-terms", "Diseases")
 pdf("module_enrichment.pdf", 10, 8)
 heat.plot(t2) + theme(legend.position = "top")
 dev.off()
+
+##### Find PD-mplicated genes #####
 
 # Genes from studies (count genes)
 studies <- list('Jansen et al. 2017' = c("INPP5F", "TMEM175", "ASH1L", "MAPT", "RIT1", "C14orf83", "STK39", "GPNMB", "BST1", 
