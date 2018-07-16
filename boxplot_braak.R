@@ -3,14 +3,9 @@ setwd("C:/Users/dkeo/surfdrive/pd_braak")
 library(ggplot2)
 source("PD/base_script.R")
 load("../ABA_Rdata/BrainExpr.RData")
-# load("../ABA_Rdata/BrainExprNorm.RData")
 load("resources/braakInfo.RData") # Braak stage label vectors
 load("resources/summaryLabelCorr.RData")
-
-# Get gene's expression
-gene.expr <- function(g, d){
-  unlist(brainExpr[[d]][g, ])
-}
+load("resources/braakGenes.RData")
 
 # Default theme for boxplot
 theme <- theme(panel.background = element_blank(), panel.grid = element_blank(), 
@@ -18,23 +13,8 @@ theme <- theme(panel.background = element_blank(), panel.grid = element_blank(),
                legend.title = element_blank(),
                legend.key = element_blank())
 
-# Boxplot for a gene
-boxplot.gene <- function(g){
-  df <- lapply(donorNames, function(d) {
-    expr <- gene.expr(g, d)
-    label <- braakLabels[[d]]
-    donor <- d
-    donor <- rep(donor, length(expr))
-    data.frame(expr, label, donor)
-  })
-  df <- Reduce(rbind, df)
-  df <- df[df$label != "0", ]#Remove Braak 0
-  df$label <- factor(df$label, levels = sort(unique(df$label)))
-  df$donor <- factor(df$donor, levels = unique(df$donor))
-  
-  r <- format(summaryLabelCorr[[g]]["summary", c("r", "pvalue")], digits = 2)
-  title <- paste0(entrezId2Name(g), ", r=", r$r)
-  
+# Boxplot function
+box.plot <- function(df, title){
   p <- ggplot(df) + 
     geom_boxplot(aes(x = label, y = expr, alpha = donor, fill = label)) +
     labs(x = "Braak stage", y = "Expression (log2-transformed)") +
@@ -46,10 +26,35 @@ boxplot.gene <- function(g){
   p
 }
 
+# Prepare data
+prepare.data <- function(g){
+  df <- lapply(donorNames, function(d) {
+    expr <- brainExpr[[d]][g, ]
+    expr <- apply(expr, 2, mean) # Mean across genes
+    label <- braakLabels[[d]]
+    donor <- rep(d, length(expr))
+    data.frame(expr, label, donor)
+  })
+  df <- Reduce(rbind, df)
+  df <- df[df$label != "0", ]#Remove Braak 0
+  df$label <- factor(df$label, levels = sort(unique(df$label)))
+  df$donor <- factor(df$donor, levels = unique(df$donor))
+  df
+}
+
+# Boxplot for a gene
+boxplot.gene <- function(g, title){
+  df <- prepare.data(g)
+  box.plot(df, title)
+}
+
 plot.pdf <- function(name, genes){
   pdf(name, 8, 5)
-  lapply(genes, function(gene){
-    p <- boxplot.gene(gene)
+  lapply(genes, function(g){
+    r <- format(summaryLabelCorr[[g]]["summary", c("r", "pvalue")], digits = 2)
+    title <- paste0(entrezId2Name(g), ", r=", r$r)
+    df <- prepare.data(g)
+    p <- box.plot(df, title)
     print(p)
   })
   dev.off()
@@ -60,3 +65,28 @@ plot.pdf("boxplot_high_impact_genes.pdf", pdGenesID$hiImpact)
 plot.pdf("boxplot_susceptible_genes.pdf", pdGenesID$susceptible)
 plot.pdf("boxplot_HLA_genes.pdf", pdGenesID$hla)
 plot.pdf("boxplot_lysosome_genes.pdf", pdGenesID$lysosome)
+
+# Boxplot for mean expression of -ve and +ve Braak genes
+braak <- list(
+  'r<0' = braak_neg <- braakGenes$entrez_id[braakGenes$braak_r < 0],
+  'r>0' = braakGenes$entrez_id[braakGenes$braak_r > 0]  
+              )
+
+df <- lapply(names(braak), function(r){
+  g <- braak[[r]]
+  title <- r
+  df <- prepare.data(g)
+  p <- box.plot(df, title)
+  p
+})
+
+df <- lapply(names(braak), function(r){
+  g <- braak[[r]]
+  title <- r
+  df <- prepare.data(g)
+  df$r <- r
+  df
+})
+df <- Reduce(rbind, df)
+p <- box.plot(df, title) + facet_grid(.~r, space = "free", scales = "free")
+p
