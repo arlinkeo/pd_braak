@@ -6,10 +6,9 @@ library(gplots)
 source("PD/base_script.R")
 load("../ABA_Rdata/BrainExprNorm.RData")
 load("resources/modules.RData")
-load("resources/braakLabels.RData")
+load("resources/braakInfo.RData")
 
-##############################################################################################
-# Functions
+#####  Functions #####
 
 # eigen gene function for data matrix (samples x genes)
 eigen.gene <- function(x){
@@ -31,7 +30,7 @@ eigen.data <- function(x, l, s){
 # Braak-correlation for eigengenes
 summary.braak.cor <- dget("PD/summary.braak.cor.R")
 
-##############################################################################################
+##### PCA eigen gene #####
 
 # PCA first component of subselection expr. matrices
 eigenExpr <- lapply(donorNames, function(d){
@@ -46,9 +45,8 @@ labels <- lapply(braakLabels, function(labels){labels[labels != "0"]})
 summaryLabelCorrEG <- summary.braak.cor(eigenExpr, labels)
 save(summaryLabelCorrEG, file = "resources/summaryLabelCorrEG.RData")
 
-##############################################################################################
+#####  Volcano plot #####
 
-# Volcano plot
 theme <- theme(legend.position = "none",
                panel.background = element_blank(),
                axis.line = element_line(colour = "black"),
@@ -62,6 +60,7 @@ labelCor <- do.call(rbind.data.frame, lapply(summaryLabelCorrEG, function(g) g["
 tab <- labelCor
 tab$BH <- p.adjust(tab$pvalue, method = "BH")
 tab$'logp' <- -log10(tab$BH)
+mod_neg <- rownames(tab)[tab$BH < 0.001 & tab$r < 0] # significant correlated modules
 mod_pos <- rownames(tab)[tab$BH < 0.001 & tab$r > 0] # significant correlated modules
 eg <- rownames(tab)[tab$BH < 0.001 & tab$r < 0] # significant correlated modules
 tab$info <- sapply(rownames(tab), function(m){
@@ -90,14 +89,13 @@ p <- ggplot(tab, aes(r, logp, colour = info)) +
   scale_x_continuous(limits = c(xmin, xmax), expand = c(0,0)) +
   scale_y_continuous(limits = c(0, ymax), expand = c(0,0)) +
   theme
-p
+
 pdf("eigengene_r_volcanoplot.pdf", 5, 4.5)
 p
 dev.off()
 
-##############################################################################################
+##### Heatmap Expression of eigen gene #####
 
-# Heatmap Expression of eigen gene
 ontology <- read.csv("../ABA_human_processed/Ontology_edited.csv")
 
 # IDs and AHBA colors for each sample per donor
@@ -144,3 +142,14 @@ lapply(donorNames, function(d){
   
 })
 dev.off()
+
+##### Print table with module info #####
+
+module_info <- data.frame(
+  Module = names(modules),
+  Size = sapply(modules, length), 
+  r = round(labelCor$r, digits = 2),
+  "BH-corrected P" = format(labelCor$pvalue, digits = 3, scientific = TRUE),
+  genes = sapply(modules, function(m) paste0(entrezId2Name(m), collapse = ","))
+)
+write.table(module_info, file = "module_info.txt", sep = "\t", quote = FALSE, row.names = FALSE)
