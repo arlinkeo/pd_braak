@@ -17,7 +17,7 @@ labelCor <- labelCor[orderEG, ]
 total <- length(ahba.genes())
 
 # Sorted, significant modules
-signif_modules <- modules[orderEG]
+modules <- modules[orderEG]
 signif_modules <- signif_modules[labelCor$pvalue < 0.001]
 # save(signif_modules, file = "resources/signif_modules.RData")
 
@@ -83,7 +83,7 @@ modEnrich <- sapply(names(genelists), function(n1){
     print(paste0(n1, "; ", which(names(t)==n2), ": ", n2))
     set <- t[[n2]]
     # Overlap with each module
-    sapply(signif_modules, function(mod_genes){
+    x=sapply(signif_modules, function(mod_genes){
       hyper.test(mod_genes, set, 19992)
     })
   }))
@@ -196,11 +196,3 @@ studies <- unique(Reduce(c, studies))
 sapply(signif_modules, function(m){
   paste0(entrezId2Name(intersect(studies,m)), collapse = ", ")
 })
-
-##### Print table with module enrichment #####
-
-m <- names(signif_modules)
-t <- as.data.frame(t(cbind(size = sapply(modules[m], length), labelCor[m, c("r", "pvalue")])))
-t <- rbind(t, Reduce(rbind, modEnrich))
-  
-
