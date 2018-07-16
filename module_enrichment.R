@@ -196,12 +196,21 @@ sapply(signif_modules, function(m){
 
 ##### Write table with overlap and p-value of cell-type enrichment #####
 
+cor <- round(labelCor[names(signif_modules), "r"], digits = 2)
+braak_pval <- t(modEnrich$BSGs)
+braak_overlap <- sapply(braak, function(set){
+  sapply(signif_modules, function(mod_genes){
+    length(intersect(mod_genes, set))
+  })
+})
 cell_pval <- t(modEnrich$celltype)
 cell_overlap <- sapply(celltype_genes, function(set){
   sapply(signif_modules, function(mod_genes){
     length(intersect(mod_genes, set))
   })
 })
-cor <- round(labelCor[names(signif_modules), "r"], digits = 2)
-table <- cbind(names(signif_modules), cor, cell_overlap, cell_pval)
-write.table(table, file = "module_celltype_enrichment.txt", sep = "\t", row.names = FALSE)
+
+table <- cbind('Module' = names(signif_modules), 'r' = cor, 
+               braak_overlap, braak_pval,
+               cell_overlap, cell_pval)
+write.table(table, file = "module_enrichment.txt", sep = "\t", row.names = FALSE)
