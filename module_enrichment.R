@@ -18,8 +18,7 @@ total <- length(ahba.genes())
 
 # Sorted, significant modules
 modules <- modules[orderEG]
-signif_modules <- signif_modules[labelCor$pvalue < 0.001]
-# save(signif_modules, file = "resources/signif_modules.RData")
+signif_modules <- modules[labelCor$pvalue < 0.001]
 
 ##### Prepare list of Braak genes, cell types, GO-term, and diseases #####
 
@@ -97,8 +96,6 @@ save(modEnrich, file = "resources/modEnrich.RData")
 
 ##### Plot table with module enrichment #####
 
-load("resources/modEnrich.RData")
-
 # Filter significant gene sets for GO terms and diseases only
 modEnrich$GO <- modEnrich$GO[apply(modEnrich$GO, 1, function(x){
   any(x < 0.05)
@@ -109,8 +106,8 @@ modEnrich$disease <- modEnrich$disease[apply(modEnrich$disease, 1, function(x){
 
 # Heatmap
 mod_names <- list(
-  'r<0' = names(m)[labelCor$pvalue < 0.001 & labelCor$r < 0], 
-  'r>0' = names(m)[labelCor$pvalue < 0.001 & labelCor$r > 0]
+  'r<0' = names(modules)[labelCor$pvalue < 0.001 & labelCor$r < 0], 
+  'r>0' = names(modules)[labelCor$pvalue < 0.001 & labelCor$r > 0]
 )
 
 prepare.table <- function(l) {
@@ -196,3 +193,15 @@ studies <- unique(Reduce(c, studies))
 sapply(signif_modules, function(m){
   paste0(entrezId2Name(intersect(studies,m)), collapse = ", ")
 })
+
+##### Write table with overlap and p-value of cell-type enrichment #####
+
+cell_pval <- t(modEnrich$celltype)
+cell_overlap <- sapply(celltype_genes, function(set){
+  sapply(signif_modules, function(mod_genes){
+    length(intersect(mod_genes, set))
+  })
+})
+cor <- round(labelCor[names(signif_modules), "r"], digits = 2)
+table <- cbind(names(signif_modules), cor, cell_overlap, cell_pval)
+write.table(table, file = "module_celltype_enrichment.txt", sep = "\t", row.names = FALSE)
