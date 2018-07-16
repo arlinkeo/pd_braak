@@ -4,10 +4,11 @@ setwd("C:/Users/dkeo/surfdrive/pd_braak")
 source("PD/roiSamples.R")
 source("PD/braakStageSamples.R")
 
-# Select progression genes
+# Select Braak genes
 source("PD/braaklabel_cor.R")
 source("PD/diff_expr.R")
 source("PD/select_genes.R")
+source("PD/funcEnrich.R")
 source("PD/diff_expr_hemispheres.R")
 
 # Visualize data
@@ -25,8 +26,6 @@ source("PD/boxplot_UKBEC.R")
 # Braak co-expression modules
 source("PD/coexpr_modules.R")
 source("PD/eigengene_cor.R")
-
-source("PD/funcEnrich.R")
 source("PD/module_enrichment.R")
 # source("PD/")
 # source("PD/")

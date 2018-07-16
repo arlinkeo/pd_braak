@@ -1,9 +1,7 @@
 # Functional enrichment of genes which expression correlate with Braak regions
-
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
-
 source("PD/base_script.R")
-load("resources/modules.RData")
+# load("resources/modules.RData")
 load( "resources/braakGenes.RData")
 # R version should be 3.25 instead of 3.3 for RDavid
 library("RDAVIDWebService")
@@ -32,15 +30,15 @@ lapply(names(braak), function(r){
   getClusterReportFile(david, paste0("Functional_analyses/", r, "_termclusters.txt"), type = c("Term"))
 })
 
-# Enrichment of genes in modules enriched for progression genes
-lapply(names(modules[3]), function(r){
-  m <- modules[[r]]
-  lapply(names(m), function(l){
-    genes <- m[[l]]
-    result <- addList(david, genes, idType = "ENTREZ_GENE_ID", listName = paste(r, ",", l), listType = "Gene")
-    print(result)
-    setCurrentBackgroundPosition(david, 1)
-    getFunctionalAnnotationChartFile(david, paste0("Functional_analyses/", r, "_modules/", l, "_goterms.txt"), threshold=t, count=2L)
-    getClusterReportFile(david, paste0("Functional_analyses/", r, "_modules/", l, "_termclusters.txt"), type = c("Term"))
-  })
-})
+# # Enrichment of genes in modules enriched for progression genes
+# lapply(names(modules[3]), function(r){
+#   m <- modules[[r]]
+#   lapply(names(m), function(l){
+#     genes <- m[[l]]
+#     result <- addList(david, genes, idType = "ENTREZ_GENE_ID", listName = paste(r, ",", l), listType = "Gene")
+#     print(result)
+#     setCurrentBackgroundPosition(david, 1)
+#     getFunctionalAnnotationChartFile(david, paste0("Functional_analyses/", r, "_modules/", l, "_goterms.txt"), threshold=t, count=2L)
+#     getClusterReportFile(david, paste0("Functional_analyses/", r, "_modules/", l, "_termclusters.txt"), type = c("Term"))
+#   })
+# })
