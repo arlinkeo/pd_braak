@@ -24,7 +24,7 @@ source("PD/boxplot_UKBEC.R")
 
 # Braak co-expression modules
 source("PD/coexpr_modules.R")
-source("PD/eigengene_expr.R")
+source("PD/eigengene_cor.R")
 
 source("PD/funcEnrich.R")
 source("PD/module_enrichment.R")
