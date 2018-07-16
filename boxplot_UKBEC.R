@@ -5,28 +5,24 @@ source("PD/base_script.R")
 library(ggplot2)
 
 # Load datasets
-load("../UKBEC_RData/regionExpr.RData")
-load("../UKBEC/expr.maps2.RData")
+load("../UKBEC/regionExpr.RData")
+load("../UKBEC/probe2gene.map.RData")
 
 ##############################################################################################
 # All genes
-probeNames <- rownames(regionExpr$CRBL)
+probeNames <- probe2gene.map$exprID
 
 # Expression in Braak regions 1, 3-6
 braakRegions <- c("MEDU", "SNIG", "OCTX", "TCTX", "FCTX")
 braakExpr <- regionExpr[braakRegions]
 
-# Gene probe mapping functions
-geneProbeMap <- expr.map2[probeNames, ]
-tID2expxrID <- function(x){geneProbeMap$exprID[match(x, geneProbeMap$tID)]}
-AHBA2exprID<- function(x){geneProbeMap$exprID[match(x, geneProbeMap$AHBA)]}
-entrezId2exprID <- function(x) AHBA2exprID(entrezId2Name(x))
-# exprID2AHBA <- function(x){geneProbeMap$AHBA[match(x, geneProbeMap$exprID)]}
-
 # Entrez ID in AHBA of Braak genes to exprID's in UKBEC
 load("resources/braakGenes.RData")
-braakGenes <- lapply(braakGenes, entrezId2exprID)
-braakGenes <- lapply(braakGenes, na.exclude)
+braakGenes <- lapply(braakGenes, function(x){
+  rows <- match(entrezId2Name(x), probe2gene.map$AHBA)
+  rows <- rows[!is.na(rows)]
+  probe2gene.map[rows, "exprID"]
+})
 bgAll <- unlist(braakGenes)
 # overlap <- intersect(allBG, degSymbols)
 bgPos <- braakGenes$positive_r
