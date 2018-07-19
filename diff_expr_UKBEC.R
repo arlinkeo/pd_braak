@@ -1,69 +1,111 @@
-# Differential expression MEDU (1) vs. FCTX (6)
-
+  # Differential expression MEDU (1) vs. FCTX (6)
+# Map probe to genes UKBEC datasets
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
 source("PD/base_script.R")
-
+library(WGCNA)
+library(reshape)
+library(ggplot2)
+load("../UKBEC/expr.maps.rda",verbose=T)
+load("resources/ukbecGeneID.RData")
 load("resources/braakGenes.RData")
-load("../UKBEC/regionExpr.RData")
-load("../UKBEC/probe2gene.map.RData")
+load("resources/braakInfo.RData") # Braak colors
 
-load("resources/summaryDiffExpr.RData")
-diffExpr <- summaryDiffExpr$`braak1-braak6`
-diffExpr <- do.call(rbind.data.frame, lapply(diffExpr, function(g) g["summary",]))
-diffExpr$benjamini_hochberg <- p.adjust(diffExpr$pvalue, method = "BH")
+ukbecGeneID$entrezgene <- as.character(ukbecGeneID$entrezgene)
+ukbecGeneID$affy_huex_1_0_st_v2 <- as.character(ukbecGeneID$affy_huex_1_0_st_v2)
 
-# Gene probe mapping functions
-AHBA2exprID<- function(x){probe2gene.map$exprID[match(x, probe2gene.map$AHBA)]}
-entrezId2exprID <- function(x) AHBA2exprID(entrezId2Name(x))
-exprID2AHBA <- function(x){probe2gene.map$AHBA[match(x, probe2gene.map$exprID)]}
-exprID2entrezID <- function(x){name2EntrezId(exprID2AHBA(x))}
+# Read expression data for all brain regions
+regions <- c("CRBL", "FCTX", "HIPP","MEDU", "OCTX", "PUTM", "SNIG", "TCTX", "THAL", "WHMT")
+regionExpr <- sapply(regions, function(r){
+  fName <- paste0("../UKBEC/expr_", r, ".txt")
+  x=read.csv(fName, header = TRUE, sep = " ", row.names = 1)
+}, simplify = FALSE)
+exprConcat <- Reduce(cbind, regionExpr) #Concatenate brain regions
+
+# Mapping probes to genes
+probes <- unique(ukbecGeneID$affy_huex_1_0_st_v2)
+genes <- ukbecGeneID$entrezgene[match(probes, ukbecGeneID$affy_huex_1_0_st_v2)] # entrez IDs
+nas <- is.na(genes)
+probes <- probes[!nas]
+genes <- genes[!nas]
+exprConcat <- exprConcat[probes,]
+probeSelection <- collapseRows(exprConcat, rowGroup = genes, rowID = probes, 
+                                method = "maxRowVariance", connectivityBasedCollapsing = TRUE)
+
+# Select probes for each data matrix
+probes <- probes[probeSelection$selectedRow]
+genes <- genes[probeSelection$selectedRow]
+regionExpr <- lapply(regionExpr, function(x) {
+  x <- x[probes, ]
+  rownames(x) <- genes
+  x
+})
+# regionExpr <- lapply(regionExpr, function(x) t(scale(t(x), center = TRUE)) ) # Normallize data
+save(regionExpr, file = "../UKBEC/regionExpr.RData")
+
+##############################################################################################
 
 # T-test in UKBEC
-ttest_ukbec <- as.data.frame(t(sapply(probe2gene.map$exprID, function(p){
-  medu <- unlist(regionExpr$MEDU[p, ])
-  fctx <- unlist(regionExpr$FCTX[p, ])
-  t <- t.test(medu, fctx)
-  meanDiff <- t$estimate[1] - t$estimate[2]
-  names(meanDiff) <- NULL
+ttest_ukbec <- as.data.frame(t(sapply(genes, function(g){
+  r1 <- regionExpr$MEDU[g, ]
+  r2 <- regionExpr$FCTX[g, ]
+  t <- t.test(r1, r2)
+  fc <- t$estimate[1]-t$estimate[2]
   pvalue <- t$p.value
-  c(meanDiff = meanDiff, pvalue = pvalue)
+  c(fc=unname(fc), pvalue=unname(pvalue))
 })))
-ttest_ukbec$benjamini_hochberg <- p.adjust(ttest_ukbec$pvalue, method = "BH")
+ttest_ukbec$BH <- p.adjust(ttest_ukbec$pvalue, method = "BH")
 save(ttest_ukbec, file = "resources/ttest_ukbec.RData")
-# 
-# # Differential expressed genes top 10% based on corrected p-value and mean difference
-# n <- floor(nrow(ttest)*0.1)
-# deg1 <- rownames(ttest)[order(ttest$benjamini_hochberg)[1:n]]
-# deg2 <- rownames(ttest)[order(ttest$meanDiff)[1:n]]
-# deg <- intersect(deg1, deg2)
-# deg_up <- deg[ttest[deg, "meanDiff"] > 0]
-# deg_down <- deg[ttest[deg, "meanDiff"] < 0]
-# 
-# # Overlap with Braak progression genes
-# prog_up <- entrezId2exprID(braakGenes$negative_r)
-# prog_up <- prog_up[!is.na(prog_up)]
-# overlap_up <- intersect(prog_up, deg_up)
-# 
-# prog_down <- entrezId2exprID(braakGenes$positive_r)
-# prog_down<- prog_down[!is.na(prog_down)]
-# overlap_down <- intersect(prog_down, deg_down)
-# 
-# prog_genes <- entrezId2exprID(unlist(braakGenes))
-# prog_genes <- prog_genes[!is.na(prog_genes)]
-# overlap <- intersect(prog_genes, deg)
-# 
-# # Differential expression of progression genes
-# tab_ukbec <- ttest[prog_genes, c("meanDiff", "benjamini_hochberg")]
-# tab_ahba <- diffExpr[exprID2entrezID(prog_genes), c("meanDiff", "benjamini_hochberg")]
-# tab <- cbind(ukbec = tab_ukbec, ahba = tab_ahba, gene = exprID2AHBA(prog_genes))
-# tab <- tab[rev(order(abs(tab$ukbec.meanDiff))), ]
-# 
-# # Braak genes ordered by p-value
-# bgOrder <- intersect(order, bgAll)
-# write.table(ttest[bgOrder,], file = "diffexpr_braakgenes_UKBEC.txt", quote = FALSE, row.names = FALSE)
-# 
-# 
-# ttest[intersect(order, entrezId2exprID(pdGenesID$susceptible)),]
-# ttest[entrezId2exprID(pdGenesID$lysosome),]
-# 
-# ttest[entrezId2exprID(pdGenesID$susceptible),]
+
+# Number of diff. genes
+sum(abs(ttest_ukbec$fc) > 1 & ttest_ukbec$BH < 0.05)
+
+# Braak genes
+braak_neg <- braakGenes$entrez_id[braakGenes$braak_r < 0]
+braak_pos <- braakGenes$entrez_id[braakGenes$braak_r > 0]
+braak_neg <- intersect(genes, braak_neg)
+braak_pos <- intersect(genes, braak_pos)
+braak <- list('r<0' = braak_neg, 'r>0' = braak_pos)
+
+# Mean expression across Braak genes within regions
+roi <- c('1' = "MEDU", '3' = "SNIG", '5' = "TCTX", '6' = "FCTX")
+meanExpr <- lapply(roi, function(r){
+  t <- sapply(braak, function(g){
+    expr <- regionExpr[[r]][g, ]
+    apply(expr, 2, mean)
+  })
+  melt(t)
+})
+meanExpr <- melt.list(meanExpr)
+colnames(meanExpr) <- c("sample", "r", "variable", "expr", "region")
+meanExpr$region <- factor(meanExpr$region, levels = unique(meanExpr$region))
+
+theme <- theme(panel.background = element_blank(), panel.grid = element_blank(), 
+               axis.line = element_line(colour = "black"))
+
+names(braakColors) <- gsub("braak", "", names(braakColors))
+
+box.plot <- function(df, title){
+  ggplot(df) + 
+    geom_boxplot(aes(y = expr, x = region, fill = region)) +
+    labs(x = "Braak stage", y = "Expression (log2-transformed)") +
+    ggtitle(title) +
+    scale_x_discrete(expand=c(0.2,0)) +
+    scale_fill_manual(values = braakColors, guide = FALSE) +
+    theme
+}
+p1 <- box.plot(meanExpr, "Expression of Braak genes in UKBEC") +
+  facet_grid(.~r, scales = 'free', space = 'free', switch = "y")
+p1
+
+#boxplot of SNCA
+expr_snca <- sapply(roi, function(r)  unlist(regionExpr[[r]]["6622", ] ))
+expr_snca <- melt(expr_snca)
+colnames(expr_snca) <- c("sample", "region", "expr")
+expr_snca$region <- factor(expr_snca$region, levels = unique(expr_snca$region))
+
+p2 <- box.plot(expr_snca, "Expression of SNCA in UKBEC")
+p2
+pdf("boxplot_UKBEC.pdf", 4, 3)
+print(p1)
+print(p2)
+dev.off()
