@@ -110,7 +110,7 @@ meanExpr <- lapply(samples, function(s){
   t <- sapply(list("r<0" = braak_neg, "r>0" = braak_pos), function(g){
     apply(df[g, s], 2, mean)
   })
-  t=melt(t)
+  melt(t)
 })
 meanExpr <- melt.list(meanExpr)
 colnames(meanExpr) <- c("sample", "r", "variable", "expr", "region")
