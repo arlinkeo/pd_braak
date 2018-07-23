@@ -40,21 +40,35 @@ sampleInfo <- lapply(donorNames, function(d){
 })
 
 # Plot celltype eigengene expression
-d= donorNames[[1]]
+plots <- lapply(donorNames, function(d){
+  samples <- braakLabels[[d]] != 0
+  expr <- eg_celltype[[d]][, samples]
+  # expr <- rbind(expr, sum = apply(expr, 2, sum))
+  labels <- braakLabels[[d]][samples]
+  
+  graph_order <- sampleInfo[[d]][samples, "graph_order"]
+  colOrder <- order(labels, -graph_order)
+  expr <- expr[, colOrder]
+  colnames(expr) <- make.names(colnames(expr), unique = TRUE)
+  
+  df <- melt(expr)
+  colnames(df) <- c("celltype", "sample", "expr")
+  df$sample <- factor(df$sample, levels = unique(df$sample))
+  
+  intercepts <- match(c(1:6), labels[colOrder])[-1]
+  
+  ggplot(df, aes(x=sample, y=expr, color=celltype)) + 
+    geom_point() +
+    geom_smooth(aes(group=celltype)) +
+    geom_vline(xintercept = intercepts) +
+    ggtitle(d) +
+    theme(panel.background = element_blank(), 
+          panel.grid = element_blank(), 
+          axis.line = element_line(colour = "black"),
+          axis.text.x = element_blank(),
+          axis.ticks.x = element_blank())
+})
 
-samples <- braakLabels[[d]] != 0
-expr <- eg_celltype[[d]][, samples]
-
-graph_order <- sampleInfo[[d]][samples, "graph_order"]
-colOrder <- order(braakLabels[[d]][samples], -graph_order)
-expr <- expr[, colOrder]
-
-df <- melt(expr)
-colnames(df) <- c("celltype", "sample", "expr")
-df$sample <- factor(df$sample, levels = unique(df$sample))
-
-ggplot(df, aes(x=sample, y=expr, color=celltype)) + 
-  geom_point() +
-  geom_smooth(aes(group=celltype))
-
-
+pdf("celltype_eigengene.pdf", 8, 6)
+plots
+dev.off()
