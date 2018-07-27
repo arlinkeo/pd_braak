@@ -10,6 +10,12 @@ summary.braak.cor <- dget("PD/summary.braak.cor.R")
 
 # For all genes
 samples <- lapply(braakLabels, function(x) x != 0)
-expr <- select.expr(samples = samples) #AHBA expression
-summaryLabelCor <- summary.braak.cor(expr, labels)
+expr <- readRDS("resources/expr_neuroncorrected.rds")
+expr_braak <- lapply(donorNames, function(d){
+  e <- expr[[d]]
+  labels <- samples[[d]]
+  e[, labels]
+})
+# expr <- select.expr(samples = samples) #AHBA expression
+summaryLabelCor <- summary.braak.cor(expr_braak, labels)
 save(summaryLabelCor, file = "resources/summaryLabelCor.RData")
