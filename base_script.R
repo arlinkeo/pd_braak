@@ -21,20 +21,21 @@ ahba.genes <- function(random = NULL){
 }
 
 # Function to get list of subselected expression matrices for each donor
-select.expr <- function(genes = NULL, samples = NULL){
-  expr <- readRDS("../ABA_Rdata/BrainExprNorm.rds")
-  lapply(donorNames, function(d){
-    e <- expr[[d]]
-    if (!is.null(samples)){
-      labels <- samples[[d]]
-      if (is.null(genes)) e[, labels]
-      else e[genes, labels]
-    } else {
-      if (is.null(genes)) e
-      else e[genes, ]
-    }
-  })
-}
+# select.expr <- function(genes = NULL, samples = NULL){
+#   # expr <- readRDS("../ABA_Rdata/BrainExprNorm.rds")
+#   expr <- readRDS("resources/expr_neuroncorrected.rds")
+#   lapply(donorNames, function(d){
+#     e <- expr[[d]]
+#     if (!is.null(samples)){
+#       labels <- samples[[d]]
+#       if (is.null(genes)) e[, labels]
+#       else e[genes, labels]
+#     } else {
+#       if (is.null(genes)) e
+#       else e[genes, ]
+#     }
+#   })
+# }
 
 ##### PD info about brain regions and genes #####
 
