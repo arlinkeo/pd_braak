@@ -3,6 +3,7 @@ setwd("C:/Users/dkeo/surfdrive/pd_braak")
 library(ggplot2)
 source("PD/base_script.R")
 load("../ABA_Rdata/BrainExpr.RData")
+brainExpr <- readRDS("resources/expr_neuroncorrected.rds")
 load("resources/braakInfo.RData") # Braak stage label vectors
 load("resources/summaryLabelCorr.RData")
 load("resources/braakGenes.RData")

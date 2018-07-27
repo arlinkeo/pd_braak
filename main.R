@@ -5,8 +5,9 @@ source("PD/roiSamples.R")
 source("PD/braakStageSamples.R")
 
 # Select Braak genes
-source("PD/braaklabel_cor.R")
+source("PD/celltype_eigengene.R")
 source("PD/diff_expr.R")
+source("PD/braaklabel_cor.R")
 source("PD/select_genes.R")
 source("PD/funcEnrich.R")
 source("PD/diff_expr_hemispheres.R")
@@ -30,5 +31,4 @@ source("PD/eigengene_cor.R")
 source("PD/module_enrichment.R")
 # source("PD/")
 
-# source("PD/")
 # source("PD/")

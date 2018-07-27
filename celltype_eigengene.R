@@ -4,13 +4,16 @@ source("PD/base_script.R")
 library(ggplot2)
 library(reshape2)
 load("resources/braakInfo.RData")
-load("../ABA_Rdata/BrainExprNorm.RData")
+load("../ABA_Rdata/BrainExpr.RData")
 
 # Cell-type genes
 celltypes <- sapply(c("Astrocytes", "Endothelial_cells", "Microglia", "Neurons", "Oligodendrocytes"), function(type){
   file = paste0("brainscope_celltypes/", type, ".txt")
   as.character(read.csv(file, header = TRUE)$entrez_id)
 }, simplify = FALSE)
+
+# Neurons and non-neurons
+celltypes <- list(nonneurons = Reduce(c, celltypes[-4]), neurons = celltypes[[4]])
 
 # eigen gene function for data matrix (samples x genes)
 eigen.gene <- function(x){
@@ -21,15 +24,14 @@ eigen.gene <- function(x){
 
 # Cell-type eigen gene expression
 eg_celltype <- lapply(donorNames, function(d){
-  l <- t(sapply(celltypes, function(ct){
-    x <- brainExprNorm[[d]][ct, ]
+  t(sapply(celltypes, function(ct){
+    x <- brainExpr[[d]][ct, ]
     eigen.gene(t(x))
   }))
 })
 
-ontology <- read.csv("../ABA_human_processed/Ontology_edited.csv")
-
 # IDs and AHBA colors for each sample per donor
+ontology <- read.csv("../ABA_human_processed/Ontology_edited.csv")
 sampleInfo <- lapply(donorNames, function(d){
   sampleIds <- read.csv(paste("../ABA_human_processed/sample_info_normalized_microarray_", d, "_2014-11-11.csv", sep = ""))[ , 1]
   info <- ontology[match(sampleIds, ontology$id), ]
@@ -51,7 +53,7 @@ plots <- lapply(donorNames, function(d){
   expr <- expr[, colOrder]
   colnames(expr) <- make.names(colnames(expr), unique = TRUE)
   
-  df <- melt(expr)
+  df <- melt(as.matrix(expr))
   colnames(df) <- c("celltype", "sample", "expr")
   df$sample <- factor(df$sample, levels = unique(df$sample))
   
@@ -68,7 +70,16 @@ plots <- lapply(donorNames, function(d){
           axis.text.x = element_blank(),
           axis.ticks.x = element_blank())
 })
-
-pdf("celltype_eigengene.pdf", 8, 6)
+pdf("celltype_eigengene2.pdf", 8, 6)
 plots
 dev.off()
+
+# Fit linear model and use residuals as neuron-corrected expression
+expr_neuroncorrected <- lapply(donorNames, function(d){
+  expr_ct <- as.data.frame(t(eg_celltype[[d]]))
+  expr <- brainExpr[[d]]
+  expr <- t(expr)
+  fit <- lm(expr~expr_ct$neurons)
+  t(fit$residuals)
+})
+saveRDS(expr_neuroncorrected, file = "resources/expr_neuroncorrected.rds")

@@ -7,6 +7,20 @@ library(ggplot2)
 library(plyr)
 load("resources/braakInfo.RData")
 
+########## Differential expression of all pairs of Braak involved regions ##########
+
+# # Merged Braak regions
+# braakList <- list('braak1to2' = c("braak1", "braak2"), 
+#                          'braak3to4' = c("braak3", "braak4"),
+#                          'braak5to6' = c("braak5", "braak6"))
+# braakNamesMerged <- names(braakList)
+# braakStagesMerged <- lapply(donorNames, function(d){
+#   t <- braakStages[[d]]
+#   sapply(braakList, function(b){
+#     apply(t[, b], 1, any)
+#   })
+# })
+
 # Pairwise combinations of Braak regions 1-6
 braakPairs <- t(combn(braakNames, 2))
 rownames(braakPairs) <- apply(braakPairs, 1, paste, collapse = "-")
@@ -27,7 +41,8 @@ ttestGene <- function(a, b) {
 
 # T-test to get p-values and CI's
 # Donors -> Braak region pairs -> genes (table)
-brainExpr <- readRDS("../ABA_Rdata/BrainExprNorm.rds")
+# brainExpr <- readRDS("../ABA_Rdata/BrainExprNorm.rds")'
+brainExpr <- readRDS("resources/expr_neuroncorrected.rds")
 genes <- ahba.genes()
 ttest <- lapply(donorNames, function(d){
   print(d)
@@ -48,7 +63,6 @@ ttest <- lapply(donorNames, function(d){
   }, .dims = TRUE) # keep names
 })
 save(ttest, file = "resources/ttest.RData")
-# load("resources/ttest.RData")
 
 # Number of diff. expr. genes
 sapply(ttest, function(d){
@@ -58,7 +72,7 @@ sapply(ttest, function(d){
   })
 })
 
-# Braak region pairs -> Genes -> Donors (table)
+# Braak region pairs -> Genes -> Donors (inverted table) 
 diffExpr <- sapply(rownames(braakPairs), function(p){
   sapply(genes, function(g){
     as.data.frame(t(sapply(donorNames, function(d){
@@ -105,8 +119,8 @@ summaryDiffExpr <- sapply(names(diffExpr), function(rp){ # For each Braak region
 }, simplify = FALSE)
 save(summaryDiffExpr, file = "resources/summaryDiffExpr.RData")
 
-# Bar plot of differentially expressed genes between all Braak regions
-load("resources/summaryDiffExpr.RData")
+########## Bar plot of differentially expressed genes between all Braak regions ##########
+
 summTables <- lapply(summaryDiffExpr, function(l){
   t <- do.call(rbind.data.frame, lapply(l, function(g) g["summary",]))
   t$BH <- p.adjust(t$pvalue, method = "BH")
@@ -124,7 +138,7 @@ rownames(degLists) <- sapply(rownames(degLists), function(x){
 df <- melt(degLists)
 colnames(df) <- c("region_pair", "dir", "deg")
 df$region_pair <- factor(df$region_pair, levels = rev(unique(df$region_pair)))
-df$y <- ifelse(df$dir == "positive", df$deg+700, df$deg-800)
+df$y <- ifelse(df$dir == "positive", df$deg+200, df$deg-200)
 
 p <- ggplot(df) + 
   geom_col(aes(x=region_pair, y = deg, fill=dir), size = 0.5, colour = "black") + 

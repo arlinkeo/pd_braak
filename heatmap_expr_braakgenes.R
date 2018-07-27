@@ -4,7 +4,8 @@ library(ggplot2)
 library(reshape2)
 
 source("PD/base_script.R")
-load("../ABA_Rdata/BrainExprNorm.RData")
+# load("../ABA_Rdata/BrainExprNorm.RData")
+brainExpr <- readRDS("resources/expr_neuroncorrected.rds")
 load("resources/braakInfo.RData") # Braak stage label vectors
 
 # Get expr. of braak genes in braak samples
