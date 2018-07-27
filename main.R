@@ -13,7 +13,6 @@ source("PD/funcEnrich.R")
 source("PD/diff_expr_hemispheres.R")
 
 # Visualize data
-source("PD/volcanoplot_summary_diff.R")
 source("PD/boxplot_braak.R")
 
 # Gene conversion table

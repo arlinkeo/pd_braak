@@ -8,6 +8,8 @@ source("PD/base_script.R")
 load("resources/summaryDiffExpr.RData")
 load("resources/summaryLabelCor.RData")
 
+########## Prepare data ##########
+
 # Select region pair
 diffExpr <- summaryDiffExpr$`braak1-braak6`
 
@@ -17,7 +19,7 @@ diffExpr$BH <- p.adjust(diffExpr$pvalue, method = "BH")
 labelCor <- do.call(rbind.data.frame, lapply(summaryLabelCor, function(g) g["summary",]))
 labelCor$BH <- p.adjust(labelCor$pvalue, method = "BH")
 
-### Selecting Braak-related genes ###
+########## Selecting Braak-related genes ##########
 
 # top10 <- floor(nrow(labelCor)*0.1) # number of genes in top 10%
 # 
@@ -74,7 +76,9 @@ braakGenes$FC_BH <- format(diffExpr[braakGenes$entrez_id, "BH"], digits = 2)
 write.table(braakGenes, file = "braakGenes.txt", row.names = FALSE, quote = FALSE, sep = "\t")
 save(braakGenes, file = "resources/braakGenes.RData")
 
-# Bar plot of selected genes
+########## Bar plot of selected genes ##########
+
+# row labels
 t1 <- paste("|r| >", floor(min(abs(braakGenes$r))*100)/100, "& P < 0.05")
 t2 <- paste("|FC| >", floor(min(abs(braakGenes$FC))*100)/100, "& P < 0.05")
 # t3 <- paste("Pfc <", floor(as.numeric(max(braakGenes$FC_BH))*1e5)/1e5)
@@ -107,7 +111,7 @@ pdf("braakgenes_barplot.pdf", 5, 2)
 print(p)
 dev.off()
  
-#Presence of PD-implicated genes
+########## Presence of PD-implicated genes ##########
 parkingenes <- read.table("parkin_genes_hgnc.txt", sep = "\t", header = TRUE)$Approved.Symbol
 
 pdGenes <- list(hiImpact = c("SNCA", "LRRK2", "GBA", "VPS35", "PARK2", "UCHL1", "PINK1", "PARK7", "ATP13A2", "PLA2G6", "FBXO7", "DNAJC6", "SYNJ1", 
@@ -127,3 +131,66 @@ tab <- lapply(names(pdGenesID), function(n){
 })
 tab <- Reduce(rbind, tab)
 write.table(tab, file = "pdgenes_stats.txt", sep ="\t", quote = FALSE, row.names = FALSE)
+
+########## Volcano plot for differential expression analysis ##########
+# library(gridExtra)
+# library(ggrepel)
+
+# Extract summary statistics, BH-correct and log-transformed p-values
+summaryDiffExpr <- lapply(summaryDiffExpr, function(rp){
+  tab <- do.call(rbind.data.frame, lapply(rp, function(g) g["summary",]))
+  tab$BH <- p.adjust(tab$pvalue, method = "BH")
+  tab$'logp' <- -log10(tab$BH)
+  tab
+})
+
+braak_pos <- braakGenes$entrez_id[braakGenes$r>0]
+braak_neg <- braakGenes$entrez_id[braakGenes$r<0]
+
+# Plot theme
+theme <- theme(legend.position = "none",
+               panel.background = element_blank(),
+               axis.line = element_line(colour = "black"),
+               axis.title =  element_text(size = 12),
+               plot.title = element_text(size = 12, face = "bold"))
+
+# axis limits for all plots
+ctab <- Reduce(rbind, summaryDiffExpr)
+xmax <- max(ctab$meanDiff)
+xmin <- min(ctab$meanDiff)
+ymax <- ceiling(max(ctab$'logp'[is.finite(ctab$'logp')]))
+
+plotll <- lapply(names(summaryDiffExpr), function(rp){
+  tab <- summaryDiffExpr[[rp]]
+  # tab$info <- as.numeric(rownames(tab) %in% braak_pos)
+  tab$info <- sapply(rownames(tab), function(x){
+    if (x %in% braak_pos) 1
+    else if (x %in% braak_neg) 2
+    else 0
+  })
+  
+  # tab$labels <- entrezId2Name(rownames(tab))
+  # pd <- c("DNAJC13","SNCA","GCH1","INPP5F", "ASH1L", "ITPKB", "ELOVL7", "ZNF184", "SCARB2", "DDRGK1")
+  # tab$labels[!tab$labels %in% pd] <- ""
+  # tab[name2EntrezId(pd), "info"] <- 2
+  
+  # Plotting order of data points 
+  tab$info <- as.factor(tab$info)
+  order <- order(tab$info)
+  tab <- tab[order, ]
+  
+  p <- ggplot(tab, aes(meanDiff, logp, colour = info)) +
+    geom_point(size = 0.25, alpha = 0.3) +
+    scale_colour_manual(values = c("0"="grey", "1"="red", "2"="blue")) +
+    # geom_text_repel(label = tab$labels, fontface = "italic", colour = "black", size = 3, nudge_x = 0.2) +
+    labs(x = "Fold-change", y = "-log10 P-value") +
+    scale_x_continuous(limits = c(xmin, xmax), expand = c(0,0)) +
+    scale_y_continuous(limits = c(0, ymax), expand = c(0,0)) +
+    ggtitle(paste("Braak stage ", gsub("braak", "", gsub("-", " vs ", rp)))) +
+    theme
+  
+  name <- paste0("DiffExpr_braak/volcanoplot_", rp, ".pdf")
+  pdf(file = name, 4, 3)
+  print(p)
+  dev.off()
+})
