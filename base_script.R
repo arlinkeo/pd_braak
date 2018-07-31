@@ -20,6 +20,17 @@ ahba.genes <- function(random = NULL){
   as.character(genes)
 }
 
+# IDs and AHBA colors for each sample per donor
+ontology <- read.csv("../ABA_human_processed/Ontology_edited.csv")
+sampleInfo <- lapply(donorNames, function(d){
+  sampleIds <- read.csv(paste("../ABA_human_processed/sample_info_normalized_microarray_", d, "_2014-11-11.csv", sep = ""))[ , 1]
+  info <- ontology[match(sampleIds, ontology$id), ]
+  info$color_hex_triplet <- sapply(info$color_hex_triplet, function(c){
+    if (nchar(c) == 5) {paste("#0", c, sep = "")} else {paste("#", c, sep = "")}
+  })
+  info
+})
+
 # Function to get list of subselected expression matrices for each donor
 # select.expr <- function(genes = NULL, samples = NULL){
 #   # expr <- readRDS("../ABA_Rdata/BrainExprNorm.rds")
