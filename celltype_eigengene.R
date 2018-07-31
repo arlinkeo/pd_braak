@@ -13,11 +13,11 @@ celltypes <- sapply(c("Astrocytes", "Endothelial_cells", "Microglia", "Neurons",
 }, simplify = FALSE)
 
 # Neurons and non-neurons
-celltypes <- list(nonneurons = Reduce(c, celltypes[-4]), neurons = celltypes[[4]])
+# celltypes <- list(nonneurons = Reduce(c, celltypes[-4]), neurons = celltypes[[4]])
 
 # eigen gene function for data matrix (samples x genes)
 eigen.gene <- function(x){
-  eg <- prcomp(x)$x[, 1]# 1st PC (eigen gene expr)
+  eg <- prcomp(x, center = FALSE)$x[, 1]# 1st PC (eigen gene expr)
   mean <- apply(x, 1, mean)
   if (cor(eg, mean) > 0) eg else -eg # flip sign of eigen gene based on the data
 }
@@ -28,17 +28,6 @@ eg_celltype <- lapply(donorNames, function(d){
     x <- brainExpr[[d]][ct, ]
     eigen.gene(t(x))
   }))
-})
-
-# IDs and AHBA colors for each sample per donor
-ontology <- read.csv("../ABA_human_processed/Ontology_edited.csv")
-sampleInfo <- lapply(donorNames, function(d){
-  sampleIds <- read.csv(paste("../ABA_human_processed/sample_info_normalized_microarray_", d, "_2014-11-11.csv", sep = ""))[ , 1]
-  info <- ontology[match(sampleIds, ontology$id), ]
-  info$color_hex_triplet <- sapply(info$color_hex_triplet, function(c){
-    if (nchar(c) == 5) {paste("#0", c, sep = "")} else {paste("#", c, sep = "")}
-  })
-  info
 })
 
 # Plot celltype eigengene expression
@@ -78,8 +67,61 @@ dev.off()
 expr_neuroncorrected <- lapply(donorNames, function(d){
   expr_ct <- as.data.frame(t(eg_celltype[[d]]))
   expr <- brainExpr[[d]]
-  expr <- t(expr)
-  fit <- lm(expr~expr_ct$neurons)
+  expr <-t(expr)
+  fit <- lm(expr ~ 
+              expr_ct$Astrocytes + 
+              expr_ct$Endothelial_cells + 
+              expr_ct$Microglia + 
+              expr_ct$Neurons + 
+              expr_ct$Oligodendrocytes)
   t(fit$residuals)
 })
 saveRDS(expr_neuroncorrected, file = "resources/expr_neuroncorrected.rds")
+
+# Heatmap Before and after correction
+genes <- unlist(celltypes)
+celltypeColors <- sapply(genes, function(g){
+  if (g %in% celltypes$Astrocytes) "red"
+  else if (g %in% celltypes$Endothelial_cells) "yellow"
+  else if (g %in% celltypes$Microglia) "pink"
+  else if (g %in% celltypes$Neurons) "blue"
+  else if (g %in% celltypes$Oligodendrocytes) "green"
+  else "gray"
+})
+
+pdf("celltype_correction_heatmap.pdf", 8, 9)
+lapply(donorNames[1], function(d){
+  # Subselect expression matrices
+  info <- sampleInfo[[d]]
+  expr <- scale(t(brainExpr[[d]]))
+  
+  rowOrder <- order(-info$graph_order)
+  info <- info[rowOrder, ]
+  expr <- expr[rowOrder, genes]
+  
+  colPal <- c("blue", "white", "red")
+  rampcols <- colorRampPalette(colors = colPal, space="Lab")(100)
+  
+  rampcols <- c(rep(col2hex(colPal[1]), 50), rampcols, rep(col2hex(colPal[3]), 50))
+  heatmap.2(expr, col = rampcols, 
+            labRow = info$acronym, labCol = entrezId2Name(colnames(expr)), 
+            Rowv=FALSE, Colv=FALSE, 
+            cexCol = .5, cexRow = .5,
+            scale = "none", trace = "none", dendrogram = "none", #key = FALSE, 
+            RowSideColors = info$color_hex_triplet, ColSideColors = celltypeColors,
+            main = paste0("Expression of cell types in ", d, " (uncorrected)"),
+            margins = c(5, 5))
+  
+  expr2 <- scale(t(expr_neuroncorrected[[d]]))
+  expr2 <- expr2[rowOrder, genes]
+  
+  heatmap.2(expr2, col = rampcols, 
+            labRow = info$acronym, labCol = entrezId2Name(colnames(expr)), 
+            Rowv=FALSE, Colv=FALSE, 
+            cexCol = .5, cexRow = .5,
+            scale = "none", trace = "none", dendrogram = "none", #key = FALSE, 
+            RowSideColors = info$color_hex_triplet, ColSideColors = celltypeColors,
+            main = paste0("Expression of cell types in ", d, " (corrected)"),
+            margins = c(5, 5))
+})
+dev.off()
