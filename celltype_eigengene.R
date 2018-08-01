@@ -2,6 +2,7 @@
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
 source("PD/base_script.R")
 library(ggplot2)
+library(gplots)
 library(reshape2)
 load("resources/braakInfo.RData")
 load("../ABA_Rdata/BrainExpr.RData")
@@ -34,7 +35,6 @@ eg_celltype <- lapply(donorNames, function(d){
 plots <- lapply(donorNames, function(d){
   samples <- braakLabels[[d]] != 0
   expr <- eg_celltype[[d]][, samples]
-  # expr <- rbind(expr, sum = apply(expr, 2, sum))
   labels <- braakLabels[[d]][samples]
   
   graph_order <- sampleInfo[[d]][samples, "graph_order"]
@@ -59,7 +59,7 @@ plots <- lapply(donorNames, function(d){
           axis.text.x = element_blank(),
           axis.ticks.x = element_blank())
 })
-pdf("celltype_eigengene2.pdf", 8, 6)
+pdf("celltype_eigengene.pdf", 8, 6)
 plots
 dev.off()
 
@@ -78,7 +78,7 @@ expr_neuroncorrected <- lapply(donorNames, function(d){
 })
 saveRDS(expr_neuroncorrected, file = "resources/expr_neuroncorrected.rds")
 
-# Heatmap Before and after correction
+########## Heatmap Before and after correction ##########
 genes <- unlist(celltypes)
 celltypeColors <- sapply(genes, function(g){
   if (g %in% celltypes$Astrocytes) "red"
@@ -89,20 +89,22 @@ celltypeColors <- sapply(genes, function(g){
   else "gray"
 })
 
-pdf("celltype_correction_heatmap.pdf", 8, 9)
-lapply(donorNames[1], function(d){
-  # Subselect expression matrices
+lapply(donorNames, function(d){
   info <- sampleInfo[[d]]
   expr <- scale(t(brainExpr[[d]]))
+  expr2 <- scale(t(expr_neuroncorrected[[d]]))
   
   rowOrder <- order(-info$graph_order)
   info <- info[rowOrder, ]
   expr <- expr[rowOrder, genes]
+  expr2 <- expr2[rowOrder, genes]
   
   colPal <- c("blue", "white", "red")
   rampcols <- colorRampPalette(colors = colPal, space="Lab")(100)
-  
   rampcols <- c(rep(col2hex(colPal[1]), 50), rampcols, rep(col2hex(colPal[3]), 50))
+  
+  file = paste0("celltype_correction_heatmap_", d, ".pdf")
+  pdf(file, 8, 9)
   heatmap.2(expr, col = rampcols, 
             labRow = info$acronym, labCol = entrezId2Name(colnames(expr)), 
             Rowv=FALSE, Colv=FALSE, 
@@ -111,10 +113,6 @@ lapply(donorNames[1], function(d){
             RowSideColors = info$color_hex_triplet, ColSideColors = celltypeColors,
             main = paste0("Expression of cell types in ", d, " (uncorrected)"),
             margins = c(5, 5))
-  
-  expr2 <- scale(t(expr_neuroncorrected[[d]]))
-  expr2 <- expr2[rowOrder, genes]
-  
   heatmap.2(expr2, col = rampcols, 
             labRow = info$acronym, labCol = entrezId2Name(colnames(expr)), 
             Rowv=FALSE, Colv=FALSE, 
@@ -123,5 +121,5 @@ lapply(donorNames[1], function(d){
             RowSideColors = info$color_hex_triplet, ColSideColors = celltypeColors,
             main = paste0("Expression of cell types in ", d, " (corrected)"),
             margins = c(5, 5))
+  dev.off()
 })
-dev.off()
