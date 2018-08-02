@@ -13,28 +13,18 @@ celltypes <- sapply(c("Astrocytes", "Endothelial_cells", "Microglia", "Neurons",
   as.character(read.csv(file, header = TRUE)$entrez_id)
 }, simplify = FALSE)
 
-# Neurons and non-neurons
-# celltypes <- list(nonneurons = Reduce(c, celltypes[-4]), neurons = celltypes[[4]])
-
-# eigen gene function for data matrix (samples x genes)
-eigen.gene <- function(x){
-  eg <- prcomp(x, center = FALSE)$x[, 1]# 1st PC (eigen gene expr)
-  mean <- apply(x, 1, mean)
-  if (cor(eg, mean) > 0) eg else -eg # flip sign of eigen gene based on the data
-}
-
-# Cell-type eigen gene expression
-eg_celltype <- lapply(donorNames, function(d){
+# Cell-type mean gene expression
+mean_celltype <- lapply(donorNames, function(d){
   t(sapply(celltypes, function(ct){
     x <- brainExpr[[d]][ct, ]
-    eigen.gene(t(x))
+    apply(x, 2, mean)
   }))
 })
 
 # Plot celltype eigengene expression
 plots <- lapply(donorNames, function(d){
   samples <- braakLabels[[d]] != 0
-  expr <- eg_celltype[[d]][, samples]
+  expr <- mean_celltype[[d]][, samples]
   labels <- braakLabels[[d]][samples]
   
   graph_order <- sampleInfo[[d]][samples, "graph_order"]
@@ -59,13 +49,13 @@ plots <- lapply(donorNames, function(d){
           axis.text.x = element_blank(),
           axis.ticks.x = element_blank())
 })
-pdf("celltype_eigengene.pdf", 8, 6)
+pdf("celltype_mean.pdf", 8, 6)
 plots
 dev.off()
 
 # Fit linear model and use residuals as neuron-corrected expression
 expr_neuroncorrected <- lapply(donorNames, function(d){
-  expr_ct <- as.data.frame(t(eg_celltype[[d]]))
+  expr_ct <- as.data.frame(t(mean_celltype[[d]]))
   expr <- brainExpr[[d]]
   expr <-t(expr)
   fit <- lm(expr ~ 
