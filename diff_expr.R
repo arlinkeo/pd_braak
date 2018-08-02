@@ -6,6 +6,8 @@ library(reshape2)
 library(ggplot2)
 library(plyr)
 load("resources/braakInfo.RData")
+# brainExpr <- readRDS("../ABA_Rdata/BrainExprNorm.rds")'
+brainExpr <- readRDS("resources/expr_neuroncorrected.rds")
 
 ########## Differential expression of all pairs of Braak involved regions ##########
 
@@ -41,8 +43,6 @@ ttestGene <- function(a, b) {
 
 # T-test to get p-values and CI's
 # Donors -> Braak region pairs -> genes (table)
-# brainExpr <- readRDS("../ABA_Rdata/BrainExprNorm.rds")'
-brainExpr <- readRDS("resources/expr_neuroncorrected.rds")
 genes <- ahba.genes()
 ttest <- lapply(donorNames, function(d){
   print(d)
