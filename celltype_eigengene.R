@@ -13,7 +13,7 @@ celltypes <- sapply(c("Astrocytes", "Endothelial_cells", "Microglia", "Neurons",
   as.character(read.csv(file, header = TRUE)$entrez_id)
 }, simplify = FALSE)
 
-# Cell-type mean gene expression
+# Cell-type mean gene expression for all samples (whole brain)
 mean_celltype <- lapply(donorNames, function(d){
   t(sapply(celltypes, function(ct){
     x <- brainExpr[[d]][ct, ]
@@ -23,20 +23,15 @@ mean_celltype <- lapply(donorNames, function(d){
 
 # Plot celltype eigengene expression
 plots <- lapply(donorNames, function(d){
-  samples <- braakLabels[[d]] != 0
-  expr <- mean_celltype[[d]][, samples]
-  labels <- braakLabels[[d]][samples]
-  
-  graph_order <- sampleInfo[[d]][samples, "graph_order"]
-  colOrder <- order(labels, -graph_order)
-  expr <- expr[, colOrder]
+  idx <- Reduce(c, braak_idx[[d]]) # for samples
+  expr <- mean_celltype[[d]][, idx]
   colnames(expr) <- make.names(colnames(expr), unique = TRUE)
   
   df <- melt(as.matrix(expr))
   colnames(df) <- c("celltype", "sample", "expr")
   df$sample <- factor(df$sample, levels = unique(df$sample))
   
-  intercepts <- match(c(1:6), labels[colOrder])[-1]
+  intercepts <- match(c(1:6), braakLabels[[d]][idx])[-1]
   
   ggplot(df, aes(x=sample, y=expr, color=celltype)) + 
     geom_point() +
@@ -53,24 +48,25 @@ pdf("celltype_mean.pdf", 8, 6)
 plots
 dev.off()
 
-# Fit linear model and use residuals as neuron-corrected expression
-expr_neuroncorrected <- lapply(donorNames, function(d){
-  expr_ct <- as.data.frame(t(mean_celltype[[d]]))
-  expr <- brainExpr[[d]]
-  expr <-t(expr)
-  fit <- lm(expr ~ 
-              expr_ct$Astrocytes + 
-              expr_ct$Endothelial_cells + 
-              expr_ct$Microglia + 
-              expr_ct$Neurons + 
-              expr_ct$Oligodendrocytes)
+# Fit linear model
+lm_fit <- lapply(donorNames, function(d){
+  idx <- Reduce(c, braak_idx[[d]]) # idx for samples
+  braak <- braakLabels[[d]][idx] # braak labels
+  ct <- t(mean_celltype[[d]][, idx]) # samples x cell-types
+  expr <- t(brainExpr[[d]][, idx]) # samples x genes
+  lm(expr ~ ct : braak)
+})
+
+# Use residuals as cell-corrected expression
+expr_celltype_corrected <- lapply(donorNames, function(d){
+  fit <- lm_fit[[d]]
   t(fit$residuals)
 })
-saveRDS(expr_neuroncorrected, file = "resources/expr_neuroncorrected.rds")
+saveRDS(expr_celltype_corrected, file = "resources/expr_celltype_corrected.rds")
 
 ########## Heatmap Before and after correction ##########
-genes <- unlist(celltypes)
-celltypeColors <- sapply(genes, function(g){
+ct_genes <- unlist(celltypes)
+celltypeColors <- sapply(ct_genes, function(g){
   if (g %in% celltypes$Astrocytes) "red"
   else if (g %in% celltypes$Endothelial_cells) "yellow"
   else if (g %in% celltypes$Microglia) "pink"
@@ -80,14 +76,12 @@ celltypeColors <- sapply(genes, function(g){
 })
 
 lapply(donorNames, function(d){
-  info <- sampleInfo[[d]]
-  expr <- scale(t(brainExpr[[d]]))
-  expr2 <- scale(t(expr_neuroncorrected[[d]]))
+  idx <- Reduce(c, braak_idx[[d]]) # for samples
+  info <- sampleInfo[[d]][idx, ]
   
-  rowOrder <- order(-info$graph_order)
-  info <- info[rowOrder, ]
-  expr <- expr[rowOrder, genes]
-  expr2 <- expr2[rowOrder, genes]
+  # Scale expression across all Braak samples
+  expr <- scale(t(brainExpr[[d]][ct_genes, idx])) # samples x genes
+  expr2 <- scale(t(expr_celltype_corrected[[d]][ct_genes,]))
   
   colPal <- c("blue", "white", "red")
   rampcols <- colorRampPalette(colors = colPal, space="Lab")(100)
@@ -112,4 +106,28 @@ lapply(donorNames, function(d){
             main = paste0("Expression of cell types in ", d, " (corrected)"),
             margins = c(5, 5))
   dev.off()
+})
+
+# Scatter plots
+lapply(donorNames, function(d){
+  samples <- Reduce(c, braak_idx[[d]])
+  label <- braakLabels[[d]][samples]
+  ct <- mean_celltype[[d]][, samples]
+  expr <- brainExpr[[d]][, samples]
+  
+  g <- "114"#name2EntrezId("SNCA")
+  
+  lapply(names(celltypes), function(c){
+    ref <- ct[c, ] # Cell-type expression
+    gene <- unlist(expr[g, ])
+    df <- data.frame(ref, gene, label)
+    ggplot(df, aes(x=ref, y=gene, color = label, shape = label)) +
+      geom_point() +
+      geom_smooth(method = lm, se = FALSE, fullrange = TRUE) +
+      labs(x = c, y = entrezId2Name(g)) +
+      ggtitle(d) +
+      theme(panel.background = element_blank(), 
+            panel.grid = element_blank(), 
+            axis.line = element_line(colour = "black"))
+  })
 })
