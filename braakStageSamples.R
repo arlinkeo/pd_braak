@@ -1,7 +1,6 @@
 # Braak info
 # Samples IDs, fixed colors
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
-
 source("PD/base_script.R")
 load("resources/roiSamples.RData")
 library(RColorBrewer)
@@ -28,7 +27,6 @@ braakStages <- lapply(donorNames, function (d){
 })
 # Print table with sample sizes
 t(sapply(braakStages, function(m)apply(m, 2, sum)))
-# save(braakStages, file = "resources/braakStages.RData")
 
 # Function to get Braak labels
 label.vector <- function(m){
@@ -37,12 +35,27 @@ label.vector <- function(m){
     ifelse(length(s) == 0, 0, tail(unlist(strsplit(names(s), split = "braak")), 1))
   })
 }
-
 braakLabels <- lapply(braakStages, function(m) label.vector(m))
-# save(braakLabels, file = "resources/braakLabels.RData")
+
+# Indexes to select Braak samples in order of Braak regions and anatomy
+braak_idx <- lapply(donorNames, function(d){
+  apply(braakStages[[d]], 2, function(b){
+    samples <- which(b)
+    graph_order <- sampleInfo[[d]][samples, "graph_order"]
+    sample_order <- order(-graph_order)
+    samples[sample_order]
+  })
+})
+# braak_idx <- lapply(donorNames, function(d){
+#   samples <- which(braakLabels[[d]] != 0)
+#   labels <- braakLabels[[d]][samples]
+#   graph_order <- sampleInfo[[d]][samples, "graph_order"]
+#   sample_order <- order(labels, -graph_order)
+#   samples[sample_order]
+# })
 
 # Fixed colors for Braak related regions
 braakColors <- brewer.pal(6, "Set2")
 names(braakColors) <- braakNames
 
-save(braakStages, braakLabels, braakColors, file = "resources/braakInfo.RData")
+save(braakStages, braakLabels, braakColors, braak_idx, file = "resources/braakInfo.RData")
