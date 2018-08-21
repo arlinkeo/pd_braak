@@ -11,14 +11,16 @@ load("../ABA_Rdata/BrainExpr.RData")
 # expr1 <- readRDS("resources/expr_corrected_lm_mean_allsamples.rds")
 # expr2 <- readRDS("resources/expr_corrected_lm_eg_allsamples.rds")
 
+# Load functions
+source("PD/plot.deg.numbers.R")
+source("PD/t.test.table.R")
+
 # Pairwise combinations of Braak regions 1-6
 braakPairs <- t(combn(braakNames, 2))
 rownames(braakPairs) <- apply(braakPairs, 1, paste, collapse = "-")
 colnames(braakPairs) <- c("region_A", "region_B")
 
-# # T-test to get p-values and CI's (only needed for forest plot of meta-analysis)
-t.test.table <- dget("PD/t.test.table.R")
-# T-test of mean expression between two regions
+# T-test to get p-values and CI's (only needed for forest plot of meta-analysis)
 ttest <- lapply(donorNames, function(d){
   print(d)
   expr <- expr2[[d]]
@@ -27,9 +29,9 @@ ttest <- lapply(donorNames, function(d){
   })
   tab <- alply(braakPairs, 1, function(r){
     print(unname(r))
-    a <- exprll[[r[1]]]
-    b <- exprll[[r[2]]]
-    t.test.table(a,b)
+    a <- exprll[[r[1]]] # matrix group 1
+    b <- exprll[[r[2]]] # matrix group 2
+    t.test.table(a,b) # Test for all genes
   }, .dims = TRUE) # keep names
   simplify2array(tab) # 3D array: genes x measures x region pairs
 })
@@ -70,7 +72,6 @@ save(summaryDiffExpr, file = "resources/summaryDiffExpr_corrected_lm_eg_allsampl
 
 ########## Bar plot of differentially expressed genes between all Braak regions ##########
 
-plot.deg.numbers <- dget("PD/plot.deg.numbers.R")
 p <- plot.deg.numbers(summaryDiffExpr)
 pdf("diff_expr_barplot_corrected_lm_eg_allsamples.pdf", 6, 4)
 print(p)
