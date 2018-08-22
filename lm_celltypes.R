@@ -77,87 +77,103 @@ lm_fit1 <- lapply(donorNames, function(d){
 lm_fit2 <- lapply(donorNames, function(d){
   idx <- unlist(braak_idx[[d]]) # idx for samples
   braak <- braakLabels[[d]][idx] # braak labels
-  ct <- t(eg_celltype[[d]][, idx]) # samples x cell-types
+  ct <- t(mean_celltype[[d]][, idx]) # samples x cell-types
   expr <- t(brainExpr[[d]][, idx]) # samples x genes
-  fit <- lm(expr ~ ct)
+  fit <- lm(expr ~ ct + braak)
 })
 
-
-# Scatter plots
+########## Scatter plots ##########
 g <- name2EntrezId("SNCA")
+theme <- theme(panel.background = element_blank(), 
+               panel.grid = element_blank(), 
+               axis.line = element_line(colour = "black"))
 
-pdf("EQ1_SNCA.pdf", 6, 4)
+pdf("EQ1and2_SNCA.pdf", 6, 4)
 lapply(names(celltypes), function(c){
   lapply(donorNames, function(d){
-    # samples <- unlist(braak_idx[[d]])
-    label <- braakLabels[[d]]#[samples]
-    ct <- mean_celltype[[d]]#[, samples]
-    expr <- brainExpr[[d]]#[, samples]
-    color <- sampleInfo[[d]][, "color_hex_triplet"]
+    samples <- unlist(braak_idx[[d]])
+    label <- braakLabels[[d]][samples]
+    ct <- mean_celltype[[d]][, samples]
+    expr <- brainExpr[[d]][, samples]
+    color <- sampleInfo[[d]][samples, "color_hex_triplet"]
     
     ref <- ct[c, ] # Cell-type expression
     gene <- unlist(expr[g, ])
-    # coef <- coef(lm_fit[[d]])[, g]
+    coef1 <- c(coef(lm_fit1[[d]])[, g], braak1 = 0)
+    coef2 <- c(coef(lm_fit2[[d]])[, g], braak1 = 0)
     df <- data.frame(ref, gene, factor(label))
+    # df$braakcoef <- coef1[paste0("braak", label)]
     ggplot(df) +
       geom_point(aes(x=ref, y=gene, shape = label), color = color) +
-      # geom_abline(intercept = coef[1], slope = coef[paste0("ct", c)]) +
-      geom_smooth(aes(x=ref, y=gene), method = lm, se = FALSE, fullrange = TRUE) +
+      geom_abline(intercept = coef1[1], slope = coef1[paste0("ct", c)], size = 1, linetype = 7) +# For cell-type estimate
+      geom_abline(intercept = coef2[1], slope = coef2[paste0("ct", c)], size = 1, linetype = 7, color = "red") +# For cell-type estimate
+      # geom_abline(aes(intercept = coef[1], slope = braakcoef, linetype = label), size = 1) + # braak region estimates
+      # geom_smooth(aes(x=ref, y=gene), method = lm, se = FALSE, fullrange = TRUE) +
       scale_shape_manual(values=1:length(unique(label))) +
+      scale_x_continuous(expand = c(0,0)) +
+      scale_y_continuous(expand = c(0,0)) +
       labs(x = c, y = entrezId2Name(g)) +
       ggtitle(d) +
-      # expand_limits(x=0, y=0) + 
-      theme(panel.background = element_blank(), 
-            panel.grid = element_blank(), 
-            axis.line = element_line(colour = "black"))
+      expand_limits(x=0, y=min(coef1[1], coef2[1])-2) +
+      theme
   })
 })
 dev.off()
 
 # Plot concatenated expression data
-concat.expr <- function(expr){
+concat.samples <- function(expr, idx = NULL){
   isVector <- is.vector(expr[[1]])
   res <- lapply(donorNames, function(d){
-    # samples <- unlist(braak_idx[[d]])
     e <- expr[[d]]
-    # if (isVector) e[samples] else e[, samples]
+    if (!is.null(idx)){
+      samples <- unlist(idx[[d]])
+      if (isVector) e[samples] else e[, samples]
+    } 
+    else e
   })
   if (isVector) unlist(res) else Reduce(cbind, res)
 }
-braakExpr <- concat.expr(brainExpr)
-ct <- concat.expr(mean_celltype)
-braak <- concat.expr(braakLabels)
+
+braakExpr <- concat.samples(brainExpr, braak_idx)
+ct <- concat.samples(mean_celltype, braak_idx)
+braak <- concat.samples(braakLabels, braak_idx)
 donor <- lapply(donorNames, function(d){
-  # samples <- unlist(braak_idx[[d]])
-  # rep(d, length(samples))
-  rep(d, ncol(brainExpr[[d]]))
+  samples <- unlist(braak_idx[[d]])
+  rep(d, length(samples))
+  # rep(d, ncol(brainExpr[[d]]))
 })
 donor <- unlist(donor)
-color <- concat.expr(sapply(sampleInfo, function(x)x[, "color_hex_triplet"]))
-color[label == "0"] <- "#808080"
-
-g = "6622"
+color <- concat.samples(sapply(sampleInfo, function(x)x[, "color_hex_triplet"]))
+color <- color[unlist(braak_idx)]
+# color[label == "0"] <- "#808080"
 gene <- unlist(braakExpr[g, ])
-theme <- theme(panel.background = element_blank(), 
-               panel.grid = element_blank(), 
-               axis.line = element_line(colour = "black"))# +
-# scale_y_continuous(limits = c(min(gene), max(gene))) +
-# scale_x_continuous(limits = c(min(ct), max(ct)))
+coefficients1 <- sapply(lm_fit1, function(fit) coef(fit)[, g])
+coefficients2 <- sapply(lm_fit2, function(fit) coef(fit)[, g])
 
-pdf("EQ1_SNCA_concat.pdf", 6, 4)
+pdf("EQ1and2_SNCA_concat.pdf", 6, 4)
 lapply(names(celltypes), function(c){
   ref <- ct[c, ] # Cell-type expression
-  df <- data.frame(ref, gene, braak)
+  df <- data.frame(ref, gene, factor(braak), donor)
+  df$coef1 <- coefficients1[paste0("ct", c), df$donor]
+  df$coef2 <- coefficients2[paste0("ct", c), df$donor]
+  df$intercept1 <-coefficients1["(Intercept)", df$donor]
+  df$intercept2 <-coefficients2["(Intercept)", df$donor]
+  df$donor <- factor(df$donor, level = unique(df$donor))
   ggplot(df) +
     geom_point(aes(x=ref, y=gene, shape = braak), color = color, size = 1.5) +
-    geom_smooth(aes(x=ref, y=gene, color = donor), method = lm, se = FALSE, fullrange = TRUE) +
+    geom_abline(aes(intercept = intercept1, slope = coef1, linetype = donor), size = 1, color = "black") +
+    geom_abline(aes(intercept = intercept2, slope = coef2, linetype = donor), size = 1, color = "red") +
+    # geom_smooth(aes(x=ref, y=gene, color = donor), method = lm, se = FALSE, fullrange = TRUE) +
     scale_shape_manual(values=1:length(unique(label))) +
+    scale_x_continuous(expand = c(0,0)) + 
+    scale_y_continuous(expand = c(0,0)) + 
+    expand_limits(x=0, y=min(df$intercept1, df$intercept2)-2) +
     labs(x = c, y = entrezId2Name(g)) +
     theme
 })
 dev.off()
 
-# Use residuals as cell-corrected expression
+########## Use residuals as cell-corrected expression ##########
 expr_celltype_corrected <- lapply(donorNames, function(d){
   fit <- lm_fit[[d]]
   t(fit$residuals)
