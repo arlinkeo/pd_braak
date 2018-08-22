@@ -1,5 +1,4 @@
 # Differential expression based on mean expression
-# setwd("/tudelft.net/staff-bulk/ewi/insy/DBL/Arlin/pd_braak")
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
 source("PD/base_script.R")
 library(metafor)
