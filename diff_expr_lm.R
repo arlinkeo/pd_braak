@@ -1,4 +1,4 @@
-# Differential expression in braak regions of PD
+#  Differential expression based on linear regression
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
 source("PD/base_script.R")
 library(metafor)
@@ -9,8 +9,8 @@ library(abind)
 load("resources/braakInfo.RData")
 load("../ABA_Rdata/BrainExpr.RData")
 
-diff.expr.lm <- dget("PD/diff.expr.lm.R")
-##### Differential expression based on linear regression #####
+# Load function
+source("PD/diff.expr.lm.R")
 
 # Cell-type genes
 celltypes <- sapply(c("Neurons", "Astrocytes", "Oligodendrocytes", "Microglia", "Endothelial_cells"), function(type){
@@ -18,29 +18,29 @@ celltypes <- sapply(c("Neurons", "Astrocytes", "Oligodendrocytes", "Microglia", 
   as.character(read.csv(file, header = TRUE)$entrez_id)
 }, simplify = FALSE)
 
-# # Cell-type mean gene expression for all samples (whole brain)
-# mean_celltype <- lapply(donorNames, function(d){
-#   t(sapply(celltypes, function(ct){
-#     x <- brainExpr[[d]][ct, ]
-#     apply(x, 2, mean)
-#   }))
-# })
-
-# # Cell-type eigengene
-eg_celltype <- lapply(donorNames, function(d){
+# Cell-type mean gene expression for all samples (whole brain)
+mean_celltype <- lapply(donorNames, function(d){
   t(sapply(celltypes, function(ct){
-    x <- t(brainExpr[[d]][ct, ])
-    eg <- prcomp(x, center = FALSE)$x[, 1]# 1st PC (eigen gene expr)
-    mean <- apply(x, 1, mean)
-    if (cor(eg, mean) > 0) eg else -eg # flip sign of eigen gene based on the data
+    x <- brainExpr[[d]][ct, ]
+    apply(x, 2, mean)
   }))
 })
+
+# # Cell-type eigengene
+# eg_celltype <- lapply(donorNames, function(d){
+#   t(sapply(celltypes, function(ct){
+#     x <- t(brainExpr[[d]][ct, ])
+#     eg <- prcomp(x, center = FALSE)$x[, 1]# 1st PC (eigen gene expr)
+#     mean <- apply(x, 1, mean)
+#     if (cor(eg, mean) > 0) eg else -eg # flip sign of eigen gene based on the data
+#   }))
+# })
 
 # Fit linear model & get coefficients
 diffExpr <- lapply(donorNames, function(d){
   idx <- unlist(braak_idx[[d]]) # idx for samples
   braak <- paste0("braak", braakLabels[[d]][idx]) # braak labels
-  ct <- t(eg_celltype[[d]][, idx]) # samples x cell-types
+  ct <- t(mean_celltype[[d]][, idx]) # samples x cell-types
   expr <- t(brainExpr[[d]][, idx]) # samples x genes
   diff.expr.lm(expr, ct, braak)
 })
@@ -56,15 +56,14 @@ summaryCoef <- apply(diffExpr, 1, function(b){ # For each Braak region
     gene <- as.data.frame(t(g))
     summary <- rma(yi = gene$Estimate, vi = gene$`Std. Error`^2, method = "DL", test = "t") # Summary effect size
     gene$weight <- weights(summary)
-    gene$BH <- NULL
-    rbind(gene, 'summary' = list(summary$beta, summary$se, summary$pval, sum(gene$weight)))
+    rbind(gene, 'summary' = list(summary$beta, summary$se, summary$pval, NA, sum(gene$weight)))
   })
 })
 saveRDS(summaryCoef, file = "resources/summaryCoef_mean.rds")
 
 # Barplot
 
-summTables_eg <- lapply(summaryCoef_eg, function(b){
+summTables <- lapply(summaryCoef, function(b){
   t <- do.call(rbind.data.frame, lapply(b, function(g) g["summary",]))
   t$BH <- p.adjust(t$`Pr(>|t|)`, method = "BH")
   t
