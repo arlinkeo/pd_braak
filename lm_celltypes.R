@@ -4,6 +4,8 @@ setwd("C:/Users/dkeo/surfdrive/pd_braak")
 source("PD/base_script.R")
 library(reshape2)
 library(ggplot2)
+library(gplots)
+library(plyr)
 load("resources/braakInfo.RData")
 load("../ABA_Rdata/BrainExpr.RData")
 
@@ -24,71 +26,88 @@ celltypes <- sapply(c("Neurons", "Astrocytes", "Oligodendrocytes", "Microglia", 
 #                   Endothelial = c("PECAM1"))
 # celltypes <- lapply(celltypes, name2EntrezId)
 
-# Cell-type mean gene expression for all samples (whole brain)
-mean_celltype <- lapply(donorNames, function(d){
-  t(sapply(celltypes, function(ct){
-    x <- brainExpr[[d]][ct, ]
-    apply(x, 2, mean)
+# Correlation PCA, SVD, and mean
+ref_signal <- lapply(donorNames, function(d){
+  simplify2array(lapply(celltypes, function(ct){
+    x <- t(brainExpr[[d]][ct, ])
+    pca <- prcomp(x)$x[, 1]# 1st PC (eigen gene expr)
+    svd <- prcomp(x, center = FALSE)$x[, 1]# 1st PC (eigen gene expr)
+    mean <- apply(x, 1, mean)
+    pca <- if (cor(pca, mean) > 0) pca else -pca # flip sign of eigen gene based on the data
+    svd <- if (cor(svd, mean) > 0) svd else -svd # flip sign of eigen gene based on the data
+    cbind(mean, pca, svd)
   }))
 })
 
-# # Cell-type eigengene
-# eg_celltype <- lapply(donorNames, function(d){
-#   t(sapply(celltypes, function(ct){
-#     x <- t(brainExpr[[d]][ct, ])
-#     eg <- prcomp(x, center = FALSE)$x[, 1]# 1st PC (eigen gene expr)
-#     mean <- apply(x, 1, mean)
-#     if (cor(eg, mean) > 0) eg else -eg # flip sign of eigen gene based on the data
-#   }))
-# })
-
-# Plot celltype eigengene expression
-plots <- lapply(donorNames, function(d){
-  idx <- Reduce(c, braak_idx[[d]]) # for samples
-  expr <- mean_celltype[[d]][, idx]
-  plot.ref.signal(expr)
-})
-pdf("celltype_eigengene_centered_scaled.pdf", 8, 6)
-plots
-dev.off()
-
-# Correlation of cell-type markers with cell-type reference signal
-pdf("correlation_celltype_markers.pdf", 8, 4)
-lapply(donorNames, function(d){
-  lapply(names(celltypes), function(ct){
-    ref <- mean_celltype[[d]][ct,]
-    markers <- brainExpr[[d]][celltypes[[ct]],]
-    r <- apply(markers, 1, function(x)cor(ref, x))
-    hist(r, breaks = 30, main = paste0(d, "\n", ct))
-    abline(v = 0, col = "red")
+# Correlation PCA, SVD, and mean
+cor_ref <- lapply(donorNames, function(d){
+  apply(ref_signal[[d]], 3, function(ct){
+    r <- cor(ct)
+    c(mean_vs_pca = r[1,2], mean_vs_svd = r[1,3], pca_vs_svd = r[2,3])
   })
 })
+cor_ref <- simplify2array(cor_ref)
+adply(cor_ref, c(3,1))
+
+# # Plot celltype eigengene expression
+# plots <- lapply(donorNames, function(d){
+#   idx <- Reduce(c, braak_idx[[d]]) # for samples
+#   expr <- mean_celltype[[d]][, idx]
+#   plot.ref.signal(expr)
+# })
+# pdf("celltype_eigengene_centered_scaled.pdf", 8, 6)
+# plots
+# dev.off()
+
+theme <- theme(panel.background = element_blank(), 
+               panel.grid = element_blank(), 
+               axis.line = element_line(colour = "black"))
+
+# Correlation of cell-type markers with cell-type reference signal
+df <- simplify2array(lapply(donorNames, function(d){
+  expr <- brainExpr[[d]]
+  df <- simplify2array(sapply(names(celltypes), function(ct){
+    print(ct)
+    ref <- ref_signal[[d]][, , ct]
+    t(cor(ref, t(expr)))
+  }, simplify = FALSE))
+}))
+df <- melt(df)
+colnames(df) <- c("gene", "ref", "celltype", "donor", "r")
+p1 <- ggplot(df, aes(x = r, fill = ref)) +
+  geom_histogram(binwidth = 0.05, position = "dodge") +
+  geom_vline(xintercept = 0) +
+  ggtitle("Gene correlations with reference signal") + 
+  theme +
+  facet_grid(donor~celltype) +
+  theme(strip.text = element_text(size=12),
+        strip.background = element_blank(),
+        axis.text = element_text(size = 10))
+pdf("correlation_celltype_markers.pdf", 12, 8)
+print(p1)
 dev.off()
 
-# Fit linear model all samples
+# Fit linear model Equation 1
 lm_fit1 <- lapply(donorNames, function(d){
   braak <- braakLabels[[d]] # braak labels
-  ct <- t(mean_celltype[[d]]) # samples x cell-types
+  ct <- ref_signal[[d]][, "mean", ] # samples x cell-types
   expr <- t(brainExpr[[d]]) # samples x genes
   fit <- lm(expr ~ ct)
 })
 
-# Fit linear model with Braak samples only
+# Fit linear model Equation 2
 lm_fit2 <- lapply(donorNames, function(d){
   idx <- unlist(braak_idx[[d]]) # idx for samples
   braak <- braakLabels[[d]][idx] # braak labels
-  ct <- t(mean_celltype[[d]][, idx]) # samples x cell-types
+  ct <- ref_signal[[d]][idx, "mean", ] # samples x cell-types
   expr <- t(brainExpr[[d]][, idx]) # samples x genes
   fit <- lm(expr ~ ct + braak)
 })
 
 ########## Scatter plots ##########
-g <- name2EntrezId("SNCA")
-theme <- theme(panel.background = element_blank(), 
-               panel.grid = element_blank(), 
-               axis.line = element_line(colour = "black"))
+g <- "85300"#name2EntrezId("SNCA")
 
-pdf("EQ1and2_SNCA.pdf", 6, 4)
+pdf("EQ1and2_ATCAY_neuronal_marker.pdf", 6, 4)
 lapply(names(celltypes), function(c){
   lapply(donorNames, function(d){
     samples <- unlist(braak_idx[[d]])
@@ -150,7 +169,7 @@ gene <- unlist(braakExpr[g, ])
 coefficients1 <- sapply(lm_fit1, function(fit) coef(fit)[, g])
 coefficients2 <- sapply(lm_fit2, function(fit) coef(fit)[, g])
 
-pdf("EQ1and2_SNCA_concat.pdf", 6, 4)
+pdf("EQ1and2_ATCAY_neuronal_marker_concat.pdf", 6, 4)
 lapply(names(celltypes), function(c){
   ref <- ct[c, ] # Cell-type expression
   df <- data.frame(ref, gene, factor(braak), donor)
@@ -175,7 +194,7 @@ dev.off()
 
 ########## Use residuals as cell-corrected expression ##########
 expr_celltype_corrected <- lapply(donorNames, function(d){
-  fit <- lm_fit[[d]]
+  fit <- lm_fit1[[d]]
   t(fit$residuals)
 })
 saveRDS(expr_celltype_corrected, file = "resources/expr_corrected_lm_eg_braaksamples.rds")
@@ -197,20 +216,20 @@ celltypeColors <- sapply(ct_genes, function(g){
   else "gray"
 })
 
-lapply(donorNames, function(d){
+lapply(donorNames[1], function(d){
   idx <- unlist(braak_idx[[d]]) # for samples
   info <- sampleInfo[[d]][idx, ]
   
   # Scale expression across all Braak samples
   expr <- scale(t(brainExpr[[d]][ct_genes, idx])) # samples x genes
-  expr2 <- scale(t(expr_celltype_corrected[[d]][ct_genes,]))
+  expr2 <- scale(t(expr_celltype_corrected[[d]][ct_genes, idx]))
   
   colPal <- c("blue", "white", "red")
   rampcols <- colorRampPalette(colors = colPal, space="Lab")(100)
   rampcols <- c(rep(col2hex(colPal[1]), 50), rampcols, rep(col2hex(colPal[3]), 50))
   
-  file = paste0("celltype_correction_heatmap/neuroncorrected_", d, ".pdf")
-  pdf(file, 8, 9)
+  file = paste0("celltype_correction_heatmap/celltype_mean_corrected_", d, ".pdf")
+  pdf(file, 8, 6)
   heatmap.2(expr, col = rampcols,
             labRow = info$acronym, labCol = entrezId2Name(colnames(expr)),
             Rowv=FALSE, Colv=FALSE,
@@ -228,4 +247,25 @@ lapply(donorNames, function(d){
             main = paste0("Expression of cell types in ", d, " (corrected)"),
             margins = c(5, 5))
   dev.off()
+})
+
+
+# Correlation of marker genes
+
+lapply(donorNames[1], function(d){
+    x <- t(brainExpr[[d]][ct_genes, ])
+    r <- cor(x)
+    df <- melt(r)
+    df$Var1 <- factor(df$Var1, levels = unique(df$Var1))
+    df$Var2 <- factor(df$Var2, levels = unique(df$Var2))
+    p1 <- ggplot(df, aes(x=Var1, y=Var2, fill = value)) + 
+      geom_tile() +
+      scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                           midpoint = 0, limit = c(-1, 1), space = "Lab", 
+                           name="r") +
+      theme(axis.text = element_text(color = celltypeColors))
+    pdf("correlation_celltype_markers2.pdf", 12, 8)
+    print(p1)
+    dev.off()
+
 })
