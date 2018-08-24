@@ -10,6 +10,8 @@ load("resources/modules.RData")
 load("resources/braakGenes.RData")
 load("resources/summaryLabelCorrEG.RData")
 
+dget("PD/diff.expr.lm.R")
+
 labelCor <- do.call(rbind.data.frame, lapply(summaryLabelCorrEG, function(g) g["summary",]))
 labelCor$pvalue <- p.adjust(labelCor$pvalue, method = "BH")
 orderEG <- order(labelCor$r)
