@@ -26,16 +26,6 @@ mean_celltype <- lapply(donorNames, function(d){
   }))
 })
 
-# # Cell-type eigengene
-# eg_celltype <- lapply(donorNames, function(d){
-#   t(sapply(celltypes, function(ct){
-#     x <- t(brainExpr[[d]][ct, ])
-#     eg <- prcomp(x, center = FALSE)$x[, 1]# 1st PC (eigen gene expr)
-#     mean <- apply(x, 1, mean)
-#     if (cor(eg, mean) > 0) eg else -eg # flip sign of eigen gene based on the data
-#   }))
-# })
-
 # Fit linear model & get coefficients
 diffExpr <- lapply(donorNames, function(d){
   idx <- unlist(braak_idx[[d]]) # idx for samples
@@ -60,7 +50,7 @@ summaryCoef <- apply(diffExpr, 1, function(b){ # For each Braak region
   })
 })
 saveRDS(summaryCoef, file = "resources/summaryCoef_mean.rds")
-
+  
 # Barplot
 
 summTables <- lapply(summaryCoef, function(b){
@@ -69,35 +59,19 @@ summTables <- lapply(summaryCoef, function(b){
   t
 })
 
-overlap <- lapply(braakNames[-1], function(b){
-  t1 <- summTables_mean[[b]]
-  t2 <- summTables_eg[[b]]
-  negative_mean <- rownames(t1)[t1$Estimate < -1 & t1$BH < 0.05]
-  negative_eg <- rownames(t2)[t2$Estimate < -1 & t2$BH < 0.05]
-  positive_mean <- rownames(t1)[t1$Estimate > 1 & t1$BH < 0.05]
-  positive_eg <- rownames(t2)[t2$Estimate > 1 & t2$BH < 0.05]
-  length(intersect(negative_mean, negative_eg))
-  length(intersect(positive_mean, positive_eg))
-})
-
-braakGenes <- list(pos = braakGenes$entrez_id[braakGenes$braak_r >0], 
-                   neg = braakGenes$entrez_id[braakGenes$braak_r <0])
-
-overlap_b6 <- lapply(names(braakGenes), function(dir){
-  t1 <- summTables_mean[["braak6"]]
-  t2 <- summTables_eg[["braak6"]]
-  x <- braakGenes[[dir]]
-  if (dir == "pos"){
-    positive_mean <- rownames(t1)[t1$Estimate > 1 & t1$BH < 0.05]
-    positive_eg <- rownames(t2)[t2$Estimate > 1 & t2$BH < 0.05]
-    c(mean = length(intersect(positive_mean, x)), eg = length(intersect(positive_eg, x)))
-  }
-  else {
-    negative_mean <- rownames(t1)[t1$Estimate < -1 & t1$BH < 0.05]
-    negative_eg <- rownames(t2)[t2$Estimate < -1 & t2$BH < 0.05]
-    c(mean = length(intersect(negative_mean, x)), eg = length(intersect(negative_eg, x)))
-  }
-})
+# Fold-change of marker genes
+arr <- simplify2array(lapply(summTables, as.matrix))
+fc <- arr[celltypes$Microglia, "Estimate",]
+fc <- fc[order(fc[,5]),]
+df <- melt(fc)
+colnames(df) <- c("gene", "braak", "estimate")
+df$gene <- factor(df$gene, levels = unique(df$gene))
+lim <- max(abs(df$estimate))
+ggplot(df, aes(x=braak, y=gene, fill = estimate)) + 
+  geom_tile() +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                                    midpoint = 0, limit = c(-lim, lim), space = "Lab", 
+                                    name="estimate") 
 
 degLists <- t(sapply(summTables, function(t){
   negative_r <- -sum(t$Estimate < -1 & t$BH < 0.05)
