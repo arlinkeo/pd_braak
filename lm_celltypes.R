@@ -13,6 +13,14 @@ load("../ABA_Rdata/BrainExpr.RData")
 source("PD/plot.ref.signal.R")
 
 # Cell-type genes
+celltypes <- sapply(c("Neurons", "Astrocytes", "Oligodendrocytes", "Microglia", "Endothelial_cells", "OPC"), function(type){
+  conn <- file(paste0("Darmanis2015_celltypes/", type, ".txt"), "r")
+  lines <- readLines(conn)
+  close(conn)
+  name2EntrezId(lines)
+}, simplify = FALSE)
+
+# Cell-type genes
 celltypes <- sapply(c("Neurons", "Astrocytes", "Oligodendrocytes", "Microglia", "Endothelial_cells"), function(type){
   file = paste0("brainscope_celltypes/", type, ".txt")
   as.character(read.csv(file, header = TRUE)$entrez_id)
@@ -25,6 +33,39 @@ celltypes <- sapply(c("Neurons", "Astrocytes", "Oligodendrocytes", "Microglia", 
 #                   Microglia = c("CD37", "CD53"),
 #                   Endothelial = c("PECAM1"))
 # celltypes <- lapply(celltypes, name2EntrezId)
+
+ct_genes <- unlist(celltypes)
+
+
+# Correlation of marker genes
+
+lapply(donorNames[1], function(d){
+  x <- t(brainExpr[[d]][ct_genes, ])#unlist(braak_idx[[d]])])
+  r <- cor(x)
+  df <- melt(r)
+  df$Var1 <- factor(df$Var1, levels = unique(df$Var1))
+  df$Var2 <- factor(df$Var2, levels = unique(df$Var2))
+  p1 <- ggplot(df, aes(x=Var1, y=Var2, fill = value)) + 
+    geom_tile() +
+    scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                         midpoint = 0, limit = c(-1, 1), space = "Lab", 
+                         name="r") +
+    theme(axis.text = element_text(color = celltypeColors))
+  pdf("correlation_celltype_markers2_darmanis2015.pdf", 12, 8)
+  print(p1)
+  dev.off()
+})
+
+# Variance explained by PCA and SVD
+ref_var <- simplify2array(lapply(donorNames, function(d){
+  t <- sapply(celltypes, function(ct){
+    x <- t(brainExpr[[d]][ct, ])
+    pca <- summary(prcomp(x))$importance[2,1] # Variance explained
+    svd <- summary(prcomp(x, center = FALSE))$importance[2,1]
+    c(pca = pca, svd = svd)
+  })
+}))
+adply(ref_var, c(3,1))
 
 # Correlation PCA, SVD, and mean
 ref_signal <- lapply(donorNames, function(d){
@@ -49,32 +90,41 @@ cor_ref <- lapply(donorNames, function(d){
 cor_ref <- simplify2array(cor_ref)
 adply(cor_ref, c(3,1))
 
-# # Plot celltype eigengene expression
-# plots <- lapply(donorNames, function(d){
-#   idx <- Reduce(c, braak_idx[[d]]) # for samples
-#   expr <- mean_celltype[[d]][, idx]
-#   plot.ref.signal(expr)
-# })
-# pdf("celltype_eigengene_centered_scaled.pdf", 8, 6)
-# plots
-# dev.off()
+# Plot celltype eigengene expression
+pdf("celltype_eigengene_zhang2014.pdf", 8, 6)
+plots <- lapply(donorNames, function(d){
+  idx <- Reduce(c, braak_idx[[d]]) # for samples
+  intercepts <- match(c(1:6), braakLabels[[d]][idx])[-1]
+  
+  ref <- t(ref_signal[[d]][idx, "mean", ])
+  p1 <- plot.ref.signal(ref, paste0(d, "; mean"), intercepts)
+  ref <- t(ref_signal[[d]][idx, "pca", ])
+  p2 <- plot.ref.signal(ref, paste0(d, "; pca"), intercepts)
+  ref <- t(ref_signal[[d]][idx, "svd", ])
+  p3 <- plot.ref.signal(ref, paste0(d, "; svd"), intercepts)
+  print(p1)
+  print(p2)
+  print(p3)
+})
+dev.off()
 
 theme <- theme(panel.background = element_blank(), 
                panel.grid = element_blank(), 
                axis.line = element_line(colour = "black"))
 
 # Correlation of cell-type markers with cell-type reference signal
-df <- simplify2array(lapply(donorNames, function(d){
-  expr <- brainExpr[[d]]
-  df <- simplify2array(sapply(names(celltypes), function(ct){
-    print(ct)
+df <- sapply(names(celltypes), function(ct){
+  print(ct)
+  df <- simplify2array(lapply(donorNames, function(d){
+    expr <- brainExpr[[d]][celltypes[[ct]], ]
     ref <- ref_signal[[d]][, , ct]
     t(cor(ref, t(expr)))
-  }, simplify = FALSE))
-}))
+  }))
+}, simplify = FALSE)
 df <- melt(df)
-colnames(df) <- c("gene", "ref", "celltype", "donor", "r")
-p1 <- ggplot(df, aes(x = r, fill = ref)) +
+colnames(df) <- c("gene", "ref", "donor", "r", "celltype")
+df$celltype <- factor(df$celltype, levels = unique(df$celltype))
+p2 <- ggplot(df, aes(x = r, fill = ref)) +
   geom_histogram(binwidth = 0.05, position = "dodge") +
   geom_vline(xintercept = 0) +
   ggtitle("Gene correlations with reference signal") + 
@@ -83,8 +133,9 @@ p1 <- ggplot(df, aes(x = r, fill = ref)) +
   theme(strip.text = element_text(size=12),
         strip.background = element_blank(),
         axis.text = element_text(size = 10))
-pdf("correlation_celltype_markers.pdf", 12, 8)
+pdf("correlation_celltype_markers_darmanis2015.pdf", 12, 8)
 print(p1)
+print(p2)
 dev.off()
 
 # Fit linear model Equation 1
@@ -199,73 +250,59 @@ expr_celltype_corrected <- lapply(donorNames, function(d){
 })
 saveRDS(expr_celltype_corrected, file = "resources/expr_corrected_lm_eg_braaksamples.rds")
 
-########## Heatmap Before and after correction ##########
+########## Heatmap Before correction ##########
 
-ct_genes <- unlist(celltypes)
 gg_color_hue <- function(n) {
   hues = seq(15, 375, length = n + 1)
   hcl(h = hues, l = 65, c = 100)[1:n]
 }
-ggcolor <- gg_color_hue(5)
+ggcolor <- gg_color_hue(6)
 celltypeColors <- sapply(ct_genes, function(g){
   if (g %in% celltypes$Neurons) ggcolor[1]
   else if (g %in% celltypes$Astrocytes) ggcolor[2]
   else if (g %in% celltypes$Oligodendrocytes) ggcolor[3]
   else if (g %in% celltypes$Microglia) ggcolor[4]
   else if (g %in% celltypes$Endothelial_cells) ggcolor[5]
+  else if (g %in% celltypes$OPC) ggcolor[6]
   else "gray"
 })
+
+colPal <- c("blue", "white", "red")
+rampcols <- colorRampPalette(colors = colPal, space="Lab")(100)
+rampcols <- c(rep(col2hex(colPal[1]), 50), rampcols, rep(col2hex(colPal[3]), 50))
 
 lapply(donorNames[1], function(d){
   idx <- unlist(braak_idx[[d]]) # for samples
   info <- sampleInfo[[d]][idx, ]
   
-  # Scale expression across all Braak samples
-  expr <- scale(t(brainExpr[[d]][ct_genes, idx])) # samples x genes
-  expr2 <- scale(t(expr_celltype_corrected[[d]][ct_genes, idx]))
+  # Expression across all Braak samples
+  expr <- brainExpr[[d]]
   
-  colPal <- c("blue", "white", "red")
-  rampcols <- colorRampPalette(colors = colPal, space="Lab")(100)
-  rampcols <- c(rep(col2hex(colPal[1]), 50), rampcols, rep(col2hex(colPal[3]), 50))
-  
-  file = paste0("celltype_correction_heatmap/celltype_mean_corrected_", d, ".pdf")
+  file = paste0("heatmap_celltype_markers_", d, "_darmanis2015.pdf")
   pdf(file, 8, 6)
-  heatmap.2(expr, col = rampcols,
-            labRow = info$acronym, labCol = entrezId2Name(colnames(expr)),
+  t <- t(expr[ct_genes, idx])
+  heatmap.2(t, col = rampcols,
+            labRow = info$acronym, labCol = entrezId2Name(colnames(t)),
             Rowv=FALSE, Colv=FALSE,
             cexCol = .5, cexRow = .5,
             scale = "none", trace = "none", dendrogram = "none", #key = FALSE,
             RowSideColors = info$color_hex_triplet, ColSideColors = celltypeColors,
             main = paste0("Expression of cell types in ", d, " (uncorrected)"),
             margins = c(5, 5))
-  heatmap.2(expr2, col = rampcols,
-            labRow = info$acronym, labCol = entrezId2Name(colnames(expr)),
-            Rowv=FALSE, Colv=FALSE,
-            cexCol = .5, cexRow = .5,
-            scale = "none", trace = "none", dendrogram = "none", #key = FALSE,
-            RowSideColors = info$color_hex_triplet, ColSideColors = celltypeColors,
-            main = paste0("Expression of cell types in ", d, " (corrected)"),
-            margins = c(5, 5))
   dev.off()
-})
-
-
-# Correlation of marker genes
-
-lapply(donorNames[1], function(d){
-    x <- t(brainExpr[[d]][ct_genes, ])
-    r <- cor(x)
-    df <- melt(r)
-    df$Var1 <- factor(df$Var1, levels = unique(df$Var1))
-    df$Var2 <- factor(df$Var2, levels = unique(df$Var2))
-    p1 <- ggplot(df, aes(x=Var1, y=Var2, fill = value)) + 
-      geom_tile() +
-      scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
-                           midpoint = 0, limit = c(-1, 1), space = "Lab", 
-                           name="r") +
-      theme(axis.text = element_text(color = celltypeColors))
-    pdf("correlation_celltype_markers2.pdf", 12, 8)
-    print(p1)
-    dev.off()
-
+  
+  file = paste0("heatmap_celltype_markers2_", d, "_darmanis2015.pdf")
+  pdf(file, 8, 6)
+  lapply(names(celltypes), function(ct){
+    t <- t(expr[celltypes[[ct]], idx])
+    heatmap.2(t, col = rampcols,
+              labRow = info$acronym, labCol = entrezId2Name(colnames(t)),
+              Rowv=FALSE, Colv=FALSE,
+              cexCol = .5, cexRow = .5,
+              scale = "none", trace = "none", dendrogram = "none", #key = FALSE,
+              RowSideColors = info$color_hex_triplet, #ColSideColors = celltypeColors,
+              main = paste0("Expression of cell types; ", d, "; ", ct),
+              margins = c(5, 5))
+  })
+  dev.off()
 })
