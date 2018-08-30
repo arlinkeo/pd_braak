@@ -19,10 +19,12 @@ celltypes <- sapply(c("Neurons", "Astrocytes", "Oligodendrocytes", "Microglia", 
 }, simplify = FALSE)
 
 # Cell-type mean gene expression for all samples (whole brain)
-mean_celltype <- lapply(donorNames, function(d){
+pca_celltype <- lapply(donorNames, function(d){
   t(sapply(celltypes, function(ct){
-    x <- brainExpr[[d]][ct, ]
-    apply(x, 2, mean)
+    x <- t(brainExpr[[d]][ct, ])
+    eg <- prcomp(x)$x[, 1]# 1st PC (eigen gene expr)
+    mean <- apply(x, 1, mean)
+    if (cor(eg, mean) > 0) eg else -eg # flip sign of eigen gene based on the data
   }))
 })
 
@@ -30,7 +32,7 @@ mean_celltype <- lapply(donorNames, function(d){
 diffExpr <- lapply(donorNames, function(d){
   idx <- unlist(braak_idx[[d]]) # idx for samples
   braak <- paste0("braak", braakLabels[[d]][idx]) # braak labels
-  ct <- t(mean_celltype[[d]][, idx]) # samples x cell-types
+  ct <- t(pca_celltype[[d]][, idx]) # samples x cell-types
   expr <- t(brainExpr[[d]][, idx]) # samples x genes
   diff.expr.lm(expr, ct, braak)
 })
@@ -49,15 +51,58 @@ summaryCoef <- apply(diffExpr, 1, function(b){ # For each Braak region
     rbind(gene, 'summary' = list(summary$beta, summary$se, summary$pval, NA, sum(gene$weight)))
   })
 })
-saveRDS(summaryCoef, file = "resources/summaryCoef_mean.rds")
+saveRDS(summaryCoef, file = "resources/summaryCoef_pca.rds")
   
 # Barplot
+summaryCoef_pca <- readRDS("resources/summaryCoef_pca.rds")
+summaryCoef_mean <- readRDS("resources/summaryCoef_mean.rds")
+summaryCoef_svd <- readRDS("resources/summaryCoef_svd.rds")
 
-summTables <- lapply(summaryCoef, function(b){
-  t <- do.call(rbind.data.frame, lapply(b, function(g) g["summary",]))
-  t$BH <- p.adjust(t$`Pr(>|t|)`, method = "BH")
-  t
-})
+summ.table <- function(x){
+  lapply(x, function(b){
+    t <- do.call(rbind.data.frame, lapply(b, function(g) g["summary",]))
+    t$BH <- p.adjust(t$`Pr(>|t|)`, method = "BH")
+    t
+  })
+}
+
+summTables_pca <- summ.table(summaryCoef_pca)
+summTables_mean <- summ.table(summaryCoef_mean)
+summTables_svd <- summ.table(summaryCoef_svd)
+mean_b6 <- summTables_mean$braak6
+pca_b6 <- summTables_pca$braak6
+svd_b6 <- summTables_svd$braak6
+
+b <- "braak6"
+
+# venn diagram overlap between methods
+load("resources/not_celltype_corrected/braakGenes.RData")
+brg_neg <- braakGenes$entrez_id[braakGenes$braak_r<0]
+brg_pos <- braakGenes$entrez_id[braakGenes$braak_r>0]
+
+find_diffgenes <- function(x, pos = TRUE){
+  if (pos) rownames(x)[x$Estimate > 1 & x$BH < 0.05]
+  else rownames(x)[x$Estimate < -1 & x$BH < 0.05]
+}
+mean_neg <- find_diffgenes(mean_b6, pos = FALSE)
+mean_pos <- find_diffgenes(mean_b6)
+pca_neg <- find_diffgenes(pca_b6, pos = FALSE)
+pca_pos <- find_diffgenes(pca_b6)
+svd_neg <- find_diffgenes(svd_b6, pos = FALSE)
+svd_pos <- find_diffgenes(svd_b6)
+
+library(venn)
+ll1 <- list(brg = brg_neg, mean = mean_neg, pca = pca_neg, svd = svd_neg)
+ll2 <- list(brg = brg_pos, mean = mean_pos, pca = pca_pos, svd = svd_pos)
+pdf("overlap_results_brg_eq2.pdf", 2, 2)
+venn(ll1[c(1,2)]); title("negative", line = -1)
+venn(ll1[c(1,3)]); title("negative", line = -1)
+venn(ll1[c(1,4)]); title("negative", line = -1)
+venn(ll2[c(1,2)]); title("positive", line = -1)
+venn(ll2[c(1,3)]); title("positive", line = -1)
+venn(ll2[c(1,4)]); title("positive", line = -1)
+dev.off()
+
 
 # Fold-change of marker genes
 arr <- simplify2array(lapply(summTables, as.matrix))
