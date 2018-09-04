@@ -1,11 +1,51 @@
-# Braak info
-# Samples IDs, fixed colors
+#sample IDs of ROI for PD
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
 source("PD/base_script.R")
-load("resources/roiSamples.RData")
-library(RColorBrewer)
 
-#Braak stages
+library(RColorBrewer)
+load("../ABA_Rdata/BrainExpr.RData")
+
+# Regions of interest (roi)
+roi <- c("myelencephalon", "pontine tegmentum", "substantia nigra", "amygdala", 
+         "basal nucleus of meynert, right", "basal nucleus of meynert, left", "CA2 field", 
+         "occipito-temporal gyrus", "cingulate gyrus", "temporal lobe", 
+         "frontal lobe", "parietal lobe",
+         #non-braak
+         "cerebellum", "basal part of pons", "red nucleus", "ventral tegmental area",
+         "corpus callosum", "midbrain reticular formation"
+)
+
+# Function to select region-specific sample IDs in all six donors
+selectIds <- function(r){ # for a single structure
+  row <- match(r, ontology$name)
+  id <- ontology$id[row]
+  rows <- grep(id, ontology$structure_id_path)
+  ontology$id[rows]
+}
+
+# Sample IDs of roi's
+roiIDs <- sapply(roi, selectIds, simplify = FALSE)
+
+# Function to get indices to select samples/columns per donor
+samples.donor <- function(ids, d){ # list of IDs and donorname
+  expr <- brainExpr[[d]]
+  colnames <- colnames(expr)
+  ids <- intersect(ids, colnames)
+  cols <- which(colnames %in% ids)
+  names(cols) <- colnames[cols]
+  cols # as.integer(cols)
+}
+
+roiSamples <- lapply(donorNames, function(d){
+  lapply(roiIDs, function(ids){
+    samples.donor(ids, d)
+  })
+})
+sapply(roiSamples, function(x){lapply(x, length)})
+
+####################################################################
+
+# Braak stages
 braakRegions <- list(
   braak1 = c("myelencephalon"),
   braak2 = c("pontine tegmentum"),
@@ -16,46 +56,44 @@ braakRegions <- list(
 )
 
 # Braak stage samples
-braakStages <- lapply(donorNames, function (d){
+braak_idx <- lapply(donorNames, function (d){
   roi <- roiSamples[[d]]
-  sapply(braakRegions, function(b){
-    m <- roi[, b, drop = FALSE]
-    apply(m, 1, function(v){
-      ifelse(Reduce("|", v), TRUE, FALSE)
-    })
-  })
-})
-# Print table with sample sizes
-t(sapply(braakStages, function(m)apply(m, 2, sum)))
-
-# Function to get Braak labels
-label.vector <- function(m){
-  apply(m, 1, function(v){
-    s <- which(v == 1)
-    ifelse(length(s) == 0, 0, tail(unlist(strsplit(names(s), split = "braak")), 1))
-  })
-}
-braakLabels <- lapply(braakStages, function(m) label.vector(m))
-
-# Indexes to select Braak samples in order of Braak regions and anatomy
-braak_idx <- lapply(donorNames, function(d){
-  apply(braakStages[[d]], 2, function(b){
-    samples <- which(b)
+  lapply(braakRegions, function(b){
+    samples <- Reduce(c, roi[b])
     graph_order <- sampleInfo[[d]][samples, "graph_order"]
     sample_order <- order(-graph_order)
     samples[sample_order]
   })
 })
-# braak_idx <- lapply(donorNames, function(d){
-#   samples <- which(braakLabels[[d]] != 0)
-#   labels <- braakLabels[[d]][samples]
-#   graph_order <- sampleInfo[[d]][samples, "graph_order"]
-#   sample_order <- order(labels, -graph_order)
-#   samples[sample_order]
-# })
+
+# Print table with sample sizes
+t(sapply(braak_idx, function(m) sapply(m, length)))
+
+# Function to get Braak labels
+# label.vector <- function(m){
+#   apply(m, 1, function(v){
+#     s <- which(v == 1)
+#     ifelse(length(s) == 0, 0, tail(unlist(strsplit(names(s), split = "braak")), 1))
+#   })
+# }
+# braakLabels <- lapply(braakStages, function(m) label.vector(m))
+
+braakLabels <- lapply(donorNames, function(d){
+  braak <- braak_idx[[d]]
+  cols <- colnames(brainExpr[[d]])
+  label <- rep("0", length(cols))
+  label[braak$braak1] <- "1"
+  label[braak$braak2] <- "2"
+  label[braak$braak3] <- "3"
+  label[braak$braak4] <- "4"
+  label[braak$braak5] <- "5"
+  label[braak$braak6] <- "6"
+  names(label) <- cols
+  label
+})
 
 # Fixed colors for Braak related regions
 braakColors <- brewer.pal(6, "Set2")
 names(braakColors) <- braakNames
 
-save(braakStages, braakLabels, braakColors, braak_idx, file = "resources/braakInfo.RData")
+save(braak_idx, braakLabels, braakColors, file = "resources/braakInfo.RData")
