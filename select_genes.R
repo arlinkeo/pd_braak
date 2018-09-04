@@ -5,82 +5,58 @@ library(gplots)
 library(ggplot2)
 library(reshape2)
 source("PD/base_script.R")
-# load("resources/summaryDiffExpr.RData")
-load("resources/summaryCoef.RData")
-load("resources/fc_cor.RData")
-# load("resources/summaryLabelCor.RData")
+load("resources/not_celltype_corrected/summaryDiffExpr.RData")
+load("resources/not_celltype_corrected/summaryLabelCor.RData")
 
 ########## Prepare data ##########
 
 # Extract summary statistics, BH-correct
-# summaryDiffExpr <- lapply(summaryDiffExpr, function(rp){
-#   tab <- do.call(rbind.data.frame, lapply(rp, function(g) g["summary",]))
-#   tab$BH <- p.adjust(tab$pvalue, method = "BH")
-#   tab
-# })
-summaryDiffExpr <- lapply(summaryCoef, function(b){
-  tab <- do.call(rbind.data.frame, lapply(b, function(g) g["summary",]))
-  tab$BH <- p.adjust(tab$`Pr(>|t|)`, method = "BH")
+summaryDiffExpr <- lapply(summaryDiffExpr, function(rp){
+  tab <- do.call(rbind.data.frame, lapply(rp, function(g) g["summary",]))
+  tab$BH <- p.adjust(tab$pvalue, method = "BH")
   tab
 })
 # Select region pair
-diffExpr <- summaryDiffExpr$braak6#`braak1-braak6`
-# diffExpr <- do.call(rbind.data.frame, lapply(diffExpr, function(g) g["summary",]))
-# diffExpr$BH <- p.adjust(diffExpr$pvalue, method = "BH")
+diffExpr <- summaryDiffExpr$`braak1-braak6`
 
-# labelCor <- do.call(rbind.data.frame, lapply(summaryLabelCor, function(g) g["summary",]))
-# labelCor$BH <- p.adjust(labelCor$pvalue, method = "BH")
-# fc_cor <- rev(fc_cor[order(abs(fc_cor))])
+labelCor <- do.call(rbind.data.frame, lapply(summaryLabelCor, function(g) g["summary",]))
+labelCor$BH <- p.adjust(labelCor$pvalue, method = "BH")
 
 ########## Selecting Braak-related genes ##########
 
-# top10 <- floor(length(ahba.genes())*0.1) # number of genes in top 10%
-# 
-# # Get top 10% correlated genes
-# order <- rev(order(abs(labelCor$r))) # order absolute corr.
-# corrGenes <- rownames(labelCor)[order[1:top10]] # top 10% genes
-# corrGenes <- rownames(labelCor)[labelCor$BH < 0.01 & abs(labelCor$r) > 0.6]
-# corrGenes_neg <- corrGenes[labelCor[corrGenes, "r"] < 0]
-# corrGenes_pos <- corrGenes[labelCor[corrGenes, "r"] > 0]
-# max(abs(labelCor[corrGenes, "r"]))
-# min(abs(labelCor[corrGenes, "r"]))
+top10 <- floor(length(ahba.genes())*0.1) # number of genes in top 10%
 
-corrGenes <- rownames(fc_cor[fc_cor$BH < 0.05, ])
-corrGenes_neg <- corrGenes[fc_cor[corrGenes, "r"] < 0]
-corrGenes_pos <- corrGenes[fc_cor[corrGenes, "r"] > 0]
-max(fc_cor[corrGenes, "r"])
-min(abs(fc_cor[corrGenes, "r"]))
+# Get top 10% correlated genes
+order <- rev(order(abs(labelCor$r))) # order absolute corr.
+
+corrGenes <- rownames(labelCor)[order[1:top10]] # top 10% genes
+# corrGenes <- rownames(labelCor)[labelCor$BH < 0.01 & abs(labelCor$r) > 0.6]
+corrGenes_neg <- corrGenes[labelCor[corrGenes, "r"] < 0]
+corrGenes_pos <- corrGenes[labelCor[corrGenes, "r"] > 0]
+max(abs(labelCor[corrGenes, "r"]))
+min(abs(labelCor[corrGenes, "r"]))
 
 # Top 10% mean Diff. expressed genes braak 1 vs. braak 6
-# order <- rev(order(abs(diffExpr$meanDiff))) # order absolute corr.
-# diffGenes1 <- rownames(diffExpr)[order[1:top10]] # top 10% genes
-# diffGenes1_pos <- diffGenes1[diffExpr[diffGenes1, "meanDiff"] > 0]
-# diffGenes1_neg <- diffGenes1[diffExpr[diffGenes1, "meanDiff"] < 0]
-# max(abs(diffExpr[diffGenes1, "meanDiff"]))
-# min(abs(diffExpr[diffGenes1, "meanDiff"]))
-# 
-# # Top 10% significant Diff. expressed genes braak 1 vs. braak 6
-# diffExpr$BH <- p.adjust(diffExpr$pvalue, method = "BH")
-# order <- order(diffExpr$BH) # order absolute corr.
-# diffGenes2 <- rownames(diffExpr)[order[1:top10]] # top 10% genes
-# diffGenes2_pos <- diffGenes2[diffExpr[diffGenes2, "meanDiff"] > 0]
-# diffGenes2_neg <- diffGenes2[diffExpr[diffGenes2, "meanDiff"] < 0]
+order <- rev(order(abs(diffExpr$meanDiff))) # order absolute corr.
+diffGenes1 <- rownames(diffExpr)[order[1:top10]] # top 10% genes
+diffGenes1_pos <- diffGenes1[diffExpr[diffGenes1, "meanDiff"] > 0]
+diffGenes1_neg <- diffGenes1[diffExpr[diffGenes1, "meanDiff"] < 0]
+max(abs(diffExpr[diffGenes1, "meanDiff"]))
+min(abs(diffExpr[diffGenes1, "meanDiff"]))
 
-# diffGenes <- rownames(diffExpr)[diffExpr$BH < 0.01 & abs(diffExpr$meanDiff) > 1] # top 10% genes
-# diffGenes_pos <- diffGenes[diffExpr[diffGenes, "meanDiff"] > 0]
-# diffGenes_neg <- diffGenes[diffExpr[diffGenes, "meanDiff"] < 0]
-
-diffGenes <- rownames(diffExpr)[diffExpr$BH < 0.05 & abs(diffExpr$Estimate) > 1]
-diffGenes_pos <- diffGenes[diffExpr[diffGenes, "Estimate"] > 0]
-diffGenes_neg <- diffGenes[diffExpr[diffGenes, "Estimate"] < 0]
+# Top 10% significant Diff. expressed genes braak 1 vs. braak 6
+order <- order(diffExpr$BH) # order absolute corr.
+diffGenes2 <- rownames(diffExpr)[order[1:top10]] # top 10% genes
+diffGenes2_pos <- diffGenes2[diffExpr[diffGenes2, "meanDiff"] > 0]
+diffGenes2_neg <- diffGenes2[diffExpr[diffGenes2, "meanDiff"] < 0]
+max(diffExpr[diffGenes2, "BH"])
+min(diffExpr[diffGenes2, "BH"])
 
 # Venn diagram to visualize overlap of selections
-criteria <- c("r", "fc")#, "pval_fc")
-ll <- list(corrGenes, diffGenes)#diffGenes1, diffGenes2)
-ll1 <- list(corrGenes_neg, diffGenes_neg)
-ll2 <- list(corrGenes_pos, diffGenes_pos)
-# ll1 <- list(corrGenes_neg, diffGenes2_neg, diffGenes1_neg)
-# ll2 <- list(corrGenes_pos, diffGenes2_pos, diffGenes1_pos)
+criteria <- c("r", "fc", "pval_fc")
+ll <- list(corrGenes, diffGenes1, diffGenes2)
+ll1 <- list(corrGenes_neg, diffGenes1_neg, diffGenes2_neg)
+ll2 <- list(corrGenes_pos, diffGenes1_pos, diffGenes2_pos)
 names(ll) <- criteria
 names(ll1) <- criteria
 names(ll2) <- criteria
@@ -90,25 +66,25 @@ venn2 <- venn(ll2)
 
 # Selection based on 2 criteria and collect info of selected genes
 braakGenes <- attr(venn, "intersections")[[paste0(criteria, collapse = ":")]]
-braakGenes <- data.frame(entrez_id = braakGenes, gene_symbol = entrezId2Name(braakGenes))
-# braakGenes$r <- round(labelCor[braakGenes$entrez_id, "r"], digits = 2)
-braakGenes$r <- round(fc_cor[braakGenes$entrez_id], digits = 2)
-# braakGenes$r_BH <- format(labelCor[braakGenes$entrez_id, "BH"], digits = 2)
-# braakGenes$FC <- round(diffExpr[braakGenes$entrez_id, "meanDiff"], digits = 2)
-braakGenes$FC <- round(diffExpr[braakGenes$entrez_id, "Estimate"], digits = 2)
-braakGenes$FC_BH <- format(diffExpr[braakGenes$entrez_id, "BH"], digits = 2)
-# braakGenes$dir <- ifelse(braakGenes$braak_r>0, "pos", "neg")
+braakGenes <- data.frame(
+  entrez_id = braakGenes, 
+  gene_symbol = entrezId2Name(braakGenes),
+  r = labelCor[braakGenes, "r"], 
+  r_BH = labelCor[braakGenes, "BH"], 
+  fc = diffExpr[braakGenes, "meanDiff"], 
+  fc_BH = diffExpr[braakGenes, "BH"]
+)
 braakGenes <- braakGenes[order(braakGenes$r),]
-write.table(braakGenes, file = "braakGenes.txt", row.names = FALSE, quote = FALSE, sep = "\t")
 save(braakGenes, file = "resources/braakGenes.RData")
+write.table(braakGenes, file = "braakGenes.txt", row.names = FALSE, quote = FALSE, sep = "\t")
 
 ########## Bar plot of selected genes ##########
 
 # row labels
-t1 <- paste("|r| >", floor(min(abs(braakGenes$r))*100)/100)#, "& P < 0.01")
-t2 <- paste("|FC| >", floor(min(abs(braakGenes$FC))*100)/100, "& P < 0.05")
-# t3 <- paste("Pfc <", floor(as.numeric(max(braakGenes$FC_BH))*1e5)/1e5)
-labels <- c(t1, t2)#, t3)
+t1 <- paste("|r| >", floor(min(abs(braakGenes$r))*100)/100)
+t2 <- paste("|FC| >", floor(min(abs(braakGenes$fc))*100)/100)
+t3 <- paste("Pfc <", floor(as.numeric(max(braakGenes$fc_BH))*1e5)/1e5)
+labels <- c(t1, t2, t3)
 tab <- cbind(negative = -sapply(ll1, length), positive = sapply(ll2, length))
 rownames(tab) <- labels
 tab <- rbind(tab, Overlap = c(-sum(braakGenes$r<0), sum(braakGenes$r>0)))
@@ -157,7 +133,7 @@ tab <- lapply(names(pdGenesID), function(n){
 tab <- Reduce(rbind, tab)
 write.table(tab, file = "pdgenes_stats.txt", sep ="\t", quote = FALSE, row.names = FALSE)
 
-########## Volcano plot for label correlation and differential expression##########
+########## Volcano plot for label correlation and differential expression ##########
 
 braak_pos <- braakGenes$entrez_id[braakGenes$r>0]
 braak_neg <- braakGenes$entrez_id[braakGenes$r<0]
@@ -176,10 +152,6 @@ prepare.tab <- function(tab){
     else if (x %in% braak_neg) 2
     else 0
   })
-  # tab$labels <- entrezId2Name(rownames(tab))
-  # pd <- c("DNAJC13","SNCA","GCH1","INPP5F", "ASH1L", "ITPKB", "ELOVL7", "ZNF184", "SCARB2", "DDRGK1")
-  # tab$labels[!tab$labels %in% pd] <- ""
-  # tab[name2EntrezId(pd), "info"] <- 2
   tab$info <- as.factor(tab$info)
   order <- order(tab$info)# Plotting order of data points 
   tab <- tab[order, ]
@@ -202,6 +174,7 @@ dev.off()
 
 # Differential expression plot
 ctab <- Reduce(rbind, summaryDiffExpr)
+ctab$logp <- -log10(ctab$BH)
 xmax <- max(ctab$meanDiff)
 xmin <- min(ctab$meanDiff)
 ymax <- ceiling(max(ctab$'logp'[is.finite(ctab$'logp')]))
@@ -227,35 +200,30 @@ plotll <- lapply(names(summaryDiffExpr), function(rp){
 
 ########## Heatmap expression of BRGs ##########
 
-expr <- readRDS("resources/expr_neuroncorrected.rds")
+load("../ABA_Rdata/BrainExpr.RData")
 load("resources/braakInfo.RData") # Braak stage label vectors
 
 genes <- braakGenes$entrez_id
 colsep <- which(braakGenes$r>0)[1]
-
+colPal <- c("darkblue", "white", "darkred")
+rampcols <- colorRampPalette(colors = colPal, space="Lab")(200)
+  
 pdf("heatmap_BRGs.pdf", 16, 12)
 lapply(donorNames, function(d){
   # Subselect expression matrices
-  samples <- as.logical(apply(braakStages[[d]], 1, sum))
+  samples <- unlist(braak_idx[[d]])
   df <- sampleInfo[[d]][samples,]
   labels <- braakLabels[[d]][samples]
-  exprMat <- t(expr[[d]][genes, samples])
-  
-  rowOrder <- order(labels, -df$graph_order)
-  df <- df[rowOrder, ]
-  exprMat <- exprMat[rowOrder, ]
-  
-  rowsep <- match(c(2:6), labels[rowOrder])# separate Braak regions
-  
-  colPal <- c("darkblue", "white", "darkred")
-  rampcols <- colorRampPalette(colors = colPal, space="Lab")(200)
+  exprMat <- scale(t(brainExpr[[d]][genes, samples]))
+  rowsep <- match(c(2:6), labels)# separate Braak regions
+
   heatmap.2(exprMat, col = rampcols, 
             labRow = df$acronym, labCol = entrezId2Name(colnames(exprMat)), 
             rowsep = rowsep, colsep = colsep, sepcolor = "black",
             Rowv=FALSE, Colv=FALSE, 
             cexCol = .5, cexRow = .5,
-            scale = "none", trace = "none", dendrogram = "none", #key = FALSE, 
-            RowSideColors = df$color_hex_triplet, #ColSideColors = ,
+            scale = "none", trace = "none", dendrogram = "none", density.info = "none", 
+            RowSideColors = df$color_hex_triplet, 
             main = paste0("Expression of BRGs in ", d),
             margins = c(5, 5))
 })

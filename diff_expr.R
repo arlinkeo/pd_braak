@@ -7,8 +7,6 @@ library(ggplot2)
 library(plyr)
 load("resources/braakInfo.RData")
 load("../ABA_Rdata/BrainExpr.RData")
-# expr1 <- readRDS("resources/expr_corrected_lm_mean_allsamples.rds")
-# expr2 <- readRDS("resources/expr_corrected_lm_eg_allsamples.rds")
 
 # Load functions
 source("PD/plot.deg.numbers.R")
@@ -35,7 +33,7 @@ ttest <- lapply(donorNames, function(d){
   simplify2array(tab) # 3D array: genes x measures x region pairs
 })
 ttest <- simplify2array(ttest) # 4D array: genes x measures x region pairs x donors
-save(ttest, file = "resources/ttest_corrected_lm_eg_allsamples.RData")
+save(ttest, file = "resources/ttest.RData")
 
 # Print number of diff. expr. genes
 apply(ttest, c(3,4), function(x){
@@ -67,11 +65,11 @@ summaryDiffExpr <- sapply(dimnames(ttest)[[3]], function(r){
                               summary$pval, sum(weights(summary))))
   }, simplify = FALSE)
 }, simplify = FALSE)
-save(summaryDiffExpr, file = "resources/summaryDiffExpr_corrected_lm_eg_allsamples.RData")
+save(summaryDiffExpr, file = "resources/summaryDiffExpr.RData")
 
 ########## Bar plot of differentially expressed genes between all Braak regions ##########
 
 p <- plot.deg.numbers(summaryDiffExpr)
-pdf("diff_expr_barplot_corrected_lm_eg_allsamples.pdf", 6, 4)
+pdf("diff_expr_barplot.pdf", 6, 4)
 print(p)
 dev.off()
