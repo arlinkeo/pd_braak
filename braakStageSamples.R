@@ -1,9 +1,9 @@
 #sample IDs of ROI for PD
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
-source("PD/base_script.R")
-
 library(RColorBrewer)
+source("PD/base_script.R")
 load("../ABA_Rdata/BrainExpr.RData")
+source("PD/sample.ids.R")
 
 # Regions of interest (roi)
 roi <- c("myelencephalon", "pontine tegmentum", "substantia nigra", "amygdala", 
@@ -15,16 +15,8 @@ roi <- c("myelencephalon", "pontine tegmentum", "substantia nigra", "amygdala",
          "corpus callosum", "midbrain reticular formation"
 )
 
-# Function to select region-specific sample IDs in all six donors
-selectIds <- function(r){ # for a single structure
-  row <- match(r, ontology$name)
-  id <- ontology$id[row]
-  rows <- grep(id, ontology$structure_id_path)
-  ontology$id[rows]
-}
-
 # Sample IDs of roi's
-roiIDs <- sapply(roi, selectIds, simplify = FALSE)
+roiIDs <- sample.ids(roi)
 
 # Function to get indices to select samples/columns per donor
 samples.donor <- function(ids, d){ # list of IDs and donorname
@@ -33,7 +25,7 @@ samples.donor <- function(ids, d){ # list of IDs and donorname
   ids <- intersect(ids, colnames)
   cols <- which(colnames %in% ids)
   names(cols) <- colnames[cols]
-  cols # as.integer(cols)
+  cols # column indices
 }
 
 roiSamples <- lapply(donorNames, function(d){
@@ -42,6 +34,7 @@ roiSamples <- lapply(donorNames, function(d){
   })
 })
 sapply(roiSamples, function(x){lapply(x, length)})
+save(roiSamples, file = "roiSamples.RData")
 
 ####################################################################
 
