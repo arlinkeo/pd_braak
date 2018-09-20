@@ -19,7 +19,7 @@ source("PD/boxplot_braak.R")
 # Gene conversion table
 source("ahba_entrez2ensembl.R")
 
-# Validate Braak stage related genes
+# Validate progression genes
 source("PD/diff_expr_GTEX.R")
 source("PD/ukbecGeneID.R")
 source("PD/diff_expr_UKBEC.R")
