@@ -20,7 +20,7 @@ colnames(braakPairs) <- c("region_A", "region_B")
 # T-test to get p-values and CI's (only needed for forest plot of meta-analysis)
 ttest <- lapply(donorNames, function(d){
   print(d)
-  expr <- expr2[[d]]
+  expr <- brainExpr[[d]]
   exprll <- lapply(braak_idx[[d]], function(b){ # expr. in Braak regions 1-6
     expr[, b]
   })
