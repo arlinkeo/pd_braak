@@ -10,10 +10,7 @@ source("PD/braakStageSamples.R")
 # Single gene analysis
 source("PD/diff_expr.R")
 source("PD/braaklabel_cor.R")
-source("PD/select_genes.R")
-
-
-source("PD/funcEnrich.R")
+source("PD/braakgenes.R")
 source("PD/diff_expr_hemispheres.R")
 
 # Visualize data

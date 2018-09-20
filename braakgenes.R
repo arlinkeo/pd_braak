@@ -4,7 +4,10 @@ library("metap")
 library(gplots)
 library(ggplot2)
 library(reshape2)
+library("RDAVIDWebService")
 source("PD/base_script.R")
+load("../ABA_Rdata/BrainExpr.RData")
+load("resources/braakInfo.RData")
 load("resources/not_celltype_corrected/summaryDiffExpr.RData")
 load("resources/not_celltype_corrected/summaryLabelCor.RData")
 
@@ -100,19 +103,18 @@ p <- ggplot(tab) +
   scale_fill_manual(values = c("blue", "red")) +
   scale_y_continuous(expand = c(0.1,0.1)) +
   coord_flip() +
-  labs(x = "", y = "Number of selected genes") +
+  labs(x = "", y = "Number of selected genes") + 
+  theme_minimal() +
   theme(
     axis.text = element_text(size = 11),
     axis.text.x = element_blank(),
-    axis.ticks = element_blank(),
-    panel.background = element_blank(),
-    legend.title = element_blank()
+    panel.grid = element_blank()
   )
 p
 pdf("braakgenes_barplot.pdf", 5, 2)
 print(p)
 dev.off()
- 
+
 ########## Presence of PD-implicated genes ##########
 pdGenes <- list(hiImpact = c("SNCA", "LRRK2", "GBA", "VPS35", "PARK2", "UCHL1", "PINK1", "PARK7", "ATP13A2", "PLA2G6", "FBXO7", "DNAJC6", "SYNJ1", 
                              "EIF4G1", "DNAJC13", "CHCHD2", "C20orf30", "RIC3", "LRP10"), #TMEM230 is C20orf30
@@ -164,10 +166,7 @@ pdf(file = "volcanoplot_cor.pdf", 4, 3)
 ggplot(tab, aes(r, logp, colour = info)) +
   geom_point(size = 0.25, alpha = 0.3) +
   scale_colour_manual(values = c("0"="grey", "1"="red", "2"="blue")) +
-  # geom_text_repel(label = tab$labels, fontface = "italic", colour = "black", size = 3, nudge_x = 0.2) +
   labs(x = "r", y = "-log10 P-value") +
-  # scale_x_continuous(expand = c(0,0)) +
-  # scale_y_continuous(expand = c(0,0)) +
   ggtitle("Braak correlation") +
   theme
 dev.off()
@@ -185,7 +184,6 @@ plotll <- lapply(names(summaryDiffExpr), function(rp){
   p <- ggplot(tab, aes(meanDiff, logp, colour = info)) +
     geom_point(size = 0.25, alpha = 0.3) +
     scale_colour_manual(values = c("0"="grey", "1"="red", "2"="blue")) +
-    # geom_text_repel(label = tab$labels, fontface = "italic", colour = "black", size = 3, nudge_x = 0.2) +
     labs(x = "Fold-change", y = "-log10 P-value") +
     scale_x_continuous(limits = c(xmin, xmax), expand = c(0,0)) +
     scale_y_continuous(limits = c(0, ymax), expand = c(0,0)) +
@@ -200,14 +198,11 @@ plotll <- lapply(names(summaryDiffExpr), function(rp){
 
 ########## Heatmap expression of BRGs ##########
 
-load("../ABA_Rdata/BrainExpr.RData")
-load("resources/braakInfo.RData") # Braak stage label vectors
-
 genes <- braakGenes$entrez_id
 colsep <- which(braakGenes$r>0)[1]
 colPal <- c("darkblue", "white", "darkred")
 rampcols <- colorRampPalette(colors = colPal, space="Lab")(200)
-  
+
 pdf("heatmap_BRGs.pdf", 16, 12)
 lapply(donorNames, function(d){
   # Subselect expression matrices
@@ -216,7 +211,7 @@ lapply(donorNames, function(d){
   labels <- braakLabels[[d]][samples]
   exprMat <- scale(t(brainExpr[[d]][genes, samples]))
   rowsep <- match(c(2:6), labels)# separate Braak regions
-
+  
   heatmap.2(exprMat, col = rampcols, 
             labRow = df$acronym, labCol = entrezId2Name(colnames(exprMat)), 
             rowsep = rowsep, colsep = colsep, sepcolor = "black",
@@ -228,3 +223,30 @@ lapply(donorNames, function(d){
             margins = c(5, 5))
 })
 dev.off()
+
+# Functional enrichment of genes which expression correlate with Braak regions
+
+braak <- lapply(c(positive = "pos", negative = "neg"), function(x){
+  if (x == "pos") braakGenes$entrez_id[braakGenes$r > 0]
+  else braakGenes$entrez_id[braakGenes$r < 0]
+})
+
+#Functional enrichment of  genes correlated greater or smaller than 0
+david<-DAVIDWebService$new(email="D.L.Keo@tudelft.nl",
+                           url="https://david.abcc.ncifcrf.gov/webservice/services/DAVIDWebService.DAVIDWebServiceHttpSoap12Endpoint/")
+setAnnotationCategories(david, c("GOTERM_BP_ALL", "GOTERM_MF_ALL", "GOTERM_CC_ALL"))
+bg_list <- ahba.genes()
+bg <- addList(david, bg_list, idType = "ENTREZ_GENE_ID", listName = "AHBA background", listType = "Background")
+bg
+t <- 0.05 # EASE p-value threshold
+setTimeOut(david, 200000)
+
+# Enrichment of positively and negatively correlated progression genes
+lapply(names(braak), function(r){
+  genes <- braak[[r]]
+  result <- addList(david, genes, idType = "ENTREZ_GENE_ID", listName = r, listType = "Gene")
+  print(result)
+  setCurrentBackgroundPosition(david, 1)
+  getFunctionalAnnotationChartFile(david, paste0("Functional_analyses/", r, "_goterms.txt"), threshold=t, count=2L)
+  getClusterReportFile(david, paste0("Functional_analyses/", r, "_termclusters.txt"), type = c("Term"))
+})
