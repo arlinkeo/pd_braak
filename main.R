@@ -1,14 +1,13 @@
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
 
-# Prepare data
-# source("PD/roiSamples.R")
+# Prepare Braak data
 source("PD/braakStageSamples.R")
 
 # # Cell-type markers
 # source("PD/lm_celltypes.R")
 # source("PD/diff_expr_lm.R")
 
-# Select Braak genes
+# Single gene analysis
 source("PD/diff_expr.R")
 source("PD/braaklabel_cor.R")
 source("PD/select_genes.R")
