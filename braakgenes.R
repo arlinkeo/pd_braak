@@ -33,7 +33,6 @@ top10 <- floor(length(ahba.genes())*0.1) # number of genes in top 10%
 order <- rev(order(abs(labelCor$r))) # order absolute corr.
 
 corrGenes <- rownames(labelCor)[order[1:top10]] # top 10% genes
-# corrGenes <- rownames(labelCor)[labelCor$BH < 0.01 & abs(labelCor$r) > 0.6]
 corrGenes_neg <- corrGenes[labelCor[corrGenes, "r"] < 0]
 corrGenes_pos <- corrGenes[labelCor[corrGenes, "r"] > 0]
 max(abs(labelCor[corrGenes, "r"]))
