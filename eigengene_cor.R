@@ -17,15 +17,15 @@ eigen.gene <- function(x){
   if (cor(eg, mean) > 0) eg else -eg # flip sign of eigen gene based on the data
 }
 
-# Function for eigen gene expression for each module in the same region
-# x: data, l: list of modules with genes, s: logical vector of samples (columns)
-eigen.data <- function(x, l, s){ 
-  df <- as.data.frame(t(sapply(l, function(genes){ # For each module with genes (grouped gene rows)
-    eigen.gene(t(x[genes, s]))
-  })))
-  colnames(df) <- names(s)[s]
-  df
-}
+# # Function for eigen gene expression for each module in the same region
+# # x: data, l: list of modules with genes, s: logical vector of samples (columns)
+# eigen.data <- function(x, l){
+#   df <- as.data.frame(t(sapply(l, function(genes){ # For each module with genes (grouped gene rows)
+#     eigen.gene(t(x[genes, s]))
+#   })))
+#   colnames(df) <- names(s)[s]
+#   df
+# }
 
 # Braak-correlation for eigengenes
 summary.braak.cor <- dget("PD/summary.braak.cor.R")
@@ -34,14 +34,22 @@ summary.braak.cor <- dget("PD/summary.braak.cor.R")
 
 # PCA first component of subselection expr. matrices
 eigenExpr <- lapply(donorNames, function(d){
-  s <- braakLabels[[d]] != 0 # logical vector
-  expr <- brainExprNorm[[d]]
-  eigen.data(expr, modules, s)
+  s <- Reduce(c, braak_idx[[d]])#braakLabels[[d]] != 0 # logical vector
+  expr <- brainExprNorm[[d]][, s]
+  df <- as.data.frame(t(sapply(modules, function(genes){ # For each module with genes (grouped gene rows)
+    eigen.gene(t(expr[genes, ]))
+  })))
+  # colnames(df) <- names(s)
+  df
+  # eigen.data(expr, modules)
 })
 save(eigenExpr, file = "resources/eigenExpr.RData")
 
 # Summary Braak correlation
-labels <- lapply(braakLabels, function(labels){labels[labels != "0"]})
+# labels <- lapply(braakLabels, function(labels){labels[labels != "0"]})
+labels <- lapply(donorNames, function(d){
+  braakLabels[[d]][unlist(braak_idx[[d]])]
+})
 summaryLabelCorrEG <- summary.braak.cor(eigenExpr, labels)
 save(summaryLabelCorrEG, file = "resources/summaryLabelCorrEG.RData")
 
@@ -98,15 +106,15 @@ dev.off()
 
 ontology <- read.csv("../ABA_human_processed/Ontology_edited.csv")
 
-# IDs and AHBA colors for each sample per donor
-sampleInfo <- lapply(donorNames, function(d){
-  sampleIds <- read.csv(paste("../ABA_human_processed/sample_info_normalized_microarray_", d, "_2014-11-11.csv", sep = ""))[ , 1]
-  info <- ontology[match(sampleIds, ontology$id), ]
-  info$color_hex_triplet <- sapply(info$color_hex_triplet, function(c){
-    if (nchar(c) == 5) {paste("#0", c, sep = "")} else {paste("#", c, sep = "")}
-  })
-  info
-})
+# # IDs and AHBA colors for each sample per donor
+# sampleInfo <- lapply(donorNames, function(d){
+#   sampleIds <- read.csv(paste("../ABA_human_processed/sample_info_normalized_microarray_", d, "_2014-11-11.csv", sep = ""))[ , 1]
+#   info <- ontology[match(sampleIds, ontology$id), ]
+#   info$color_hex_triplet <- sapply(info$color_hex_triplet, function(c){
+#     if (nchar(c) == 5) {paste("#0", c, sep = "")} else {paste("#", c, sep = "")}
+#   })
+#   info
+# })
 
 # modules <- names(modules[["braak1-6"]])
 colOrder <- order(labelCor$r)
@@ -118,11 +126,25 @@ colsep <- which(labelCor$r[colOrder] > 0)[1]
 pdf("heatmap_expr_eigengenes.pdf", 8, 6)
 lapply(donorNames, function(d){
   # Subselect expression matrices
-  samples <- braakLabels[[d]] != 0
+  samples <- as.logical(apply(braakStages[[d]], 1, sum))
   df <- sampleInfo[[d]][samples,]
-  exprMat <- as.matrix(eigenExpr[[d]])
-  rowColor <- df$color_hex_triplet
+  labels <- braakLabels[[d]][samples]
+  exprMat <- t(eigenExpr[[d]])
   
+  rowOrder <- order(labels, -df$graph_order)
+  df <- df[rowOrder, ]
+  exprMat <- exprMat[rowOrder, ]
+  
+  rowsep <- match(c(2:6), labels[rowOrder])# separate Braak regions
+  
+  colPal <- c("darkblue", "white", "darkred")
+  rampcols <- colorRampPalette(colors = colPal, space="Lab")(200)
+  
+  # samples <- braakLabels[[d]] != 0
+  # df <- sampleInfo[[d]][samples,]
+  # exprMat <- as.matrix(eigenExpr[[d]])
+  # rowColor <- df$color_hex_triplet
+  # 
   rowOrder <- order(labels[[d]], -df$graph_order)
   df <- df[rowOrder, ]
   exprMat <- t(exprMat[colOrder, rowOrder])

@@ -1,6 +1,6 @@
 # Differential expression of Left & right hemisphere
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
-library(metafor)
+# library(metafor)
 library(ggplot2)
 library(ggpubr)
 source("PD/base_script.R")
@@ -15,12 +15,12 @@ regionIDs <- sample.ids(roi, hemisphere = TRUE)
 
 # Select columns/samples per donor based on AHBA probe IDs
 roiSamples <- lapply(regionIDs, function(r){
-  lapply(donorNames[1:2], function(d){
+  lapply(donorNames[1:2], function(d){ # Only for 2 donors with samples from both hemispheres
     expr <- brainExpr[[d]]
     colnames <- colnames(expr)
     samples <- sapply(r, function(ids){
       ids <- intersect(ids, colnames)
-      cols <- which(colnames %in% ids)
+      cols <- which(colnames %in% ids) # columnn indices
       names(cols) <- colnames[cols]
       cols # column indices
     })
@@ -63,7 +63,7 @@ theme <- theme(legend.position = "none",
 
 # volcano plot for every region and donor
 pdf("diff_expr_hemispheres.pdf", 8, 4)
-plotll <- lapply(dimnames(ttest)[4], function(r){
+plotll <- lapply(dimnames(ttest)[[4]], function(r){
   p <- lapply(donorNames[1:2], function(d){
     tab <- as.data.frame(ttest[, , d, r])
     tab$meanDiff <- tab$meanB-tab$meanA
