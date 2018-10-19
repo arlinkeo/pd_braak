@@ -1,9 +1,15 @@
 #sample IDs of ROI for PD
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
 library(RColorBrewer)
+library(ggplot2)
+library(reshape2)
 source("PD/base_script.R")
 load("../ABA_Rdata/BrainExpr.RData")
 source("PD/sample.ids.R")
+
+# Fixed colors for Braak related regions
+braakColors <- brewer.pal(6, "Set2")
+names(braakColors) <- braakNames
 
 # Regions of interest (roi)
 roi <- c("myelencephalon", "pontine tegmentum", "substantia nigra", "amygdala", 
@@ -48,6 +54,30 @@ braakRegions <- list(
   braak6 = c("frontal lobe", "parietal lobe")
 )
 
+# Plot sample sizes within Braak regions
+numbers <- sapply(donorNames, function (d){
+  roi <- roiSamples[[d]]
+  sapply(braakRegions, function(b){
+    sum(sapply(roi[b], length))
+  })
+})
+df <- melt(numbers)
+colnames(df) <- c("braak", "donor", "size")
+df$donor <- factor(df$donor, levels = unique(df$donor))
+df$braak <- factor(df$braak, levels = rev(unique(df$braak)))
+p <- ggplot(df)+
+  geom_col(aes(x=braak, y=size, fill= donor)) +
+  # guides(alpha=guide_legend(override.aes=list(fill=hcl(c(15,195),100,0), colour=NA))) +
+  # scale_alpha_discrete(labels = gsub("donor", "Donor ", donorNames)) +
+  # scale_color_discrete(values = unname(braakColors)) +
+  coord_flip() +
+  theme(
+    axis.text = element_text(size = 11),
+    axis.ticks.y = element_blank(),
+    panel.background = element_blank(),
+    legend.title = element_blank()
+  )
+
 # Braak stage samples
 braak_idx <- lapply(donorNames, function (d){
   roi <- roiSamples[[d]]
@@ -84,9 +114,5 @@ braakLabels <- lapply(donorNames, function(d){
   names(label) <- cols
   label
 })
-
-# Fixed colors for Braak related regions
-braakColors <- brewer.pal(6, "Set2")
-names(braakColors) <- braakNames
 
 save(braak_idx, braakLabels, braakColors, file = "resources/braakInfo.RData")
