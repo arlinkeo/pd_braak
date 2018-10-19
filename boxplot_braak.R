@@ -3,9 +3,8 @@ setwd("C:/Users/dkeo/surfdrive/pd_braak")
 library(ggplot2)
 source("PD/base_script.R")
 load("../ABA_Rdata/BrainExpr.RData")
-brainExpr <- readRDS("resources/expr_neuroncorrected.rds")
 load("resources/braakInfo.RData") # Braak stage label vectors
-load("resources/summaryLabelCorr.RData")
+load("resources/summaryLabelCor.RData")
 load("resources/braakGenes.RData")
 
 # Default theme for boxplot
@@ -18,7 +17,7 @@ theme <- theme(panel.background = element_blank(), panel.grid = element_blank(),
 box.plot <- function(df, title){
   p <- ggplot(df) + 
     geom_boxplot(aes(x = label, y = expr, alpha = donor, fill = label)) +
-    labs(x = "Braak stage", y = "Expression (log2-transformed)") +
+    labs(x = "Brain region", y = "Expression (log2-transformed)") +
     guides(alpha=guide_legend(override.aes=list(fill=hcl(c(15,195),100,0), colour=NA))) +
     scale_alpha_discrete(labels = gsub("donor", "Donor ", donorNames)) +
     scale_fill_manual(values = unname(braakColors), guide = FALSE) +
@@ -38,6 +37,7 @@ prepare.data <- function(g){
   })
   df <- Reduce(rbind, df)
   df <- df[df$label != "0", ]#Remove Braak 0
+  df$label <- paste0("B", df$label)
   df$label <- factor(df$label, levels = sort(unique(df$label)))
   df$donor <- factor(df$donor, levels = unique(df$donor))
   df
@@ -52,7 +52,7 @@ boxplot.gene <- function(g, title){
 plot.pdf <- function(name, genes){
   pdf(name, 8, 5)
   lapply(genes, function(g){
-    r <- format(summaryLabelCorr[[g]]["summary", c("r", "pvalue")], digits = 2)
+    r <- format(summaryLabelCor[[g]]["summary", c("r", "pvalue")], digits = 2)
     title <- paste0(entrezId2Name(g), ", r=", r$r)
     df <- prepare.data(g)
     p <- box.plot(df, title)
@@ -68,8 +68,8 @@ plot.pdf("boxplot_HLA_genes.pdf", pdGenesID$hla)
 
 # Boxplot for mean expression of -ve and +ve Braak genes
 braak <- list(
-  'r<0' = braak_neg <- braakGenes$entrez_id[braakGenes$braak_r < 0],
-  'r>0' = braakGenes$entrez_id[braakGenes$braak_r > 0])
+  'r<0' = braakGenes$entrez_id[braakGenes$r < 0],
+  'r>0' = braakGenes$entrez_id[braakGenes$r > 0])
 
 df <- lapply(names(braak), function(r){
   g <- braak[[r]]
