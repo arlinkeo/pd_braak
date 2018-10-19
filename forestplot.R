@@ -1,15 +1,13 @@
-
-
 # Basic ggplot theme# Forest plot of differential expression in each brain for a single gene
-
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
+source("PD/base_script.R")
 library(ggplot2)
 library(gridExtra)
-
-source("PD/base_script.R")
+library(gtable)
 load("resources/summaryDiffExpr.RData")
+load("resources/summaryLabelCorr.RData")
 
-gene <- "PARK2"
+gene <- "SNCA"
 geneId <- name2EntrezId(gene)
 theme.grid <- theme(panel.background = element_blank(), panel.grid = element_blank(), axis.ticks.y = element_blank(), axis.line.x = element_line(colour = "black"), 
                     legend.position = "none", axis.title.y = element_blank())
@@ -17,55 +15,32 @@ theme.grid <- theme(panel.background = element_blank(), panel.grid = element_bla
 ####################################
 # Forest plot expression change, multiple region pairs
 
-#Get values for a gene to plot
-braakList <- lapply(summaryDiffExpr[c(1:5)], function(x)x[[geneId]])
-braakList <- sapply(names(braakList), function(b){
-  
-  df <- braakList[[b]]
-  df$braak <- gsub("braak", "Braak ", b)
-  df$braak <- gsub("-", " - ", df$braak)
-  df
-}, simplify = FALSE)
+tab <- summaryDiffExpr$`braak1-braak6`[[geneId]]
 
-# Combine df's for each braak stage into one df
-tab <- do.call(rbind, braakList)
-# tab$name <- rownames(tab)
 tab$donors <- factor(tab$donors, levels = unique(rev(tab$donors)))
-tab$braak <- factor(tab$braak, levels = unique(tab$braak))
-# Side table info
 tab$rmd <- paste0(round(tab$meanDiff, digits = 2), " (", round(tab$lower95, digits = 2), ", ", round(tab$upper95, digits = 2), ")")
-tab$pvalue <- signif(tab$pvalue, digits = 2)
+tab$pvalue <- signif(tab$pvalue, digits = 2) # Uncorrected
 tab$is.summary <- tab$donors == "Summary"
 
-
-
-# Basic ggplot grid for braak stages
-facet.braak <- facet_grid(braak~., scales = 'free', space = 'free', switch = "y")
-
 # Forest plot
-fp <- ggplot(data = tab, aes(meanDiff, donors)) 
+table <- tableGrob(tab[, c("rmd", "weight")], rows = NULL, theme = ttheme_minimal())
+table$heights <- unit(rep(1/(nrow(table)), nrow(table)), "npc")
 
-x.max <- round(max(tab$upper95), digits = 2)
-# x.min <- round(min(tab$lower95), digits = 2)
-# colLabels <- data.frame(x = x.positions, y = x.positions, label = c("Raw mean difference", "N", "Weight"))
+intercepts <- if (min(tab$meanDiff) > 0) 1.53 else if (max(tab$meanDiff) < 0) -1.53 else c(-1.53,1.53)
 
-leftPanel <- fp +
+plot <- ggplot(data = tab, aes(meanDiff, donors))  +
   geom_point(aes(size = weight, shape = is.summary, color = is.summary)) +
   geom_errorbarh(aes(xmin = lower95, xmax = upper95), height = 0) +
   geom_vline(xintercept = 0, linetype = "dashed") +
-  geom_vline(xintercept = 1, linetype = "dotted") +
-  geom_vline(xintercept = -1, linetype = "dotted") +
+  geom_vline(xintercept = intercepts, linetype = "dotted") +
   scale_shape_manual(values = c(15,18)) +
   scale_color_manual(values = c('#00CCCC', '#FF8000')) +
-  labs(title = bquote(italic(.(gene))), x = "Mean difference") +
-  scale_y_discrete(labels = rev(tab$donor)) +
-  # scale_x_continuous(limits = c(x.min, x.max)) +
-  geom_text(aes(x = x.max + 1, label = rmd), size = 3) +
-  geom_text(aes(x = x.max + 1.9, label = weight), size = 3) +
-  geom_text(aes(x = x.max + 2.5, label = pvalue), size = 3) +
-  # geom_text(data = colLabels, aes(x, y, label = label)) +
-  theme.grid + theme(plot.margin = unit(c(0,4,0,4), "lines")) +
-  facet.braak
+  labs(title = bquote(italic(.(gene))), x = "Fold-change") +
+  theme.grid
+g=ggplotGrob(plot)
+g$heights[7] = grobHeight(1)
+grid.arrange(g, table, ncol = 2)
+
 pdf(file = paste0("forestplot_", gene, ".pdf"), 12, 6)
 leftPanel
 dev.off()
@@ -107,7 +82,7 @@ dev.off()
 
 # Forrest plot Braak correlations
 
-load("resources/summaryLabelCorr.RData")
+
 
 #Get values for a gene to plot
 tab <- summaryLabelCorr[[geneId]]
