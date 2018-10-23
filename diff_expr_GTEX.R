@@ -122,7 +122,7 @@ pdf("boxplot_GTEX.pdf", 4, 3)
 print(p1)
 dev.off()
 
-#boxplot of SNCA
+#boxplot of PD genes
 prepare.data <- function(g){
   ens <- conversion_tab$ensembl_gene_id[which(conversion_tab$entrezgene == g)]
   df <- lapply(samples, function(s) unlist(gtex_expr[ens, s]))
