@@ -2,13 +2,29 @@
 # Map probe to genes UKBEC datasets
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
 source("PD/base_script.R")
+library(biomaRt)
 library(WGCNA)
-library(reshape)
+library(reshape2)
 library(ggplot2)
 load("../UKBEC/expr.maps.rda",verbose=T)
-load("resources/ukbecGeneID.RData")
 load("resources/braakGenes.RData")
 load("resources/braakInfo.RData") # Braak colors
+
+##############################################################################################
+
+# Map affy ID to entrez IDs
+ensembl <- useEnsembl(biomart="ensembl", dataset="hsapiens_gene_ensembl", version = 92)
+affyID <- expr.map$exprID
+system.time({
+  ukbecGeneID <- getBM(c('ensembl_gene_id', 'entrezgene', 'hgnc_symbol', "affy_huex_1_0_st_v2"), 
+                       filters=c("affy_huex_1_0_st_v2"), mart=ensembl, values=affyID)
+})
+save(ukbecGeneID, file = "resources/ukbecGeneID.RData")
+write.table(ukbecGeneID, file = "ukbecGeneID.txt", row.names = FALSE, quote = FALSE, sep = "\t")
+load("resources/ukbecGeneID.RData")
+
+##############################################################################################
+# Probes to genes
 
 ukbecGeneID$entrezgene <- as.character(ukbecGeneID$entrezgene)
 ukbecGeneID$affy_huex_1_0_st_v2 <- as.character(ukbecGeneID$affy_huex_1_0_st_v2)
@@ -39,7 +55,6 @@ regionExpr <- lapply(regionExpr, function(x) {
   rownames(x) <- genes
   x
 })
-# regionExpr <- lapply(regionExpr, function(x) t(scale(t(x), center = TRUE)) ) # Normallize data
 save(regionExpr, file = "../UKBEC/regionExpr.RData")
 
 ##############################################################################################
@@ -59,9 +74,48 @@ save(ttest_ukbec, file = "resources/ttest_ukbec.RData")
 # Number of diff. genes
 sum(abs(ttest_ukbec$fc) > 1 & ttest_ukbec$BH < 0.05)
 
-# Braak genes
-braak_neg <- braakGenes$entrez_id[braakGenes$braak_r < 0]
-braak_pos <- braakGenes$entrez_id[braakGenes$braak_r > 0]
+##############################################################################################
+# Plotting functions
+
+prepare.data <- function(g){ # prepare ggplot dataframe for single genes
+  expr <- sapply(roi, function(r)  unlist(regionExpr[[r]][g, ] ))
+  df <- melt(expr)
+  colnames(df) <- c("sample", "region", "expr")
+  df$region <- factor(df$region, levels = unique(df$region))
+  df
+}
+
+names(braakColors) <- gsub("braak", "", names(braakColors))
+theme <- theme(panel.background = element_blank(), panel.grid = element_blank(), 
+               axis.line = element_line(colour = "black"))
+
+box.plot <- function(df, title){
+  ggplot(df) + 
+    geom_boxplot(aes(y = expr, x = region, fill = region)) +
+    labs(x = "Brain region", y = "Expression (log2-transformed)") +
+    ggtitle(title) +
+    scale_x_discrete(expand=c(0.2,0)) +
+    scale_fill_manual(values = braakColors, guide = FALSE) +
+    theme
+}
+
+plot.pdf <- function(name, genes){ # For plots of single genes
+  pdf(name, 2, 3)
+  lapply(genes, function(g){
+    title <- paste0(entrezId2Name(g))
+    df <- prepare.data(g)
+    p <- box.plot(df, title)
+    print(p)
+  })
+  dev.off()
+}
+
+##############################################################################################
+# Box plots
+
+# Expression of Braak genes
+braak_neg <- braakGenes$entrez_id[braakGenes$r < 0]
+braak_pos <- braakGenes$entrez_id[braakGenes$r > 0]
 braak_neg <- intersect(genes, braak_neg)
 braak_pos <- intersect(genes, braak_pos)
 braak <- list('r<0' = braak_neg, 'r>0' = braak_pos)
@@ -75,37 +129,15 @@ meanExpr <- lapply(roi, function(r){
   })
   melt(t)
 })
-meanExpr <- melt.list(meanExpr)
+meanExpr <- melt(meanExpr)
 colnames(meanExpr) <- c("sample", "r", "variable", "expr", "region")
 meanExpr$region <- factor(meanExpr$region, levels = unique(meanExpr$region))
-
-theme <- theme(panel.background = element_blank(), panel.grid = element_blank(), 
-               axis.line = element_line(colour = "black"))
-
-names(braakColors) <- gsub("braak", "", names(braakColors))
-
-box.plot <- function(df, title){
-  ggplot(df) + 
-    geom_boxplot(aes(y = expr, x = region, fill = region)) +
-    labs(x = "Braak stage", y = "Expression (log2-transformed)") +
-    ggtitle(title) +
-    scale_x_discrete(expand=c(0.2,0)) +
-    scale_fill_manual(values = braakColors, guide = FALSE) +
-    theme
-}
 p1 <- box.plot(meanExpr, "Expression of Braak genes in UKBEC") +
   facet_grid(.~r, scales = 'free', space = 'free', switch = "y")
-p1
-
-#boxplot of SNCA
-expr_snca <- sapply(roi, function(r)  unlist(regionExpr[[r]]["6622", ] ))
-expr_snca <- melt(expr_snca)
-colnames(expr_snca) <- c("sample", "region", "expr")
-expr_snca$region <- factor(expr_snca$region, levels = unique(expr_snca$region))
-
-p2 <- box.plot(expr_snca, "Expression of SNCA in UKBEC")
-p2
 pdf("boxplot_UKBEC.pdf", 4, 3)
-print(p1)
-print(p2)
+p1
 dev.off()
+
+#boxplot of PD genes
+plot.pdf("boxplot_UKBEC_PD_variant_genes.pdf", 
+         name2EntrezId(c("DNAJC13", "SNCA", "GCH1", "INPP5F", "ASH1L", "ZNF184", "DDRGK1", "ITPKB", "ELOVL7", "SCARB2")))

@@ -37,7 +37,7 @@ prepare.data <- function(g){
   })
   df <- Reduce(rbind, df)
   df <- df[df$label != "0", ]#Remove Braak 0
-  df$label <- paste0("B", df$label)
+  df$label <- paste0("R", df$label)
   df$label <- factor(df$label, levels = sort(unique(df$label)))
   df$donor <- factor(df$donor, levels = unique(df$donor))
   df
@@ -63,7 +63,7 @@ plot.pdf <- function(name, genes){
 
 # Boxplot for each PD-implicated gene
 plot.pdf("boxplot_high_impact_genes.pdf", pdGenesID$hiImpact)
-plot.pdf("boxplot_susceptible_genes.pdf", pdGenesID$susceptible)
+plot.pdf("boxplot_susceptible_genes.pdf", pdGenesID$jansen2017)
 plot.pdf("boxplot_HLA_genes.pdf", pdGenesID$hla)
 
 # Boxplot for mean expression of -ve and +ve Braak genes
