@@ -1,14 +1,15 @@
-  # Differential expression MEDU (1) vs. FCTX (6)
-# Map probe to genes UKBEC datasets
+# Differential expression between regions in UKBEC
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
 source("PD/base_script.R")
 library(biomaRt)
 library(WGCNA)
+library(plyr)
 library(reshape2)
 library(ggplot2)
 load("../UKBEC/expr.maps.rda",verbose=T)
 load("resources/braakGenes.RData")
 load("resources/braakInfo.RData") # Braak colors
+source("PD/t.test.table.R")
 
 ##############################################################################################
 
@@ -58,18 +59,23 @@ regionExpr <- lapply(regionExpr, function(x) {
 save(regionExpr, file = "../UKBEC/regionExpr.RData")
 
 ##############################################################################################
-
 # T-test in UKBEC
-ttest_ukbec <- as.data.frame(t(sapply(genes, function(g){
-  r1 <- regionExpr$MEDU[g, ]
-  r2 <- regionExpr$FCTX[g, ]
-  t <- t.test(r1, r2)
-  fc <- t$estimate[1]-t$estimate[2]
-  pvalue <- t$p.value
-  c(fc=unname(fc), pvalue=unname(pvalue))
-})))
-ttest_ukbec$BH <- p.adjust(ttest_ukbec$pvalue, method = "BH")
-save(ttest_ukbec, file = "resources/ttest_ukbec.RData")
+
+roi <- c('1' = "MEDU", '3' = "SNIG", '5' = "TCTX", '6' = "FCTX")
+regionpairs <- combn(roi, 2)
+colnames(regionpairs) <- apply(regionpairs, 2, function(x) paste0(x[1], "-",  x[2]))
+ttest <- alply(regionpairs, 2, function(x){
+  df1 <- regionExpr[[x[1]]]
+  df2 <- regionExpr[[x[2]]]
+  t.test.table(df1,df2)
+}, .dims = TRUE)
+ttest <- simplify2array(ttest) # 3D array: genes x measures x region pairs
+
+# Number of diff. genes
+apply(ttest, c(3), function(x){
+  sum(x[, "BH"] < 0.05 & abs(x[, "meanDiff"]) > 1)
+})
+save(ttest, file = "resources/ttest_ukbec.RData")
 
 # Number of diff. genes
 sum(abs(ttest_ukbec$fc) > 1 & ttest_ukbec$BH < 0.05)
@@ -121,7 +127,6 @@ braak_pos <- intersect(genes, braak_pos)
 braak <- list('r<0' = braak_neg, 'r>0' = braak_pos)
 
 # Mean expression across Braak genes within regions
-roi <- c('1' = "MEDU", '3' = "SNIG", '5' = "TCTX", '6' = "FCTX")
 meanExpr <- lapply(roi, function(r){
   t <- sapply(braak, function(g){
     expr <- regionExpr[[r]][g, ]
