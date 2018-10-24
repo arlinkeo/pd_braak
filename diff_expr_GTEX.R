@@ -42,9 +42,6 @@ gtex_expr <- gtex_expr[which(maxTPM >= 1), ]
 
 ################################################################################
 
-
-# df <- readRDS("../GTEX/gtex_expr.rds")
-
 # Select samples corresponding to brain tissues of Braak regions
 sample.annot <- read.table("../GTEX/GTEx_v7_Annotations_SampleAttributesDS.txt", sep = "\t", header = TRUE, fill = T, quote = "")
 roi <- c('3' = "Substantia nigra", '4' = "Amygdala", '5' = "Anterior cingulate cortex", '6' = "Frontal Cortex")
@@ -64,15 +61,15 @@ gtex_expr <- gtex_expr[!zerorows, ]
 # T-test
 regionpairs <- combn(names(roi), 2)
 colnames(regionpairs) <- apply(regionpairs, 2, function(x) paste0(x[1], "-",  x[2]))
-ttest.all <- alply(regionpairs, 2, function(x){
+ttest <- alply(regionpairs, 2, function(x){
   s1 <- samples[[x[1]]]
   s2 <- samples[[x[2]]]
   df1 <- gtex_expr[, s1]
   df2 <- gtex_expr[, s2]
   t.test.table(df1,df2)
 }, .dims = TRUE)
-ttest.all <- simplify2array(ttest.all) # 3D array: genes x measures x region pairs
-# save(ttest.all, file = "Resources/ttest.all_gtex.RData")
+ttest <- simplify2array(ttest.all) # 3D array: genes x measures x region pairs
+save(ttest, file = "Resources/ttest_gtex.RData")
 
 # Number of diff. genes
 apply(ttest.all, c(3), function(x){
