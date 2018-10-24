@@ -11,13 +11,18 @@ t.test.table <- function(a, b) { # Data matrices a and b
       test2tail <- t.test(a1, b1) # two-sided
       estimate <- unname(test2tail$estimate)
       confidence95 <- test2tail$conf.int
-      if (var(a1) < 0 | var(b1)< 0) print(x)
-      c('meanDiff' = estimate[2] - estimate[1], 'FC' = log2(estimate[2] / estimate[1]),
-        'meanA' = estimate[1], 'varA' = var(a1),
-        'meanB' = estimate[2], 'varB' = var(b1),
-        'sizeA' = length(a1), 'sizeB' = length(b1),
-        'lower95' = confidence95[1], 'upper95' = confidence95[2],
-        'pvalue' = test2tail$p.value)
+      # if (var(a1, na.rm = TRUE) == 0 | var(b1, na.rm = TRUE) == 0) print(x) # Print gene for which variance is 0
+      if (var(a1, na.rm = TRUE) != 0 | var(b1, na.rm = TRUE) != 0) {
+        c('meanDiff' = estimate[2] - estimate[1], 'FC' = log2(estimate[2] / estimate[1]),
+          'meanA' = estimate[1], 'varA' = var(a1),
+          'meanB' = estimate[2], 'varB' = var(b1),
+          'sizeA' = length(a1), 'sizeB' = length(b1),
+          'lower95' = confidence95[1], 'upper95' = confidence95[2],
+          'pvalue' = test2tail$p.value)
+      } else {
+        stop(paste("Variance of", x, "is 0"))
+      }
+     
     }))
     cbind(table, "BH" = p.adjust(table[, "pvalue"], method = "BH"))
   } else {
