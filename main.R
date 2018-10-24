@@ -23,7 +23,6 @@ source("ahba_entrez2ensembl.R")
 source("PD/diff_expr_GTEX.R")
 # source("PD/ukbecGeneID.R")
 source("PD/diff_expr_UKBEC.R")
-source("PD/boxplot_UKBEC.R")
 
 # Braak co-expression modules
 source("PD/gene_coexpr.R")
