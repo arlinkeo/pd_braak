@@ -7,6 +7,8 @@ library(plyr)
 load("resources/braakInfo.RData") # Braak colors
 source("PD/t.test.table.R")
 
+names(braakColors) <- gsub("braak", "R", names(braakColors))
+
 # Load and filter data
 
 gtex_expr <- read.table("../GTEX/GTEx_Analysis_2016-01-15_v7_RNASeQCv1.1.8_gene_tpm.gct", sep = "\t", comment.char = "#", header = TRUE, skip = 2)
@@ -39,6 +41,7 @@ rownames(gtex_expr) <- genes
 maxTPM <- apply(gtex_expr, 1, max)
 gtex_expr <- gtex_expr[which(maxTPM >= 1), ]
 # saveRDS(gtex_expr, file = "resources/gtex_expr.rds")
+gtex_expr <- readRDS("resources/gtex_expr.rds")
 
 ################################################################################
 
@@ -96,7 +99,8 @@ meanExpr <- lapply(samples, function(s){
 })
 meanExpr <- melt(meanExpr)
 colnames(meanExpr) <- c("sample", "r", "variable", "expr", "region")
-meanExpr$region <- factor(meanExpr$region, levels = unique(meanExpr$region))
+meanExpr$region <- paste0("R", meanExpr$region)
+meanExpr$region <- factor(meanExpr$region, levels = sort(unique(meanExpr$region)))
 
 theme <- theme(panel.background = element_blank(), 
                panel.grid = element_blank(), 
@@ -125,7 +129,9 @@ prepare.data <- function(g){
   df <- lapply(samples, function(s) unlist(gtex_expr[ens, s]))
   df <- melt(df)
   colnames(df) <- c("expr", "region")
-  df$region <- factor(df$region, levels = unique(df$region))
+  df$region <- paste0("R", df$region)
+  df$region <- factor(df$region, levels = sort(unique(df$region)))
+  # df$region <- factor(df$region, levels = unique(df$region))
   df
 }
 

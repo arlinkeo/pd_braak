@@ -57,6 +57,7 @@ regionExpr <- lapply(regionExpr, function(x) {
   x
 })
 save(regionExpr, file = "../UKBEC/regionExpr.RData")
+load("../UKBEC/regionExpr.RData")
 
 ##############################################################################################
 # T-test in UKBEC
@@ -87,11 +88,12 @@ prepare.data <- function(g){ # prepare ggplot dataframe for single genes
   expr <- sapply(roi, function(r)  unlist(regionExpr[[r]][g, ] ))
   df <- melt(expr)
   colnames(df) <- c("sample", "region", "expr")
-  df$region <- factor(df$region, levels = unique(df$region))
+  df$region <- paste0("R", df$region)
+  df$region <- factor(df$region, levels = sort(unique(df$region)))
   df
 }
 
-names(braakColors) <- gsub("braak", "", names(braakColors))
+names(braakColors) <- gsub("braak", "R", names(braakColors))
 theme <- theme(panel.background = element_blank(), panel.grid = element_blank(), 
                axis.line = element_line(colour = "black"))
 
@@ -119,6 +121,8 @@ plot.pdf <- function(name, genes){ # For plots of single genes
 ##############################################################################################
 # Box plots
 
+genes <- rownames(regionExpr$CRBL)
+
 # Expression of Braak genes
 braak_neg <- braakGenes$entrez_id[braakGenes$r < 0]
 braak_pos <- braakGenes$entrez_id[braakGenes$r > 0]
@@ -136,6 +140,7 @@ meanExpr <- lapply(roi, function(r){
 })
 meanExpr <- melt(meanExpr)
 colnames(meanExpr) <- c("sample", "r", "variable", "expr", "region")
+meanExpr$region <- paste0("R", meanExpr$region)
 meanExpr$region <- factor(meanExpr$region, levels = unique(meanExpr$region))
 p1 <- box.plot(meanExpr, "Expression of Braak genes in UKBEC") +
   facet_grid(.~r, scales = 'free', space = 'free', switch = "y")
