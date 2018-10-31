@@ -17,6 +17,9 @@ gene_coexpr <- lapply(donorNames, function(d){
   e <- brainExpr[[d]][, wholeBraak[[d]]]
   cor(t(e), method = "pearson") #r-matrix
 })
+rm(brainExpr)
 gene_coexpr <- simplify2array(gene_coexpr) # genes x genes x donors
+saveRDS(gene_coexpr, file = "resources/gene_coexpr.rds")
+# gene_coexpr <- readRDS("resources/gene_coexpr.rds")
 avgCoexpr <- apply(gene_coexpr, 1:2, mean)
 saveRDS(avgCoexpr, file = "resources/avgCoexpr_wholeBraak.rds")
