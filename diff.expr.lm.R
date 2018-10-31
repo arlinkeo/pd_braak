@@ -16,5 +16,5 @@ diff.expr.lm <- function(data, ref, group){
   df <- melt(arr[, "Pr(>|t|)", ])
   df$value <- p.adjust(df$value, method = "BH") # P-value corrected for genes and braak regions
   bh <- dcast(df, Var1 ~ Var2)[, -1]
-  abind(arr, 'BH' = bh, along = 2) # Returns 3D-array
+  abind(arr, 'BH' = bh, along = 2) # Returns 3D-array: groups x measures x rows (genes)
 }
