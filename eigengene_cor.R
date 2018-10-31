@@ -34,7 +34,7 @@ summary.braak.cor <- dget("PD/summary.braak.cor.R")
 
 # PCA first component of subselection expr. matrices
 eigenExpr <- lapply(donorNames, function(d){
-  s <- Reduce(c, braak_idx[[d]])#braakLabels[[d]] != 0 # logical vector
+  s <- unlist(braak_idx[[d]])
   expr <- brainExprNorm[[d]][, s]
   df <- as.data.frame(t(sapply(modules, function(genes){ # For each module with genes (grouped gene rows)
     eigen.gene(t(expr[genes, ]))
@@ -61,7 +61,7 @@ theme <- theme(legend.position = "none",
                axis.title =  element_text(size = 16),
                plot.title = element_text(size = 16),
                axis.text = element_text(size = 16),
-               axis.title.x = element_text(face="italic")
+               axis.title.y = element_text(face="italic")
 )
 
 labelCor <- do.call(rbind.data.frame, lapply(summaryLabelCorrEG, function(g) g["summary",]))
@@ -84,18 +84,18 @@ tab$info <- as.factor(tab$info)
 order <- order(tab$info)
 tab <- tab[order, ]
 
-xmax <- max(tab$r)+.2
-xmin <- min(tab$r)-.2
-ymax <-  ceiling(max(tab$'logp'))
+ymax <- max(tab$r)+.5
+ymin <- min(tab$r)-.5
+xmax <-  ceiling(max(tab$'logp'))
 
-p <- ggplot(tab, aes(r, logp, colour = info)) +
+p <- ggplot(tab, aes(logp, r, colour = info)) +
   geom_point(size = 2, alpha = 0.5) +
   # geom_text(aes(label=label)) +
   geom_text_repel(aes(label=label), colour = "black", size = 4, nudge_x = 0) +
   scale_colour_manual(values = c("0"="grey", "1"="blue", "2"="red")) +
-  labs(y = "-log10 p-value") +
-  scale_x_continuous(limits = c(xmin, xmax), expand = c(0,0)) +
-  scale_y_continuous(limits = c(0, ymax), expand = c(0,0)) +
+  labs(x = "-log10 p-value") +
+  scale_y_continuous(limits = c(ymin, ymax), expand = c(0,0)) +
+  scale_x_continuous(limits = c(0, xmax), expand = c(0,0)) +
   theme
 
 pdf("eigengene_r_volcanoplot.pdf", 5, 4.5)
@@ -104,64 +104,33 @@ dev.off()
 
 ##### Heatmap Expression of eigen gene #####
 
-ontology <- read.csv("../ABA_human_processed/Ontology_edited.csv")
+# Order of modules
+rowOrder <- order(-labelCor$r)
 
-# # IDs and AHBA colors for each sample per donor
-# sampleInfo <- lapply(donorNames, function(d){
-#   sampleIds <- read.csv(paste("../ABA_human_processed/sample_info_normalized_microarray_", d, "_2014-11-11.csv", sep = ""))[ , 1]
-#   info <- ontology[match(sampleIds, ontology$id), ]
-#   info$color_hex_triplet <- sapply(info$color_hex_triplet, function(c){
-#     if (nchar(c) == 5) {paste("#0", c, sep = "")} else {paste("#", c, sep = "")}
-#   })
-#   info
-# })
-
-# modules <- names(modules[["braak1-6"]])
-colOrder <- order(labelCor$r)
+# Heatmap colors
 colPal <- c("darkblue", "white", "darkred")
 rampcols <- colorRampPalette(colors = colPal, space="Lab")(201)
-colColor <- rampcols[as.numeric(cut(labelCor$r, breaks = 201))][colOrder]
-colsep <- which(labelCor$r[colOrder] > 0)[1]
+rowColor <- rampcols[as.numeric(cut(labelCor$r, breaks = 201))][rowOrder]
+rowsep <- tail(which(labelCor$r[rowOrder] > 0), 1)
 
-pdf("heatmap_expr_eigengenes.pdf", 8, 6)
+pdf("heatmap_expr_eigengenes.pdf", 10, 5)
 lapply(donorNames, function(d){
-  # Subselect expression matrices
-  samples <- as.logical(apply(braakStages[[d]], 1, sum))
+  samples <- unlist(braak_idx[[d]])
   df <- sampleInfo[[d]][samples,]
   labels <- braakLabels[[d]][samples]
-  exprMat <- t(eigenExpr[[d]])
-  
-  rowOrder <- order(labels, -df$graph_order)
-  df <- df[rowOrder, ]
-  exprMat <- exprMat[rowOrder, ]
-  
-  rowsep <- match(c(2:6), labels[rowOrder])# separate Braak regions
-  
-  colPal <- c("darkblue", "white", "darkred")
-  rampcols <- colorRampPalette(colors = colPal, space="Lab")(200)
-  
-  # samples <- braakLabels[[d]] != 0
-  # df <- sampleInfo[[d]][samples,]
-  # exprMat <- as.matrix(eigenExpr[[d]])
-  # rowColor <- df$color_hex_triplet
-  # 
-  rowOrder <- order(labels[[d]], -df$graph_order)
-  df <- df[rowOrder, ]
-  exprMat <- t(exprMat[colOrder, rowOrder])
-  colnames(exprMat) <- NULL
-  rowColor <- rowColor[rowOrder]
-  rowsep <- match(c(2:6), labels[[d]][rowOrder])# separate Braak regions
-  
+  exprMat <- as.matrix(eigenExpr[[d]][rowOrder, ])
+  colsep <- match(c(2:6), labels) -1# separate Braak regions
+  colColor <- df$color_hex_triplet
+  # rownames(exprMat) <- NULL
   heatmap.2(exprMat, col = rampcols, 
-            labRow = df$name, 
-            rowsep = rowsep, colsep = colsep, sepcolor = "red",
+            labCol = df$name, 
+            rowsep = rowsep, colsep = colsep, sepcolor = "black",
             Rowv=FALSE, Colv=FALSE, 
-            cexCol = 1, cexRow = .1,
+            cexCol = .1, cexRow = 1,
             scale = "none", trace = "none", dendrogram = "none", key = FALSE, 
             RowSideColors = rowColor, ColSideColors = colColor,
             main = d,
             margins = c(5, 20))
-  
 })
 dev.off()
 
