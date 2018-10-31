@@ -4,11 +4,11 @@ source("PD/base_script.R")
 library(WGCNA)
 
 ### Hierarchical clustering and module detection ###
-hier.clust <- function(r){
-  file <- paste0("resources/avgCoexpr_", r, ".rds")
+hier.clust <- function(file){
   coexpr <- readRDS(file)
   dist <- as.dist(1 - coexpr)
   sapply(c("single", "complete", "average"), function(method){
+    print(method)
     # Hierarchical clustering Braak 1
     tree <- hclust(dist, method = method)
     # Co-expression modules per Braak region
@@ -19,7 +19,7 @@ hier.clust <- function(r){
   }, simplify = FALSE)
 }
 
-hierclust_tree <- hier.clust("braak1-6")
+hierclust_tree <- hier.clust("resources/avgCoexpr_wholeBraak.rds")
 save(hierclust_tree, file = "resources/hierclust_tree.RData")
 
 # Plot dendrogram and modules 
