@@ -41,35 +41,44 @@ apply(ttest, c(3,4), function(x){
   sum(x[, "BH"] < 0.05 & abs(meanDiff) > 1)
 })
 
-summaryDiffExpr <- sapply(dimnames(ttest)[[3]], function(r){
-  print(r)
-  sapply(dimnames(ttest)[[1]], function(gene){
-    # print(paste0(r, ";", gene))
-    gene <- ttest[gene,,r,]
-    gene <- t(gene)
-    
-    # Get effect sizes and its variance (needed for meta-analysis) and confidence intervals (region B vs. A)
-    t <- escalc(measure = "MD", 
-                m1i = gene[, "meanB"], m2i = gene[, "meanA"], 
-                n1i = gene[, "sizeB"], n2i = gene[, "sizeA"], 
-                sd1i = sqrt(gene[, "varB"]), sd2i = sqrt(gene[, "varA"]))
-    t <- summary(t)[, -c(3,4)]
-    colnames(t) <- c("estimate", "var", "lower95", "upper95")
-    
-    # Summary effect size given effect sizes and variance
-    summary <- rma(t$estimate, t$var, method = "DL", test = "t")
-
-    # Combine into table
-    t <- cbind(t, pvalue = gene[, "pvalue"], weight = weights(summary))
-    rbind(t, 'summary' = list(summary$beta, summary$se^2 , summary$ci.lb, summary$ci.ub,
-                              summary$pval, sum(weights(summary))))
-  }, simplify = FALSE)
-}, simplify = FALSE)
+# Meta-analysis across donors
+summaryDiffExpr <- aaply(ttest, c(1,3), function(g){ # For each Braak region pair and gene
+  gene <- as.data.frame(t(g))
+  t <- escalc(measure = "MD",  # Get estimates, variance (needed for meta-analysis) and confidence intervals (region B vs. A)
+              m1i = gene[, "meanB"], m2i = gene[, "meanA"], # estimate
+              n1i = gene[, "sizeB"], n2i = gene[, "sizeA"], 
+              sd1i = sqrt(gene[, "varB"]), sd2i = sqrt(gene[, "varA"]))
+  t <- summary(t)[, -c(3,4)]
+  colnames(t) <- c("Estimate", "Var", "lower95", "upper95")
+  summary <- rma(t$Estimate, t$Var, method = "DL", test = "t")
+  gene$weight <- weights(summary)
+  t <- cbind(t, pvalue = gene[, "pvalue"], weight = weights(summary))
+  t <- rbind(t, 'summary' = list(summary$beta, summary$se^2 , summary$ci.lb, summary$ci.ub,
+                            summary$pval, sum(weights(summary))))
+  as.matrix(t)
+}) # 4D-array: genes x regions x measures x donors
 save(summaryDiffExpr, file = "resources/summaryDiffExpr.RData")
+
+# Filter summary estimates, and correct P-values
+summaryDiffExpr2 <- summaryDiffExpr[,,"summary",] # genes x region x measures
+summaryDiffExpr2 <- aaply(summaryDiffExpr2, 2, function(t){ # P-value corrected for genes
+  b <- p.adjust(t[, "pvalue"], method = "BH")
+  cbind(t, BH = b)
+}) # region x genes x measures
+
+diffGenes <- apply(summaryDiffExpr2, 1, function(t){
+  down <-  rownames(t)[which(t[, "Estimate"] < -1 & t[,"BH"] < 0.05)]
+  up <- rownames(t)[which(t[, "Estimate"] > 1 & t[,"BH"] < 0.05)]
+  list(down = down, up = up)
+})
+numbers <- t(sapply(diffGenes, function(x){
+  deg <- sapply(x, length)
+  c(deg, sum = sum(deg))
+}))
 
 ########## Bar plot of differentially expressed genes between all Braak regions ##########
 
-p <- plot.deg.numbers(summaryDiffExpr)
+p <- plot.deg.numbers(numbers[, -3])
 pdf("diff_expr_barplot.pdf", 6, 4)
 print(p)
 dev.off()
