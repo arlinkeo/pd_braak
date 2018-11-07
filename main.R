@@ -3,10 +3,6 @@ setwd("C:/Users/dkeo/surfdrive/pd_braak")
 # Prepare Braak data
 source("PD/braakStageSamples.R")
 
-# # Cell-type markers
-# source("PD/lm_celltypes.R")
-# source("PD/diff_expr_lm.R")
-
 # Single gene analysis
 source("PD/diff_expr.R")
 source("PD/braaklabel_cor.R")
@@ -15,6 +11,10 @@ source("PD/diff_expr_hemispheres.R")
 
 # Visualize data
 source("PD/boxplot_braak.R")
+
+# Braak genes corrected for cell-type expression
+# source("PD/lm_celltypes.R")
+source("PD/diff_expr_lm.R")
 
 # Gene conversion table
 source("ahba_entrez2ensembl.R")
