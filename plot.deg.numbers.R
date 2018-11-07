@@ -1,26 +1,16 @@
 # Bar plot with  number of differentially expressed genes
 
-plot.deg.numbers <- function(l){
-  
-  numbers <- t(sapply(l, function(b){
-    t <- do.call(rbind.data.frame, lapply(b, function(g) g["summary",]))
-    t$BH <- p.adjust(t$pvalue, method = "BH")
-    t
-    negative_r <- -sum(t$estimate < -1 & t$BH < 0.05)
-    positive_r <- sum(t$estimate > 1 & t$BH < 0.05)
-    c('negative' = negative_r, 'positive' = positive_r)
-    
-  }))
-  rownames(numbers) <- gsub("-", " - ", rownames(numbers))
-  
-  df <- melt(numbers)
-  colnames(df) <- c("region", "dir", "n")
+plot.deg.numbers <- function(t){
+  df <- melt(t)
+  colnames(df) <- c("region", "dir", "size")
+  df$size[df$dir == "down"] <- df$size[df$dir == "down"]*-1
   df$region <- factor(df$region, levels = rev(unique(df$region)))
-  df$y <- ifelse(df$dir == "positive", df$n+500, df$n-500)
+  lab_offset <- max(df$size)*0.5
+  df$y <- ifelse(df$dir == "up", df$size + lab_offset, df$size - lab_offset)
   
-  ggplot(df) + 
-    geom_col(aes(x=region, y = n, fill=dir), size = 0.5, colour = "black") + 
-    geom_text(aes(x=region, y= y, label=format(abs(df$n), big.mark=","))) + 
+  ggplot(df) +
+    geom_col(aes(x=region, y = size, fill=dir), size = 0.5, colour = "black") +
+    geom_text(aes(x=region, y= y, label=format(abs(df$size), big.mark=","))) +
     scale_fill_manual(values = c("blue", "red")) +
     scale_y_continuous(expand = c(0.1,0.1)) +
     coord_flip() +
