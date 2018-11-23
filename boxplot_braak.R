@@ -1,11 +1,14 @@
 # Boxplot of expression in Braak regions for a single gene
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
 library(ggplot2)
+library(reshape2)
 source("PD/base_script.R")
-load("../ABA_Rdata/BrainExpr.RData")
+brainExpr <- readRDS("../AHBA_Arlin/gene_expr.RDS")
 load("resources/braakInfo.RData") # Braak stage label vectors
 load("resources/summaryLabelCor.RData")
 load("resources/braakGenes.RData")
+load("resources/braakGenes2.RData")
+load("resources/braakGenes3.RData")
 
 # Default theme for boxplot
 theme <- theme(panel.background = element_blank(), panel.grid = element_blank(), 
@@ -26,7 +29,7 @@ box.plot <- function(df, title){
   p
 }
 
-# Prepare data
+# Prepare data (mean across genes)
 prepare.data <- function(g){
   df <- lapply(donorNames, function(d) {
     expr <- brainExpr[[d]][g, ]
@@ -67,19 +70,30 @@ plot.pdf("boxplot_susceptible_genes.pdf", pdGenesID$jansen2017)
 plot.pdf("boxplot_HLA_genes.pdf", pdGenesID$hla)
 
 # Boxplot for mean expression of -ve and +ve Braak genes
-braak <- list(
-  'r<0' = braakGenes$entrez_id[braakGenes$r < 0],
-  'r>0' = braakGenes$entrez_id[braakGenes$r > 0])
+bg <- list(
+  bg1 = list( # Braak genes selected WIHTOUT cell-type correction
+    down = braakGenes$entrez_id[braakGenes$r < 0],
+    up = braakGenes$entrez_id[braakGenes$r > 0]
+  ),
+  bg2 = list( # Braak genes selected WITH cell-type correction
+    down = braakGenes2$entrez_id[braakGenes2$braak6 < 0],
+    up = braakGenes2$entrez_id[braakGenes2$braak6 > 0]
+  ),
+  bg3 = braakGenes3 # Intersection of corrected and uncorrected results
+)
 
-df <- lapply(names(braak), function(r){
-  g <- braak[[r]]
-  title <- r
-  df <- prepare.data(g)
-  df$r <- r
+meanExpr <- lapply(bg, function(l){
+  df <- melt(lapply(l, prepare.data))
+  colnames(df) <- c("label", "donor", "variable", "expr", "dir")
   df
 })
-df <- Reduce(rbind, df)
+y_max <- max(sapply(meanExpr, function(x) max(x$expr)))
+y_min <- min(sapply(meanExpr, function(x) min(x$expr)))
 
 pdf("boxplot_AHBA.pdf", 10, 4)
-box.plot(df, "Braak genes") + facet_grid(.~r, space = "free", scales = "free")
+lapply(names(meanExpr), function(n){
+  df <- meanExpr[[n]]
+  box.plot(df, n) + facet_grid(.~dir, space = "free", scales = "free") +
+    scale_y_continuous(limits = c(y_min, y_max))
+})
 dev.off()

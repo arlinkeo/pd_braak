@@ -1,11 +1,10 @@
 #Base script
-
 options(stringsAsFactors = FALSE)
 
 ##### AHBA data and functions #####
 
 # Function for gene conversion
-probeInfo <- read.csv("../ABA_human_processed/probe_info_2014-11-11.csv")
+probeInfo <- read.csv("../AHBA_Arlin/probe_info_2018-11-18.csv")
 entrezId2Name <- function (x) {probeInfo$gene_symbol[match(x, probeInfo$entrez_id)]} #Input is vector
 name2EntrezId <- function (x) {as.character(probeInfo$entrez_id[match(x, probeInfo$gene_symbol)])} #Input is vector
 
@@ -21,13 +20,14 @@ ahba.genes <- function(random = NULL){
 }
 
 # IDs and AHBA colors for each sample per donor
-ontology <- read.csv("../ABA_human_processed/Ontology_edited.csv")
+ontology <- read.csv("../AHBA_Arlin/Ontology.csv")
 sampleInfo <- lapply(donorNames, function(d){
-  sampleIds <- read.csv(paste("../ABA_human_processed/sample_info_normalized_microarray_", d, "_2014-11-11.csv", sep = ""))[ , 1]
+  sampleIds <- read.csv(paste0("../AHBA_Arlin/sample_info_", d, "_2018-11-18.csv"))[ , 1]
   info <- ontology[match(sampleIds, ontology$id), ]
-  info$color_hex_triplet <- sapply(info$color_hex_triplet, function(c){
-    if (nchar(c) == 5) {paste("#0", c, sep = "")} else {paste("#", c, sep = "")}
-  })
+  # info$color_hex_triplet <- sapply(info$color_hex_triplet, function(c){
+  #   if (nchar(c) == 5) {paste("#0", c, sep = "")} else {paste("#", c, sep = "")}
+  # })
+  info$color_hex_triplet <- paste0("#", info$color_hex_triplet)
   info
 })
 

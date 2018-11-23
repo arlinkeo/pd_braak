@@ -6,6 +6,9 @@ library(ggplot2)
 library(plyr)
 load("resources/braakInfo.RData") # Braak colors
 source("PD/t.test.table.R")
+load("resources/braakGenes.RData")
+load("resources/braakGenes2.RData")
+load("resources/braakGenes3.RData")
 
 names(braakColors) <- gsub("braak", "R", names(braakColors))
 
@@ -71,42 +74,43 @@ ttest <- alply(regionpairs, 2, function(x){
   df2 <- gtex_expr[, s2]
   t.test.table(df1,df2)
 }, .dims = TRUE)
-ttest <- simplify2array(ttest.all) # 3D array: genes x measures x region pairs
+ttest <- simplify2array(ttest) # 3D array: genes x measures x region pairs
 save(ttest, file = "Resources/ttest_gtex.RData")
 
 # Number of diff. genes
-apply(ttest.all, c(3), function(x){
+apply(ttest, c(3), function(x){
   sum(x[, "BH"] < 0.05 & abs(x[, "FC"]) > 1)
 })
 
-# Overlap with Braak genes
+# T-test Overlap with Braak genes
 
-# Box plot of all Braak genes
+# Box plot of Braak stage related genes
 
-# Braak genes
-conversion_tab <- read.csv("ahba_entrez2ensembl_braak.txt", sep = "\t")
-braak_pos <- conversion_tab$ensembl_gene_id[conversion_tab$r > 0]
-braak_neg <- conversion_tab$ensembl_gene_id[conversion_tab$r < 0]
-braak_pos <- intersect(rownames(gtex_expr), braak_pos)
-braak_neg <- intersect(rownames(gtex_expr), braak_neg)
+bg <- list(
+  bg1 = list( # Braak genes selected WIHTOUT cell-type correction
+    down = braakGenes$entrez_id[braakGenes$r < 0],
+    up = braakGenes$entrez_id[braakGenes$r > 0]
+  ),
+  bg2 = list( # Braak genes selected WITH cell-type correction
+    down = braakGenes2$entrez_id[braakGenes2$braak6 < 0],
+    up = braakGenes2$entrez_id[braakGenes2$braak6 > 0]
+  ),
+  bg3 = braakGenes3 # Intersection of corrected and uncorrected results
+)
 
-# Mean expression across Braak genes
-meanExpr <- lapply(samples, function(s){
-  t <- sapply(list("r<0" = braak_neg, "r>0" = braak_pos), function(g){
-    apply(gtex_expr[g, s], 2, mean)
+# Convert entrez IDs to ensembl IDs
+conversion_tab <- read.csv("ahba_entrez2ensembl.txt", sep = "\t")
+bg <- lapply(bg, function(s){
+  lapply(s, function(g){
+    rows <- which(conversion_tab$entrezgene %in% g)
+    id <- conversion_tab[rows, "ensembl_gene_id"]
+    intersect(id, rownames(gtex_expr))
   })
-  melt(t)
 })
-meanExpr <- melt(meanExpr)
-colnames(meanExpr) <- c("sample", "r", "variable", "expr", "region")
-meanExpr$region <- paste0("R", meanExpr$region)
-meanExpr$region <- factor(meanExpr$region, levels = sort(unique(meanExpr$region)))
 
 theme <- theme(panel.background = element_blank(), 
                panel.grid = element_blank(), 
                axis.line = element_line(colour = "black"))
-
-names(braakColors) <- gsub("braak", "", names(braakColors))
 
 box.plot <- function(df, title){
   ggplot(df) + 
@@ -117,10 +121,30 @@ box.plot <- function(df, title){
     scale_fill_manual(values = braakColors, guide = FALSE) +
     theme
 }
-p1 <- box.plot(meanExpr, "Expression of Braak genes in GTEx") +
-  facet_grid(.~r, scales = 'free', space = 'free', switch = "y")
+
+# Mean expression across Braak genes
+mean_df <- lapply(bg, function(s){
+  t <- lapply(samples, function(n){
+    sapply(s, function(g){
+      apply(gtex_expr[g, n], 2, mean)
+    })
+  })
+  df <- melt(t)
+  colnames(df) <- c("sample", "dir", "expr", "region")
+  df$region <- paste0("R", df$region)
+  df$region <- factor(df$region, levels = sort(unique(df$region)))
+  df
+})
+
+y_max <- max(sapply(mean_df, function(x) max(x$expr)))
+
 pdf("boxplot_GTEX.pdf", 4, 3)
-print(p1)
+lapply(names(mean_df), function(n){
+  df <- mean_df[[n]]
+  box.plot(df, n) +
+    facet_grid(.~dir, scales = 'free', space = 'free', switch = "y") +
+    scale_y_continuous(limits = c(0, y_max))
+})
 dev.off()
 
 #boxplot of PD genes

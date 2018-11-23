@@ -6,7 +6,8 @@ library(reshape2)
 library(ggplot2)
 library(plyr)
 load("resources/braakInfo.RData")
-load("../ABA_Rdata/BrainExpr.RData")
+
+brainExpr <- readRDS("../AHBA_Arlin/gene_expr.RDS")
 
 # Load functions
 source("PD/plot.deg.numbers.R")

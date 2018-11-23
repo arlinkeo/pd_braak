@@ -4,23 +4,24 @@ library("metap")
 library(gplots)
 library(ggplot2)
 library(reshape2)
+library(plyr)
 library("RDAVIDWebService")
 source("PD/base_script.R")
-load("../ABA_Rdata/BrainExpr.RData")
 load("resources/braakInfo.RData")
-load("resources/not_celltype_corrected/summaryDiffExpr.RData")
-load("resources/not_celltype_corrected/summaryLabelCor.RData")
+load("resources/summaryDiffExpr.RData")
+load("resources/summaryLabelCor.RData")
+
+brainExpr <- readRDS("../AHBA_Arlin/gene_expr.RDS")
 
 ########## Prepare data ##########
 
 # Extract summary statistics, BH-correct
-summaryDiffExpr <- lapply(summaryDiffExpr, function(rp){
-  tab <- do.call(rbind.data.frame, lapply(rp, function(g) g["summary",]))
-  tab$BH <- p.adjust(tab$pvalue, method = "BH")
-  tab
+summaryDiffExpr <- aaply(summaryDiffExpr, 2, function(rp){
+  tab <- rp[,"summary",] #do.call(rbind.data.frame, lapply(rp, function(g) g["summary",]))
+  cbind(tab, BH = p.adjust(tab[, "pvalue"], method = "BH"))
 })
 # Select region pair
-diffExpr <- summaryDiffExpr$`braak1-braak6`
+diffExpr <- as.data.frame(summaryDiffExpr["braak1-braak6", ,])
 
 labelCor <- do.call(rbind.data.frame, lapply(summaryLabelCor, function(g) g["summary",]))
 labelCor$BH <- p.adjust(labelCor$pvalue, method = "BH")
@@ -39,18 +40,18 @@ max(abs(labelCor[corrGenes, "r"]))
 min(abs(labelCor[corrGenes, "r"]))
 
 # Top 10% mean Diff. expressed genes braak 1 vs. braak 6
-order <- rev(order(abs(diffExpr$meanDiff))) # order absolute corr.
+order <- rev(order(abs(diffExpr$Estimate))) # order absolute corr.
 diffGenes1 <- rownames(diffExpr)[order[1:top10]] # top 10% genes
-diffGenes1_pos <- diffGenes1[diffExpr[diffGenes1, "meanDiff"] > 0]
-diffGenes1_neg <- diffGenes1[diffExpr[diffGenes1, "meanDiff"] < 0]
-max(abs(diffExpr[diffGenes1, "meanDiff"]))
-min(abs(diffExpr[diffGenes1, "meanDiff"]))
+diffGenes1_pos <- diffGenes1[diffExpr[diffGenes1, "Estimate"] > 0]
+diffGenes1_neg <- diffGenes1[diffExpr[diffGenes1, "Estimate"] < 0]
+max(abs(diffExpr[diffGenes1, "Estimate"]))
+min(abs(diffExpr[diffGenes1, "Estimate"]))
 
 # Top 10% significant Diff. expressed genes braak 1 vs. braak 6
 order <- order(diffExpr$BH) # order absolute corr.
 diffGenes2 <- rownames(diffExpr)[order[1:top10]] # top 10% genes
-diffGenes2_pos <- diffGenes2[diffExpr[diffGenes2, "meanDiff"] > 0]
-diffGenes2_neg <- diffGenes2[diffExpr[diffGenes2, "meanDiff"] < 0]
+diffGenes2_pos <- diffGenes2[diffExpr[diffGenes2, "Estimate"] > 0]
+diffGenes2_neg <- diffGenes2[diffExpr[diffGenes2, "Estimate"] < 0]
 max(diffExpr[diffGenes2, "BH"])
 min(diffExpr[diffGenes2, "BH"])
 
@@ -73,7 +74,7 @@ braakGenes <- data.frame(
   gene_symbol = entrezId2Name(braakGenes),
   r = labelCor[braakGenes, "r"], 
   r_BH = labelCor[braakGenes, "BH"], 
-  fc = diffExpr[braakGenes, "meanDiff"], 
+  fc = diffExpr[braakGenes, "Estimate"], 
   fc_BH = diffExpr[braakGenes, "BH"]
 )
 braakGenes <- braakGenes[order(braakGenes$r),]
@@ -223,11 +224,11 @@ braak <- lapply(c(positive = "pos", negative = "neg"), function(x){
 david<-DAVIDWebService$new(email="D.L.Keo@tudelft.nl",
                            url="https://david.abcc.ncifcrf.gov/webservice/services/DAVIDWebService.DAVIDWebServiceHttpSoap12Endpoint/")
 setAnnotationCategories(david, c("GOTERM_BP_ALL", "GOTERM_MF_ALL", "GOTERM_CC_ALL"))
+setTimeOut(david, 200000)
 bg_list <- ahba.genes()
 bg <- addList(david, bg_list, idType = "ENTREZ_GENE_ID", listName = "AHBA background", listType = "Background")
 bg
 t <- 0.05 # EASE p-value threshold
-setTimeOut(david, 200000)
 
 # Enrichment of positively and negatively correlated progression genes
 lapply(names(braak), function(r){

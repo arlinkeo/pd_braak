@@ -1,6 +1,6 @@
 # Gene co-expression in whole Braak region
 setwd("/tudelft.net/staff-bulk/ewi/insy/DBL/Arlin/pd_braak")
-load("../ABA_Rdata/BrainExpr.RData")
+brainExpr <- readRDS("../AHBA_Arlin/gene_expr.RDS")
 
 # Brain donor names
 donorNames <- c("donor9861", "donor10021", "donor12876", "donor14380", "donor15496", "donor15697")

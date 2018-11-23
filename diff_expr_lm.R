@@ -8,7 +8,7 @@ library(abind)
 library(plyr)
 library("RDAVIDWebService")
 load("resources/braakInfo.RData")
-load("../ABA_Rdata/BrainExpr.RData")
+brainExpr <- readRDS("../AHBA_Arlin/gene_expr.RDS")
 
 # Load function
 source("PD/diff.expr.lm.R")
@@ -77,27 +77,13 @@ sapply(diffGenes, function(x){
 })
 
 degR6 <- diffGenes$braak6
-braakgenes2 <- degR6 
-save(braakgenes2, file = "resources/braakGenes2.RData")
-
-#Functional enrichment of genes down- and upregulated between Braak region 1 and 6
-david<-DAVIDWebService$new(email="D.L.Keo@tudelft.nl",
-                           url="https://david.abcc.ncifcrf.gov/webservice/services/DAVIDWebService.DAVIDWebServiceHttpSoap12Endpoint/")
-setAnnotationCategories(david, c("GOTERM_BP_ALL", "GOTERM_MF_ALL", "GOTERM_CC_ALL"))
-bg_list <- ahba.genes()
-bg <- addList(david, bg_list, idType = "ENTREZ_GENE_ID", listName = "AHBAbackground", listType = "Background")
-bg
-t <- 0.05 # EASE p-value threshold
-setTimeOut(david, 200000)
-
-lapply(names(degR6), function(dir){
-  genes <- degR6[[dir]]
-  result <- addList(david, genes, idType = "ENTREZ_GENE_ID", listName = dir, listType = "Gene")
-  print(result)
-  setCurrentBackgroundPosition(david, 1)
-  getFunctionalAnnotationChartFile(david, paste0("Functional_analyses/deg_lm_", dir, "_goterms.txt"), threshold=t, count=2L)
-  getClusterReportFile(david, paste0("Functional_analyses/deg_lm_", dir, "_termclusters.txt"), type = c("Term"))
-})
+braakGenes2 <- t(summaryCoef2[, unlist(degR6), c("Estimate")])
+braakGenes2 <- data.frame(entrez_id = rownames(braakGenes2),
+ gene_symbol =  entrezId2Name(rownames(braakGenes2)), 
+ braakGenes2,
+ BH = summaryCoef2["braak6", unlist(degR6), "BH"]
+ )
+save(braakGenes2, file = "resources/braakGenes2.RData")
 
 # Correlation across fold-changes per braak region
 # For genes differentially expressed between R1 and R6
@@ -110,14 +96,14 @@ names(thresholds) <- thresholds
 sapply(braakCor, function(r){
   sapply(thresholds, function(x) sum(abs(r)> x))
 })
-braakgenes <- sapply(braakCor, function(r){
-  names(r)[abs(r)>0.8]
-})
-
-# line plot of fc's across regions
-df <- melt(t[,unlist(braakgenes)])
-colnames(df) <- c("region", "gene", "fc")
-ggplot(df, aes(x=region, y=fc, group=gene, color=gene)) + geom_line() + geom_point()
+# braakgenes <- sapply(braakCor, function(r){
+#   names(r)[abs(r)>0.8]
+# })
+# 
+# # line plot of fc's across regions
+# df <- melt(t[,unlist(braakgenes)])
+# colnames(df) <- c("region", "gene", "fc")
+# ggplot(df, aes(x=region, y=fc, group=gene, color=gene)) + geom_line() + geom_point()
 
 # Presence of PD-implicated genes
 pdg <- lapply(pdGenesID, function(l){
@@ -138,3 +124,70 @@ p <- plot.deg.numbers(numbers)
 pdf("diff_expr_lm_eg_barplot.pdf", 6, 3)
 print(p)
 dev.off()
+
+##############################################################
+# Overlap of old and newly identified Braak genes
+library(venn)
+load("resources/braakGenes.RData")
+
+braakGenes3 <- sapply(c("down", "up"), function(dir){
+  l <- if (dir == "down"){
+    bg1 <- braakGenes$entrez_id[braakGenes$r < 0]
+    bg2 <- braakGenes2$entrez_id[braakGenes2$braak6 < 0]
+    list(bg1, bg2)
+  } else {
+    bg1 <- braakGenes$entrez_id[braakGenes$r > 0]
+    bg2 <- braakGenes2$entrez_id[braakGenes2$braak6 > 0]
+    list(bg1, bg2)
+  }
+  v <- venn(l); title(dir, line = -1)
+  attributes(v)$intersections$`A:B`
+}, simplify = FALSE)
+save(braakGenes3, file = "resources/braakGenes3.RData")
+
+##############################################################
+
+bg <- list(
+  bg1 = list( # Braak genes selected WIHTOUT cell-type correction
+    down = braakGenes$entrez_id[braakGenes$r < 0],
+    up = braakGenes$entrez_id[braakGenes$r > 0]
+  ),
+  bg2 = list( # Braak genes selected WITH cell-type correction
+    down = braakGenes2$entrez_id[braakGenes2$braak6 < 0],
+    up = braakGenes2$entrez_id[braakGenes2$braak6 > 0]
+  ),
+  bg3 = braakGenes3 # Intersection of corrected and uncorrected results
+)
+
+#Functional enrichment of genes down- and upregulated between Braak region 1 and 6
+david<-DAVIDWebService$new(email="D.L.Keo@tudelft.nl",
+                           url="https://david.abcc.ncifcrf.gov/webservice/services/DAVIDWebService.DAVIDWebServiceHttpSoap12Endpoint/")
+setAnnotationCategories(david, c("GOTERM_BP_ALL", "GOTERM_MF_ALL", "GOTERM_CC_ALL"))
+setTimeOut(david, 200000)
+backgroundGenes <- ahba.genes()
+background <- addList(david, backgroundGenes, idType = "ENTREZ_GENE_ID", listName = "AHBAbackground", listType = "Background")
+background
+t <- 0.05 # EASE p-value threshold
+
+lapply(names(bg), function(s){
+  bgs <- bg[[s]]
+  lapply(names(bgs), function(dir){
+    name <- paste0(s, "_", dir)
+    genes <- bgs[[dir]]
+    result <- addList(david, genes, idType = "ENTREZ_GENE_ID", listName = name, listType = "Gene")
+    print(result)
+    setCurrentBackgroundPosition(david, 1)
+    getFunctionalAnnotationChartFile(david, paste0("Functional_analyses/", name, "_goterms.txt"), threshold=t, count=2L)
+    getClusterReportFile(david, paste0("Functional_analyses/", name, "_termclusters.txt"), type = c("Term"))
+  })
+})
+
+# Number of significant GO-terms
+sapply(names(bg), function(s){
+  bgs <- bg[[s]]
+  sapply(names(bgs), function(dir){
+    name <- paste0(s, "_", dir)
+    tab <- read.delim(paste0("Functional_analyses/", name, "_goterms.txt"))
+    sum(tab$Benjamini < 0.05)
+  })
+})

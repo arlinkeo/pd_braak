@@ -4,9 +4,10 @@ library(ggplot2)
 library(ggrepel)
 library(gplots)
 source("PD/base_script.R")
-load("../ABA_Rdata/BrainExprNorm.RData")
 load("resources/modules.RData")
 load("resources/braakInfo.RData")
+
+brainExpr <- readRDS("../AHBA_Arlin/gene_expr.RDS")
 
 #####  Functions #####
 
@@ -17,16 +18,6 @@ eigen.gene <- function(x){
   if (cor(eg, mean) > 0) eg else -eg # flip sign of eigen gene based on the data
 }
 
-# # Function for eigen gene expression for each module in the same region
-# # x: data, l: list of modules with genes, s: logical vector of samples (columns)
-# eigen.data <- function(x, l){
-#   df <- as.data.frame(t(sapply(l, function(genes){ # For each module with genes (grouped gene rows)
-#     eigen.gene(t(x[genes, s]))
-#   })))
-#   colnames(df) <- names(s)[s]
-#   df
-# }
-
 # Braak-correlation for eigengenes
 summary.braak.cor <- dget("PD/summary.braak.cor.R")
 
@@ -35,7 +26,7 @@ summary.braak.cor <- dget("PD/summary.braak.cor.R")
 # PCA first component of subselection expr. matrices
 eigenExpr <- lapply(donorNames, function(d){
   s <- unlist(braak_idx[[d]])
-  expr <- brainExprNorm[[d]][, s]
+  expr <- brainExpr[[d]][, s]
   df <- as.data.frame(t(sapply(modules, function(genes){ # For each module with genes (grouped gene rows)
     eigen.gene(t(expr[genes, ]))
   })))
@@ -46,12 +37,22 @@ eigenExpr <- lapply(donorNames, function(d){
 save(eigenExpr, file = "resources/eigenExpr.RData")
 
 # Summary Braak correlation
-# labels <- lapply(braakLabels, function(labels){labels[labels != "0"]})
 labels <- lapply(donorNames, function(d){
   braakLabels[[d]][unlist(braak_idx[[d]])]
 })
 summaryLabelCorrEG <- summary.braak.cor(eigenExpr, labels)
 save(summaryLabelCorrEG, file = "resources/summaryLabelCorrEG.RData")
+
+labelCor <- do.call(rbind.data.frame, lapply(summaryLabelCorrEG, function(g) g["summary",]))
+labelCor$BH <- p.adjust(labelCor$pvalue, method = "BH")
+orderEG <- order(labelCor$r)
+labelCor <- labelCor[orderEG, ]
+
+mod_neg <- rownames(labelCor)[labelCor$BH < 0.0001 & labelCor$r < 0] # significant correlated modules
+mod_pos <- rownames(labelCor)[labelCor$BH < 0.0001 & labelCor$r > 0] # significant correlated modules
+
+braakModules <- list(down = mod_neg, up = mod_pos)
+save(braakModules, file = "resources/braakModules.RData")
 
 #####  Volcano plot #####
 
@@ -64,13 +65,9 @@ theme <- theme(legend.position = "none",
                axis.title.y = element_text(face="italic")
 )
 
-labelCor <- do.call(rbind.data.frame, lapply(summaryLabelCorrEG, function(g) g["summary",]))
 tab <- labelCor
-tab$BH <- p.adjust(tab$pvalue, method = "BH")
 tab$'logp' <- -log10(tab$BH)
-mod_neg <- rownames(tab)[tab$BH < 0.001 & tab$r < 0] # significant correlated modules
-mod_pos <- rownames(tab)[tab$BH < 0.001 & tab$r > 0] # significant correlated modules
-eg <- rownames(tab)[tab$BH < 0.001 & tab$r < 0] # significant correlated modules
+# eg <- rownames(tab)[tab$BH < 0.001 & tab$r < 0] # significant correlated modules
 tab$info <- sapply(rownames(tab), function(m){
   if (m %in% mod_neg) 1
   else if (m %in% mod_pos) 2
@@ -84,13 +81,12 @@ tab$info <- as.factor(tab$info)
 order <- order(tab$info)
 tab <- tab[order, ]
 
-ymax <- max(tab$r)+.5
-ymin <- min(tab$r)-.5
-xmax <-  ceiling(max(tab$'logp'))
+ymax <- max(tab$r)+.2
+ymin <- min(tab$r)-.2
+xmax <-  ceiling(max(tab$'logp'))+.5
 
 p <- ggplot(tab, aes(logp, r, colour = info)) +
   geom_point(size = 2, alpha = 0.5) +
-  # geom_text(aes(label=label)) +
   geom_text_repel(aes(label=label), colour = "black", size = 4, nudge_x = 0) +
   scale_colour_manual(values = c("0"="grey", "1"="blue", "2"="red")) +
   labs(x = "-log10 p-value") +
@@ -98,27 +94,27 @@ p <- ggplot(tab, aes(logp, r, colour = info)) +
   scale_x_continuous(limits = c(0, xmax), expand = c(0,0)) +
   theme
 
-pdf("eigengene_r_volcanoplot.pdf", 5, 4.5)
+pdf("eigengene_r_volcanoplot.pdf", 5, 5)
 p
 dev.off()
 
 ##### Heatmap Expression of eigen gene #####
 
 # Order of modules
-rowOrder <- order(-labelCor$r)
+rows <- rownames(labelCor)
 
 # Heatmap colors
 colPal <- c("darkblue", "white", "darkred")
 rampcols <- colorRampPalette(colors = colPal, space="Lab")(201)
-rowColor <- rampcols[as.numeric(cut(labelCor$r, breaks = 201))][rowOrder]
-rowsep <- tail(which(labelCor$r[rowOrder] > 0), 1)
+rowColor <- rampcols[as.numeric(cut(labelCor$r, breaks = 201))]#[rowOrder]
+rowsep <- tail(which(labelCor$r < 0), 1)
 
 pdf("heatmap_expr_eigengenes.pdf", 10, 5)
 lapply(donorNames, function(d){
   samples <- unlist(braak_idx[[d]])
   df <- sampleInfo[[d]][samples,]
   labels <- braakLabels[[d]][samples]
-  exprMat <- as.matrix(eigenExpr[[d]][rowOrder, ])
+  exprMat <- as.matrix(eigenExpr[[d]][rows, ])
   colsep <- match(c(2:6), labels) -1# separate Braak regions
   colColor <- df$color_hex_triplet
   # rownames(exprMat) <- NULL

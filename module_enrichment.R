@@ -8,21 +8,12 @@ library(biomaRt)
 library(GO.db)
 load("resources/modules.RData")
 load("resources/braakGenes.RData")
-load("resources/summaryLabelCorrEG.RData")
+load("resources/braakModules.RData")
+# load("resources/braakModules2.RData")
 
-dget("PD/diff.expr.lm.R")
+# dget("PD/diff.expr.lm.R")
 
-labelCor <- do.call(rbind.data.frame, lapply(summaryLabelCorrEG, function(g) g["summary",]))
-labelCor$pvalue <- p.adjust(labelCor$pvalue, method = "BH")
-orderEG <- order(labelCor$r)
-labelCor <- labelCor[orderEG, ]
-total <- length(ahba.genes())
-
-# Sorted, significant modules
-modules <- modules[orderEG]
-signif_modules <- modules[labelCor$pvalue < 0.001]
-
-##### Prepare list of Braak genes, cell types, GO-term, and diseases #####
+########## Prepare list of Braak genes, cell types, GO-term, and diseases ##########
 
 # Braak genes
 braak <- lapply(c(positive = "pos", negative = "neg"), function(x){
@@ -65,8 +56,9 @@ genelists <- lapply(genelists, function(t){
   sets
 })
 save(genelists, file = "resources/genelists.RData")
+load("resources/genelists.RData")
 
-##### Module enrichment #####
+########## Module enrichment functions ##########
 
 # hypergeometric test
 hyper.test <- function(a, b, total){
@@ -78,102 +70,112 @@ hyper.test <- function(a, b, total){
   p
 }
 
-modEnrich <- sapply(names(genelists), function(n1){
-  t <- genelists[[n1]]
-  pvalue <- t(sapply(names(t), function(n2){
-    print(paste0(n1, "; ", which(names(t)==n2), ": ", n2))
-    set <- t[[n2]]
+# Test for each category of gene set and correct P for modules and gene sets
+hyper.test.table <- function(l1, l2){ # two lists of gene sets
+  pvalue <- t(sapply(names(l1), function(n){
+    print(paste0(which(names(l1)==n), ": ", n))
+    set <- l1[[n]]
     # Overlap with each module
-    x=sapply(signif_modules, function(mod_genes){
-      hyper.test(mod_genes, set, 19992)
+    sapply(l2, function(mod_genes){
+      hyper.test(mod_genes, set, length(ahba.genes()))
     })
   }))
   pvalue <- melt(pvalue)
   pvalue$value <- p.adjust(pvalue$value, method = "BH") # corrected for significant modules and tested gene sets
   m <- dcast(pvalue, Var1 ~ Var2)
   rownames(m) <- m$Var1
-  x=m[,-1]
-}, simplify = FALSE)
-save(modEnrich, file = "resources/modEnrich.RData")
-
-##### Plot table with module enrichment #####
-
-# Filter significant gene sets for GO terms and diseases only
-modEnrich$GO <- modEnrich$GO[apply(modEnrich$GO, 1, function(x){
-  any(x < 0.05)
-}), ]
-modEnrich$disease <- modEnrich$disease[apply(modEnrich$disease, 1, function(x){
-  any(x < 0.05)
-}), ]
-
-# Heatmap
-mod_names <- list(
-  'r<0' = names(modules)[labelCor$pvalue < 0.001 & labelCor$r < 0], 
-  'r>0' = names(modules)[labelCor$pvalue < 0.001 & labelCor$r > 0]
-)
-
-prepare.table <- function(l) {
-  t <- lapply(l, function(n){
-    m <- modEnrich[[n]]
-    m <- ifelse(m < 0.05, "<0.05", ">=0.05")
-    rownames(m) <- paste0(rownames(m), " (", sapply(genelists[[n]], length)[rownames(m)], ")") # Add gene set size
-    rownames(m) <- paste0(toupper(substring(rownames(m),1,1)), substring(rownames(m),2))
-    t <- lapply(names(mod_names), function(dir){
-      t <- melt(m[, mod_names[[dir]]])
-      t$r <- dir
-      t
-    })
-    t <- Reduce(rbind, t)
-    colnames(t) <- c("geneset", "module", "pvalue", "r")
-    t$module <- factor(t$module, levels = unique(t$module))
-    t$geneset <- factor(t$geneset, levels = rev(unique(t$geneset)))
-    t$type <- n
-    t
-  })
-  t <- Reduce(rbind, t)
-  t$type <- factor(t$type, levels = unique(t$type))
-  t
+  m[,-1]
 }
 
-theme <- theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust = 0.5, size = 10),
-               axis.text.y = element_text(size = 10),
-               axis.title = element_blank(),
-               legend.text = element_text(size = 10), legend.title = element_text(size = 10),
-               panel.background = element_blank()
-)
+##### Plotting functions #####
+
+module_size <- sapply(modules, length)
+
+prepare.data <- function(m){ # input matrix
+  m <- ifelse(m < 0.05, "<0.05", ">=0.05")
+  df <- lapply(braakModules, function(x) m[,x])
+  df <- melt(df)
+  colnames(df) <- c("geneset", "module", "value", "dir")
+  df$module <- factor(df$module, levels = unique(df$module))
+  df$module <- paste0(df$module, " (", module_size[df$module], ")")
+  df$geneset <- factor(df$geneset, levels = rev(unique(df$geneset)))
+  df
+}
 
 heat.plot <- function(t) {
   ggplot(t) +
-  geom_tile(aes(x=module, y=geneset, fill=pvalue), colour = "black") +
-  scale_fill_manual(name = "P-value", values = c("chocolate", "white")) +
-  theme + 
-  facet_grid(type~r, scales = "free", space = "free")
+    geom_tile(aes(x=module, y=geneset, fill=value), colour = "black") +
+    scale_fill_manual(name = "P-value", values = c("chocolate", "white")) +
+    theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust = 0.5, size = 10),
+                   axis.text.y = element_text(size = 10),
+                   axis.title = element_blank(),
+                   legend.text = element_text(size = 10), legend.title = element_text(size = 10),
+                   panel.background = element_blank()
+    ) + 
+      facet_grid(category~dir, scales = "free", space = "free")
 }
 
+########## Module enrichment and plotting table ##########
+
+# Sorted, significant modules
+signif_modules <- modules[unlist(braakModules)]
+# signif_modules2 <- modules[unlist(braakModules2)]
+# signif_modules3 <- intersect(names(signif_modules), names(signif_modules2))
+# braakModules3 <- lapply(braakModules2, function(x){
+#   x[x %in% signif_modules3]
+# })
+# signif_modules3 <- signif_modules2[signif_modules3]
+
+b <- modules[unlist(braakModules)]
+
+# Apply hypergeometrix test between gene sets
+modEnrich <- lapply(genelists, function(l){ # For each category
+  t <- hyper.test.table(l, b) # Apply hypergeometric test
+  rows <- apply(t, 1, function(x) any(x < 0.05)) # Filter significant gene sets
+  t <- t[rows, ]
+  size_row <- sapply(l, length)
+  rownames(t) <- paste0(rownames(t), " (", size_row[rownames(t)], ")") # Add gene set size
+  rownames(t) <- paste0(toupper(substring(rownames(t),1,1)), substring(rownames(t),2)) # Capital first character
+  t
+})
+save(modEnrich, file = "resources/modEnrich.RData")
+
+# Prepare data for plotting
+t1 <- lapply(modEnrich, prepare.data)
+t1 <- melt(t1)
+colnames(t1)[5] <- "category"
+t1$category <- factor(t1$category, levels = unique(t1$category))
+
 # Supplementary heatmap with all GO-terms and diseases
-t1 <- prepare.table(c("GO", "disease"))
-levels(t1$type) <- c("GO-terms", "Diseases")
-pdf("module_enrichment_supplement.pdf", 14, 80)
+pdf("module_enrichment_supplement.pdf", 12, 20)
 heat.plot(t1) + theme(legend.position = "top")
 dev.off()
 
 # Heatmap with Braak genes, cell-types, and selected GO terms and diseases
-selected_GO <- c("lysosome", "synapse", "cell junction", "nervous system development", "plasma membrane",
-                 "extracellular region", "immune system process", "immune response", "DNA binding", "angiogenesis",
+selected_GO <- c("lysosome", "synapse", "cell junction", "nervous system development", 
+                 "plasma membrane", "extracellular region", "immune system process", 
+                 "immune response", "DNA binding", "Protein ubiquitination", "angiogenesis", 
+                 "Blood vessel morphogenesis",
+                 "Defense response to bacterium", "Regulation of gene silencing",
                  "nucleosome", "inflammatory response", "GABA−A receptor complex", "GABA−A receptor activity")
 modEnrich$GO <- modEnrich$GO[selected_GO, ]
 selected_diseases <- c(
                 "Alzheimer Disease, Late Onset", "Alzheimer's Disease", "Dementia", "Lewy Body Disease", 
                 "Schizophrenia", "Chronic schizophrenia", "Epilepsy", "Multiple Sclerosis", "Anemia", 
-                "Autoimmune Diseases", "Inflammation", "Autistic Disorder", "Curvature of spine", 
+                "Autoimmune Diseases", "Inflammation", "Autism Spectrum Disorder", 
+                "Autistic Disorder", "Curvature of spine", "Melanoma", "Memory impairment",
                 "Diffuse Large B−Cell Lymphoma", "Vascular Diseases", "Tobacco Use Disorder", 
                 "Neurofibromatosis 1", "Neonatal disorder", "Motor neuron atrophy", 
-                "Mammary Neoplasms", "Hodgkin Disease"
+                "Mammary Neoplasms", "Hodgkin Disease", "Tumor Progression", "Pilocytic Astrocytoma",
+                "Muscle hypotonia", "Narcolepsy", "Ileal Diseases", "Acquired scoliosis",
+                "Adolescent idiopathic scoliosis"
                 )
 modEnrich$disease <- modEnrich$disease[selected_diseases, ]
-t2 <- prepare.table(names(modEnrich))
-levels(t2$type) <- c("BSGs", "Cell-types", "GO-terms", "Diseases")
-pdf("module_enrichment.pdf", 10, 8)
+t2 <- lapply(modEnrich, prepare.data)
+t2 <- melt(t2)
+colnames(t2)[5] <- "category"
+t2$category <- factor(t2$category, levels = unique(t2$category))
+pdf("module_enrichment.pdf", 12, 20)
 heat.plot(t2) + theme(legend.position = "top")
 dev.off()
 
@@ -181,11 +183,11 @@ dev.off()
 
 # Genes from studies (count genes)
 studies <- list(
-  # 'Jansen et al. 2017' = c("INPP5F", "TMEM175", "ASH1L", "MAPT", "RIT1", "C14orf83", "STK39", "GPNMB", "BST1", 
-  #                                        "SIPA1L2", "DLG2", "NUCKS1", "GCH1", "MCCC1", "FAM47E", "BCKDK", "TMPRSS9", "UBOX5", 
-  #                                        "CCDC62", "SYNJ1", "EIF4G1", "FBXO7", "C20orf30", "POLG", "VPS13C", "PLA2G6"),
-  # 'Chang et al. 2017' = read.table("chang2017_riskgenes.txt", comment.char = "#", sep = "\n", row.names = NULL, stringsAsFactors = FALSE)[, 1], 
-  #  'Nalls et al. 2014' = read.table("nalls2014_riskgenes.txt", comment.char = "#", sep = "\n", row.names = NULL, stringsAsFactors = FALSE)[, 1]#,
+  'Jansen et al. 2017' = c("INPP5F", "TMEM175", "ASH1L", "MAPT", "RIT1", "C14orf83", "STK39", "GPNMB", "BST1",
+                                         "SIPA1L2", "DLG2", "NUCKS1", "GCH1", "MCCC1", "FAM47E", "BCKDK", "TMPRSS9", "UBOX5",
+                                         "CCDC62", "SYNJ1", "EIF4G1", "FBXO7", "C20orf30", "POLG", "VPS13C", "PLA2G6"),
+  'Chang et al. 2017' = read.table("chang2017_riskgenes.txt", comment.char = "#", sep = "\n", row.names = NULL, stringsAsFactors = FALSE)[, 1],
+   'Nalls et al. 2014' = read.table("nalls2014_riskgenes.txt", comment.char = "#", sep = "\n", row.names = NULL, stringsAsFactors = FALSE)[, 1],
                 liscovitch2014 = read.table("ifn_signaling_genes.txt", comment.char = "#", sep = "\n", row.names = NULL, stringsAsFactors = FALSE)[, 1]
 )
 studies <- lapply(studies, name2EntrezId)
@@ -193,9 +195,9 @@ studies <- lapply(studies, function(x) x[!is.na(x)])
 studies <- unique(Reduce(c, studies))
 
 # Presence PD genes
-sapply(signif_modules, function(m){
+t=as.data.frame(sapply(signif_modules, function(m){
   paste0(entrezId2Name(intersect(studies,m)), collapse = ", ")
-})
+}))
 
 ##### Write table with overlap and p-value of cell-type enrichment #####
 

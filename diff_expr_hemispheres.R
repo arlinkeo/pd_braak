@@ -1,12 +1,12 @@
 # Differential expression of Left & right hemisphere
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
-# library(metafor)
 library(ggplot2)
 library(ggpubr)
 source("PD/base_script.R")
 source("PD/sample.ids.R")
 source("PD/t.test.table.R")
-load("../ABA_Rdata/BrainExpr.RData")
+
+brainExpr <- readRDS("../AHBA_Arlin/gene_expr.RDS")
 
 roi <- c("myelencephalon", "pontine tegmentum", "substantia nigra", "CA2 field", 
          "occipito-temporal gyrus", "cingulate gyrus", "temporal lobe", 

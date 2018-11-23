@@ -8,6 +8,8 @@ library(reshape2)
 library(ggplot2)
 load("../UKBEC/expr.maps.rda",verbose=T)
 load("resources/braakGenes.RData")
+load("resources/braakGenes2.RData")
+load("resources/braakGenes3.RData")
 load("resources/braakInfo.RData") # Braak colors
 source("PD/t.test.table.R")
 
@@ -79,7 +81,7 @@ apply(ttest, c(3), function(x){
 save(ttest, file = "resources/ttest_ukbec.RData")
 
 # Number of diff. genes
-sum(abs(ttest_ukbec$fc) > 1 & ttest_ukbec$BH < 0.05)
+sum(abs(ttest[,"meanDiff",]) > 1 & ttest[,"BH",] < 0.05)
 
 ##############################################################################################
 # Plotting functions
@@ -120,32 +122,53 @@ plot.pdf <- function(name, genes){ # For plots of single genes
 
 ##############################################################################################
 # Box plots
-
-genes <- rownames(regionExpr$CRBL)
+genes_ukbec <- rownames(regionExpr$CRBL)
 
 # Expression of Braak genes
-braak_neg <- braakGenes$entrez_id[braakGenes$r < 0]
-braak_pos <- braakGenes$entrez_id[braakGenes$r > 0]
-braak_neg <- intersect(genes, braak_neg)
-braak_pos <- intersect(genes, braak_pos)
-braak <- list('r<0' = braak_neg, 'r>0' = braak_pos)
+bg <- list(
+  bg1 = list( # Braak genes selected WIHTOUT cell-type correction
+    down = braakGenes$entrez_id[braakGenes$r < 0],
+    up = braakGenes$entrez_id[braakGenes$r > 0]
+  ),
+  bg2 = list( # Braak genes selected WITH cell-type correction
+    down = braakGenes2$entrez_id[braakGenes2$braak6 < 0],
+    up = braakGenes2$entrez_id[braakGenes2$braak6 > 0]
+  ),
+  bg3 = braakGenes3 # Intersection of corrected and uncorrected results
+)
+
+# Intersection with entrez IDs in UKBEC
+bg <- lapply(bg, function(s){
+  lapply(s, function(g){
+    intersect(g, genes_ukbec)
+  })
+})
 
 # Mean expression across Braak genes within regions
-meanExpr <- lapply(roi, function(r){
-  t <- sapply(braak, function(g){
-    expr <- regionExpr[[r]][g, ]
-    apply(expr, 2, mean)
-  })
-  melt(t)
+meanExpr <- lapply(bg, function(s){
+  df <- simplify2array(lapply(roi, function(r){
+    sapply(s, function(g){
+      expr <- regionExpr[[r]][g, ]
+      apply(expr, 2, mean)
+    })
+  }))
+  df <- melt(df)
+  colnames(df) <- c("sample", "dir", "region", "expr")
+  df$region <- paste0("R", df$region)
+  df$region <- factor(df$region, levels = unique(df$region))
+  df
 })
-meanExpr <- melt(meanExpr)
-colnames(meanExpr) <- c("sample", "r", "variable", "expr", "region")
-meanExpr$region <- paste0("R", meanExpr$region)
-meanExpr$region <- factor(meanExpr$region, levels = unique(meanExpr$region))
-p1 <- box.plot(meanExpr, "Expression of Braak genes in UKBEC") +
-  facet_grid(.~r, scales = 'free', space = 'free', switch = "y")
+y_max <- max(sapply(meanExpr, function(x) max(x$expr, na.rm = TRUE)))
+y_min <- min(sapply(meanExpr, function(x) min(x$expr, na.rm = TRUE)))
+
 pdf("boxplot_UKBEC.pdf", 4, 3)
-p1
+lapply(names(meanExpr), function(n){
+  df <- meanExpr[[n]]
+  box.plot(df, n) +
+    facet_grid(.~dir, scales = 'free', space = 'free', switch = "y") +
+    scale_y_continuous(limits = c(y_min, y_max))
+
+})
 dev.off()
 
 #boxplot of PD genes

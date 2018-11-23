@@ -4,7 +4,8 @@ source("PD/base_script.R")
 
 library(metafor)
 load("resources/braakInfo.RData")
-load("../ABA_Rdata/BrainExpr.RData")
+
+brainExpr <- readRDS("../AHBA_Arlin/gene_expr.RDS")
 
 ##### Correlation on expression data #####
 summary.braak.cor <- dget("PD/summary.braak.cor.R")

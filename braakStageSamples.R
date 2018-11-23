@@ -4,8 +4,10 @@ library(RColorBrewer)
 library(ggplot2)
 library(reshape2)
 source("PD/base_script.R")
-load("../ABA_Rdata/BrainExpr.RData")
 source("PD/sample.ids.R")
+
+load("../ABA_human_processed_Sjoerd/BrainExpr.RData")
+# brainExpr <- readRDS("../AHBA_Arlin/gene_expr.RDS")
 
 # Fixed colors for Braak related regions
 braakColors <- brewer.pal(6, "Set2")
@@ -40,7 +42,7 @@ roiSamples <- lapply(donorNames, function(d){
   })
 })
 sapply(roiSamples, function(x){lapply(x, length)})
-save(roiSamples, file = "roiSamples.RData")
+save(roiSamples, file = "resources/roiSamples.RData")
 
 ####################################################################
 
