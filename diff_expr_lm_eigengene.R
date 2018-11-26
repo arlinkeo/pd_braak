@@ -16,7 +16,7 @@ source("PD/diff.expr.lm.R")
 
 # eigen gene function for data matrix (samples x genes)
 eigen.gene <- function(x){
-  eg <- prcomp(x, center = FALSE)$x[, 1]# 1st PC (eigen gene expr)
+  eg <- prcomp(x)$x[, 1]# 1st PC (eigen gene expr)
   mean <- rowMeans(x)
   # weight = matrix(abs(cor(x, eg, use = 'p')), nrow(x), ncol(x), byrow = TRUE);
   # eg <- scale(rowMeans(x * weight))
@@ -43,11 +43,13 @@ celltypes <- sapply(c("Neurons", "Astrocytes", "Oligodendrocytes", "Microglia", 
   as.character(read.csv(file, header = TRUE)$entrez_id)
 }, simplify = FALSE)
 
-# Cell-type mean gene expression for all samples (whole brain)
-mean_celltype <- lapply(donorNames, function(d){
+# Cell-type eigengene expression across all samples (whole brain)
+ct_ref <- lapply(donorNames, function(d){
   t(sapply(celltypes, function(ct){
-    x <- brainExpr[[d]][ct, ]
-    apply(x, 2, mean)
+    x <- t(brainExpr[[d]][ct, ])
+    eg <- prcomp(x)$x[, 1]# 1st PC (eigen gene expr)
+    mean <- apply(x, 1, mean)
+    if (cor(eg, mean) > 0) eg else -eg # flip sign of eigen gene based on the data
   }))
 })
 
@@ -55,7 +57,7 @@ mean_celltype <- lapply(donorNames, function(d){
 diffExpr <- lapply(donorNames, function(d){
   idx <- unlist(braak_idx[[d]]) # idx for samples
   braak <- paste0("braak", braakLabels[[d]][idx]) # braak labels
-  ct <- t(mean_celltype[[d]][, idx]) # samples x cell-types
+  ct <- t(ct_ref[[d]][, idx]) # samples x cell-types
   expr <- t(eigenExpr[[d]]) # samples x genes
   diff.expr.lm(expr, ct, braak)
 })
@@ -65,61 +67,82 @@ apply(diffExpr, c(1,4), function(b){
   sum(b["BH", ] < 0.05 & abs(b["Estimate",]) > 1)
 })
 
-summaryCoef <- apply(diffExpr, 1, function(b){ # For each Braak region
-  apply(b, 2, function(g){ # For each gene
+summaryCoef <- aaply(diffExpr, c(1,3), function(g){ # For each Braak region and gene
     gene <- as.data.frame(t(g))
     summary <- rma(yi = gene$Estimate, vi = gene$`Std. Error`^2, method = "DL", test = "t") # Summary effect size
     gene$weight <- weights(summary)
-    rbind(gene, 'summary' = list(summary$beta, summary$se, summary$pval, NA, sum(gene$weight)))
-  })
+    t <- rbind(gene, 'summary' = list(summary$beta, summary$se, summary$pval, NA, sum(gene$weight)))
+    as.matrix(t)
 })
 
-# Barplot
-summTables <- lapply(summaryCoef, function(b){
-  t <- do.call(rbind.data.frame, lapply(b, function(g) g["summary",]))
-  t$BH <- p.adjust(t$`Pr(>|t|)`, method = "BH")
-  t
+diffGenes <- apply(summaryCoef2, 1, function(t){
+  # rownames(t)[which(abs(t[, "Estimate"])>1 & t[,"BH"] < 0.05)]
+  down <-  rownames(t)[which(t[, "Estimate"] < -1 & t[,"BH"] < 0.05)]
+  up <- rownames(t)[which(t[, "Estimate"] > 1 & t[,"BH"] < 0.05)]
+  list(down = down, up = up)
+})
+sapply(diffGenes, function(x){
+  deg <- sapply(x, length)
+  c(deg, sum = sum(deg))
 })
 
-sapply(summTables, function(t){
-  sum(abs(t$Estimate) > 8 & t$BH < 0.01)
+# Correct summary P-values
+summaryCoef2 <- summaryCoef[,,"summary", -which(dimnames(summaryCoef)[[4]] %in% c("BH", "weight"))] # braak region x genes x measures
+summaryCoef2 <- aaply(summaryCoef2, 1, function(t){ # P-value corrected for genes
+  b <- p.adjust(t[, "Pr(>|t|)"], method = "BH")
+  cbind(t, BH = b)
 })
 
-tab <- summTables$braak6
+diffGenes <- apply(summaryCoef2, 1, function(t){
+  down <-  rownames(t)[which(t[, "Estimate"] < -1 & t[,"BH"] < 0.05)]
+  up <- rownames(t)[which(t[, "Estimate"] > 1 & t[,"BH"] < 0.05)]
+  list(down = down, up = up)
+})
+sapply(diffGenes, function(x){
+  deg <- sapply(x, length)
+  c(deg, sum = sum(deg))
+})
+tab <- as.data.frame(summaryCoef2["braak6", , ])
 tab$logp <- -log10(tab$BH)
-mod_neg <- rownames(tab)[tab$BH < 0.01 & tab$Estimate < -7] # significant correlated modules
-mod_pos <- rownames(tab)[tab$BH < 0.01 & tab$Estimate > 7] # significant correlated modules
+mod_down <- rownames(tab)[tab$BH < 0.05 & tab$Estimate < -1] # significant correlated modules
+mod_up <- rownames(tab)[tab$BH < 0.05 & tab$Estimate > 1] # significant correlated modules
+
+braakModules2 <- list(down = mod_down, up = mod_up)
+save(braakModules2, file = "resources/braakModules2.RData")
+
 tab$info <- sapply(rownames(tab), function(m){
-  if (m %in% mod_neg) 1
-  else if (m %in% mod_pos) 2
+  if (m %in% mod_down) 1
+  else if (m %in% mod_up) 2
   else 0
 })
 tab$label <- rownames(tab)
-tab$label[!tab$label %in% c(mod_neg, mod_pos)] <- ""
+tab$label[!tab$label %in% c(mod_down, mod_up)] <- ""
 
 # Plotting order of data points 
 tab$info <- as.factor(tab$info)
 order <- order(tab$info)
 tab <- tab[order, ]
 
-# xmax <- max(tab$Estimate)+.2
-# xmin <- min(tab$Estimate)-.2
-# ymax <-  ceiling(max(tab$'logp'))
-p <- ggplot(tab, aes(Estimate, logp, colour = info)) +
-  geom_point(size = 1, alpha = 0.5) +
-  geom_text_repel(aes(label=label), colour = "black", size = 3, nudge_x = 0) +
+ymax <- max(tab$Estimate)+.5
+ymin <- min(tab$Estimate)-.5
+xmax <-  ceiling(max(tab$'logp'))
+
+p <- ggplot(tab, aes(logp, Estimate, colour = info)) +
+  geom_point(size = 2, alpha = 0.5) +
+  # geom_text(aes(label=label)) +
+  geom_text_repel(aes(label=label), colour = "black", size = 4, nudge_x = 0) +
   scale_colour_manual(values = c("0"="grey", "1"="blue", "2"="red")) +
-  labs(y = "-log10 p-value") +
-  # scale_x_continuous(limits = c(xmin, xmax), expand = c(0,0)) +
-  # scale_y_continuous(limits = c(0, ymax), expand = c(0,0)) +
+  labs(x = "-log10 p-value") +
+  scale_y_continuous(limits = c(ymin, ymax), expand = c(0,0)) +
+  scale_x_continuous(limits = c(0, xmax), expand = c(0,0)) +
   theme(legend.position = "none",
-                 panel.background = element_blank(),
-                 axis.line = element_line(colour = "black")
-                 # axis.title =  element_text(size = 16),
-                 # plot.title = element_text(size = 16),
-                 # axis.text = element_text(size = 16)
+        panel.background = element_blank(),
+        axis.line = element_line(colour = "black"),
+        axis.title =  element_text(size = 16),
+        plot.title = element_text(size = 16),
+        axis.text = element_text(size = 16)
   )
 p
-pdf("eigengene_diff_expr_lm.pdf", 6, 3)
+pdf("eigengene_diff_expr_lm.pdf", 5, 4.5)
 print(p)
 dev.off()
