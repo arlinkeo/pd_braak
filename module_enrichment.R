@@ -118,7 +118,7 @@ heat.plot <- function(t) {
 ########## Module enrichment and plotting table ##########
 
 # Sorted, significant modules
-signif_modules <- modules[unlist(braakModules)]
+signif_modules <- modules#[unlist(braakModules)]
 # signif_modules2 <- modules[unlist(braakModules2)]
 # signif_modules3 <- intersect(names(signif_modules), names(signif_modules2))
 # braakModules3 <- lapply(braakModules2, function(x){
@@ -126,7 +126,7 @@ signif_modules <- modules[unlist(braakModules)]
 # })
 # signif_modules3 <- signif_modules2[signif_modules3]
 
-b <- modules[unlist(braakModules)]
+b <- modules#[unlist(braakModules)]
 
 # Apply hypergeometrix test between gene sets
 modEnrich <- lapply(genelists, function(l){ # For each category
@@ -147,7 +147,7 @@ colnames(t1)[5] <- "category"
 t1$category <- factor(t1$category, levels = unique(t1$category))
 
 # Supplementary heatmap with all GO-terms and diseases
-pdf("module_enrichment_supplement.pdf", 12, 20)
+pdf("module_enrichment_supplement.pdf", 24, 90)
 heat.plot(t1) + theme(legend.position = "top")
 dev.off()
 
