@@ -316,3 +316,53 @@ lapply(donorNames[1], function(d){
   })
   dev.off()
 })
+
+
+########## Heatmap Before and after correction ##########
+ct_genes <- unlist(celltypes)
+gg_color_hue <- function(n) {
+  hues = seq(15, 375, length = n + 1)
+  hcl(h = hues, l = 65, c = 100)[1:n]
+}
+ggcolor <- gg_color_hue(5)
+celltypeColors <- sapply(ct_genes, function(g){
+  if (g %in% celltypes$Neurons) ggcolor[1]
+  else if (g %in% celltypes$Astrocytes) ggcolor[2]
+  else if (g %in% celltypes$Oligodendrocytes) ggcolor[3]
+  else if (g %in% celltypes$Microglia) ggcolor[4]
+  else if (g %in% celltypes$Endothelial_cells) ggcolor[5]
+  else "gray"
+})
+
+lapply(donorNames, function(d){
+  idx <- unlist(braak_idx[[d]]) # for samples
+  info <- sampleInfo[[d]][idx, ]
+  
+  # Scale expression across all Braak samples
+  expr <- scale(t(brainExpr[[d]][ct_genes, idx])) # samples x genes
+  expr2 <- scale(t(expr_celltype_corrected[[d]][ct_genes,]))
+  
+  colPal <- c("blue", "white", "red")
+  rampcols <- colorRampPalette(colors = colPal, space="Lab")(100)
+  rampcols <- c(rep(col2hex(colPal[1]), 50), rampcols, rep(col2hex(colPal[3]), 50))
+  
+  file = paste0("celltype_correction_heatmap/neuroncorrected_", d, ".pdf")
+  pdf(file, 8, 9)
+  heatmap.2(expr, col = rampcols,
+            labRow = info$acronym, labCol = entrezId2Name(colnames(expr)),
+            Rowv=FALSE, Colv=FALSE,
+            cexCol = .5, cexRow = .5,
+            scale = "none", trace = "none", dendrogram = "none", #key = FALSE,
+            RowSideColors = info$color_hex_triplet, ColSideColors = celltypeColors,
+            main = paste0("Expression of cell types in ", d, " (uncorrected)"),
+            margins = c(5, 5))
+  heatmap.2(expr2, col = rampcols,
+            labRow = info$acronym, labCol = entrezId2Name(colnames(expr)),
+            Rowv=FALSE, Colv=FALSE,
+            cexCol = .5, cexRow = .5,
+            scale = "none", trace = "none", dendrogram = "none", #key = FALSE,
+            RowSideColors = info$color_hex_triplet, ColSideColors = celltypeColors,
+            main = paste0("Expression of cell types in ", d, " (corrected)"),
+            margins = c(5, 5))
+  dev.off()
+})
