@@ -84,6 +84,37 @@ save(ttest, file = "resources/ttest_ukbec.RData")
 sum(abs(ttest[,"meanDiff",]) > 1 & ttest[,"BH",] < 0.05)
 
 ##############################################################################################
+# Overlap with BRGs
+genes_ukbec <- rownames(regionExpr$CRBL)
+
+# Expression of Braak genes
+bg <- list(
+  bg1 = list( # Braak genes selected WIHTOUT cell-type correction
+    down = braakGenes$entrez_id[braakGenes$r < 0],
+    up = braakGenes$entrez_id[braakGenes$r > 0]
+  ),
+  bg2 = list( # Braak genes selected WITH cell-type correction
+    down = braakGenes2$entrez_id[braakGenes2$braak6 < 0],
+    up = braakGenes2$entrez_id[braakGenes2$braak6 > 0]
+  ),
+  bg3 = braakGenes3 # Intersection of corrected and uncorrected results
+)
+
+# Intersection with entrez IDs in UKBEC
+bg <- lapply(bg, function(s){
+  lapply(s, function(g){
+    intersect(g, genes_ukbec)
+  })
+})
+
+# BRGs differentially expressed in UKBEC
+apply(ttest, c(3), function(x){
+  sapply(bg$bg1, function(g){
+    sum(x[g, "BH"] < 0.05 & abs(x[g, "meanDiff"]) > 1)
+  })
+})
+
+##############################################################################################
 # Plotting functions
 
 prepare.data <- function(g){ # prepare ggplot dataframe for single genes
@@ -122,27 +153,6 @@ plot.pdf <- function(name, genes){ # For plots of single genes
 
 ##############################################################################################
 # Box plots
-genes_ukbec <- rownames(regionExpr$CRBL)
-
-# Expression of Braak genes
-bg <- list(
-  bg1 = list( # Braak genes selected WIHTOUT cell-type correction
-    down = braakGenes$entrez_id[braakGenes$r < 0],
-    up = braakGenes$entrez_id[braakGenes$r > 0]
-  ),
-  bg2 = list( # Braak genes selected WITH cell-type correction
-    down = braakGenes2$entrez_id[braakGenes2$braak6 < 0],
-    up = braakGenes2$entrez_id[braakGenes2$braak6 > 0]
-  ),
-  bg3 = braakGenes3 # Intersection of corrected and uncorrected results
-)
-
-# Intersection with entrez IDs in UKBEC
-bg <- lapply(bg, function(s){
-  lapply(s, function(g){
-    intersect(g, genes_ukbec)
-  })
-})
 
 # Mean expression across Braak genes within regions
 meanExpr <- lapply(bg, function(s){
@@ -173,4 +183,4 @@ dev.off()
 
 #boxplot of PD genes
 plot.pdf("boxplot_UKBEC_PD_variant_genes.pdf", 
-         name2EntrezId(c("DNAJC13", "SNCA", "GCH1", "INPP5F", "ASH1L", "ZNF184", "DDRGK1", "ITPKB", "ELOVL7", "SCARB2")))
+         name2EntrezId(c("SNCA", "ZNF184", "BAP1", "SH3GL2", "ELOVL7", "SCARB2")))

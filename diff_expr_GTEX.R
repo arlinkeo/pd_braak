@@ -84,8 +84,6 @@ apply(ttest, c(3), function(x){
 
 # T-test Overlap with Braak genes
 
-# Box plot of Braak stage related genes
-
 bg <- list(
   bg1 = list( # Braak genes selected WIHTOUT cell-type correction
     down = braakGenes$entrez_id[braakGenes$r < 0],
@@ -107,6 +105,14 @@ bg <- lapply(bg, function(s){
     intersect(id, rownames(gtex_expr))
   })
 })
+
+apply(ttest, c(3), function(x){
+  sapply(bg$bg1, function(g){
+    sum(x[g, "BH"] < 0.05 & abs(x[g, "FC"]) > 1)
+  })
+})
+
+# Box plot of Braak stage related genes
 
 theme <- theme(panel.background = element_blank(), 
                panel.grid = element_blank(), 
