@@ -13,7 +13,7 @@ brainExpr <- readRDS("../AHBA_Arlin/gene_expr.RDS")
 
 # eigen gene function for data matrix (samples x genes)
 eigen.gene <- function(x){
-  eg <- prcomp(x)$x[, 1]# 1st PC (eigen gene expr)
+  eg <- prcomp(x, scale. = TRUE)$x[, 1]# 1st PC (eigen gene expr)
   mean <- apply(x, 1, mean)
   if (cor(eg, mean) > 0) eg else -eg # flip sign of eigen gene based on the data
 }
@@ -27,12 +27,9 @@ summary.braak.cor <- dget("PD/summary.braak.cor.R")
 eigenExpr <- lapply(donorNames, function(d){
   s <- unlist(braak_idx[[d]])
   expr <- brainExpr[[d]][, s]
-  df <- as.data.frame(t(sapply(modules, function(genes){ # For each module with genes (grouped gene rows)
+  as.data.frame(t(sapply(modules, function(genes){ # For each module with genes (grouped gene rows)
     eigen.gene(t(expr[genes, ]))
   })))
-  # colnames(df) <- names(s)
-  df
-  # eigen.data(expr, modules)
 })
 save(eigenExpr, file = "resources/eigenExpr.RData")
 
@@ -61,8 +58,7 @@ theme <- theme(legend.position = "none",
                axis.line = element_line(colour = "black"),
                axis.title =  element_text(size = 16),
                plot.title = element_text(size = 16),
-               axis.text = element_text(size = 16),
-               axis.title.y = element_text(face="italic")
+               axis.text = element_text(size = 16)
 )
 
 tab <- labelCor
@@ -81,17 +77,17 @@ tab$info <- as.factor(tab$info)
 order <- order(tab$info)
 tab <- tab[order, ]
 
-ymax <- max(tab$r)+.2
-ymin <- min(tab$r)-.2
-xmax <-  ceiling(max(tab$'logp'))+.5
+xmax <- max(tab$r)+.2
+xmin <- min(tab$r)-.2
+ymax <-  ceiling(max(tab$'logp'))+.5
 
-p <- ggplot(tab, aes(logp, r, colour = info)) +
+p <- ggplot(tab, aes(r, logp, colour = info)) +
   geom_point(size = 2, alpha = 0.5) +
   geom_text_repel(aes(label=label), colour = "black", size = 4, nudge_x = 0) +
   scale_colour_manual(values = c("0"="grey", "1"="blue", "2"="red")) +
-  labs(x = "-log10 p-value") +
-  scale_y_continuous(limits = c(ymin, ymax), expand = c(0,0)) +
-  scale_x_continuous(limits = c(0, xmax), expand = c(0,0)) +
+  labs(x = "Correlation with Braak r", y = "-log10 p-value") +
+  scale_x_continuous(limits = c(xmin, xmax), expand = c(0,0)) +
+  scale_y_continuous(limits = c(0, ymax), expand = c(0,0)) +
   theme
 
 pdf("eigengene_r_volcanoplot.pdf", 5, 5)
@@ -101,32 +97,32 @@ dev.off()
 ##### Heatmap Expression of eigen gene #####
 
 # Order of modules
-rows <- rownames(labelCor)
+cols <- rownames(labelCor)
 
 # Heatmap colors
 colPal <- c("darkblue", "white", "darkred")
 rampcols <- colorRampPalette(colors = colPal, space="Lab")(201)
-rowColor <- rampcols[as.numeric(cut(labelCor$r, breaks = 201))]#[rowOrder]
-rowsep <- tail(which(labelCor$r < 0), 1)
+colColor <- rampcols[as.numeric(cut(labelCor$r, breaks = 201))]
+colsep <- tail(which(labelCor$r < 0), 1)
 
-pdf("heatmap_expr_eigengenes.pdf", 10, 5)
-lapply(donorNames, function(d){
+pdf("heatmap_expr_eigengenes.pdf", 5, 10)
+lapply(donorNames[1], function(d){
   samples <- unlist(braak_idx[[d]])
   df <- sampleInfo[[d]][samples,]
   labels <- braakLabels[[d]][samples]
-  exprMat <- as.matrix(eigenExpr[[d]][rows, ])
-  colsep <- match(c(2:6), labels) -1# separate Braak regions
-  colColor <- df$color_hex_triplet
+  exprMat <- t(as.matrix(eigenExpr[[d]][cols, ]))
+  rowsep <- match(c(2:6), labels) -1# separate Braak regions
+  rowColor <- df$color_hex_triplet
   # rownames(exprMat) <- NULL
   heatmap.2(exprMat, col = rampcols, 
-            labCol = df$name, 
+            labRow = df$name, 
             rowsep = rowsep, colsep = colsep, sepcolor = "black",
             Rowv=FALSE, Colv=FALSE, 
-            cexCol = .1, cexRow = 1,
+            cexCol = 1, cexRow = .1,
             scale = "none", trace = "none", dendrogram = "none", key = FALSE, 
             RowSideColors = rowColor, ColSideColors = colColor,
             main = d,
-            margins = c(5, 20))
+            margins = c(20,5))
 })
 dev.off()
 
