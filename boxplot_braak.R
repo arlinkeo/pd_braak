@@ -7,8 +7,8 @@ brainExpr <- readRDS("../AHBA_Arlin/gene_expr.RDS")
 load("resources/braakInfo.RData") # Braak stage label vectors
 load("resources/summaryLabelCor.RData")
 load("resources/braakGenes.RData")
-load("resources/braakGenes2.RData")
-load("resources/braakGenes3.RData")
+# load("resources/braakGenes2.RData")
+# load("resources/braakGenes3.RData")
 
 # Default theme for boxplot
 theme <- theme(panel.background = element_blank(), panel.grid = element_blank(), 
@@ -74,12 +74,12 @@ bg <- list(
   bg1 = list( # Braak genes selected WIHTOUT cell-type correction
     down = braakGenes$entrez_id[braakGenes$r < 0],
     up = braakGenes$entrez_id[braakGenes$r > 0]
-  ),
-  bg2 = list( # Braak genes selected WITH cell-type correction
-    down = braakGenes2$entrez_id[braakGenes2$braak6 < 0],
-    up = braakGenes2$entrez_id[braakGenes2$braak6 > 0]
-  ),
-  bg3 = braakGenes3 # Intersection of corrected and uncorrected results
+  )#,
+  # bg2 = list( # Braak genes selected WITH cell-type correction
+  #   down = braakGenes2$entrez_id[braakGenes2$braak6 < 0],
+  #   up = braakGenes2$entrez_id[braakGenes2$braak6 > 0]
+  # ),
+  # bg3 = braakGenes3 # Intersection of corrected and uncorrected results
 )
 
 meanExpr <- lapply(bg, function(l){
