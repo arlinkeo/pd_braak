@@ -16,9 +16,9 @@ load("resources/braakModules.RData")
 ########## Prepare list of Braak genes, cell types, GO-term, and diseases ##########
 
 # Braak genes
-braak <- lapply(c(positive = "pos", negative = "neg"), function(x){
-  braakGenes$entrez_id[braakGenes$dir %in% x]
-})
+braak <- list( 
+  downregulated = braakGenes$entrez_id[braakGenes$r < 0],
+  upregulated = braakGenes$entrez_id[braakGenes$r > 0])
 
 # Genes associated with GO-terms
 ensembl <- useEnsembl(biomart="ensembl", dataset="hsapiens_gene_ensembl", version=92)
@@ -57,7 +57,7 @@ genelists <- lapply(genelists, function(t){
 })
 save(genelists, file = "resources/genelists.RData")
 load("resources/genelists.RData")
-
+    
 ########## Module enrichment functions ##########
 
 # hypergeometric test
@@ -93,12 +93,16 @@ module_size <- sapply(modules, length)
 
 prepare.data <- function(m){ # input matrix
   m <- ifelse(m < 0.05, "<0.05", ">=0.05")
+  # m <- ifelse(m<0.05, ifelse(m<0.01, "<0.01", "0.01<P<0.05"), ">=0.05")
+  rowOrder <- unique(unlist(apply(m, 2, function(x) which(x == "<0.05"))))
+  m <- m[rowOrder,]
   df <- lapply(braakModules, function(x) m[,x])
   df <- melt(df)
   colnames(df) <- c("geneset", "module", "value", "dir")
-  df$module <- factor(df$module, levels = unique(df$module))
   df$module <- paste0(df$module, " (", module_size[df$module], ")")
+  df$module <- factor(df$module, levels = unique(df$module))
   df$geneset <- factor(df$geneset, levels = rev(unique(df$geneset)))
+  # df$value <- factor(df$value, levels = unique(df$value)[c(1,3,2)])
   df
 }
 
@@ -106,31 +110,21 @@ heat.plot <- function(t) {
   ggplot(t) +
     geom_tile(aes(x=module, y=geneset, fill=value), colour = "black") +
     scale_fill_manual(name = "P-value", values = c("chocolate", "white")) +
-    theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust = 0.5, size = 10),
-                   axis.text.y = element_text(size = 10),
-                   axis.title = element_blank(),
-                   legend.text = element_text(size = 10), legend.title = element_text(size = 10),
-                   panel.background = element_blank()
+    scale_x_discrete(position = "top") +
+    theme(axis.text.x = element_text(angle = 90, hjust = 0, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title = element_blank(),
+          legend.text = element_text(size = 10), legend.title = element_text(size = 10),
+          panel.background = element_blank()
     ) + 
       facet_grid(category~dir, scales = "free", space = "free")
 }
 
 ########## Module enrichment and plotting table ##########
 
-# Sorted, significant modules
-signif_modules <- modules#[unlist(braakModules)]
-# signif_modules2 <- modules[unlist(braakModules2)]
-# signif_modules3 <- intersect(names(signif_modules), names(signif_modules2))
-# braakModules3 <- lapply(braakModules2, function(x){
-#   x[x %in% signif_modules3]
-# })
-# signif_modules3 <- signif_modules2[signif_modules3]
-
-b <- modules#[unlist(braakModules)]
-
 # Apply hypergeometrix test between gene sets
 modEnrich <- lapply(genelists, function(l){ # For each category
-  t <- hyper.test.table(l, b) # Apply hypergeometric test
+  t <- hyper.test.table(l, modules[unlist(braakModules)]) # Apply hypergeometric test
   rows <- apply(t, 1, function(x) any(x < 0.05)) # Filter significant gene sets
   t <- t[rows, ]
   size_row <- sapply(l, length)
@@ -147,37 +141,37 @@ colnames(t1)[5] <- "category"
 t1$category <- factor(t1$category, levels = unique(t1$category))
 
 # Supplementary heatmap with all GO-terms and diseases
-pdf("module_enrichment_supplement.pdf", 24, 90)
+pdf("module_enrichment_supplement.pdf", 11, 14)
 heat.plot(t1) + theme(legend.position = "top")
 dev.off()
-
-# Heatmap with Braak genes, cell-types, and selected GO terms and diseases
-selected_GO <- c("lysosome", "synapse", "cell junction", "nervous system development", 
-                 "plasma membrane", "extracellular region", "immune system process", 
-                 "immune response", "DNA binding", "Protein ubiquitination", "angiogenesis", 
-                 "Blood vessel morphogenesis",
-                 "Defense response to bacterium", "Regulation of gene silencing",
-                 "nucleosome", "inflammatory response", "GABA−A receptor complex", "GABA−A receptor activity")
-modEnrich$GO <- modEnrich$GO[selected_GO, ]
-selected_diseases <- c(
-                "Alzheimer Disease, Late Onset", "Alzheimer's Disease", "Dementia", "Lewy Body Disease", 
-                "Schizophrenia", "Chronic schizophrenia", "Epilepsy", "Multiple Sclerosis", "Anemia", 
-                "Autoimmune Diseases", "Inflammation", "Autism Spectrum Disorder", 
-                "Autistic Disorder", "Curvature of spine", "Melanoma", "Memory impairment",
-                "Diffuse Large B−Cell Lymphoma", "Vascular Diseases", "Tobacco Use Disorder", 
-                "Neurofibromatosis 1", "Neonatal disorder", "Motor neuron atrophy", 
-                "Mammary Neoplasms", "Hodgkin Disease", "Tumor Progression", "Pilocytic Astrocytoma",
-                "Muscle hypotonia", "Narcolepsy", "Ileal Diseases", "Acquired scoliosis",
-                "Adolescent idiopathic scoliosis"
-                )
-modEnrich$disease <- modEnrich$disease[selected_diseases, ]
-t2 <- lapply(modEnrich, prepare.data)
-t2 <- melt(t2)
-colnames(t2)[5] <- "category"
-t2$category <- factor(t2$category, levels = unique(t2$category))
-pdf("module_enrichment.pdf", 12, 20)
-heat.plot(t2) + theme(legend.position = "top")
-dev.off()
+# 
+# # Heatmap with Braak genes, cell-types, and selected GO terms and diseases
+# selected_GO <- c("lysosome", "synapse", "cell junction", "nervous system development", 
+#                  "plasma membrane", "extracellular region", "immune system process", 
+#                  "immune response", "DNA binding", "Protein ubiquitination", "angiogenesis", 
+#                  "Blood vessel morphogenesis",
+#                  "Defense response to bacterium", "Regulation of gene silencing",
+#                  "nucleosome", "inflammatory response", "GABA−A receptor complex", "GABA−A receptor activity")
+# modEnrich$GO <- modEnrich$GO[selected_GO, ]
+# selected_diseases <- c(
+#                 "Alzheimer Disease, Late Onset", "Alzheimer's Disease", "Dementia", "Lewy Body Disease", 
+#                 "Schizophrenia", "Chronic schizophrenia", "Epilepsy", "Multiple Sclerosis", "Anemia", 
+#                 "Autoimmune Diseases", "Inflammation", "Autism Spectrum Disorder", 
+#                 "Autistic Disorder", "Curvature of spine", "Melanoma", "Memory impairment",
+#                 "Diffuse Large B−Cell Lymphoma", "Vascular Diseases", "Tobacco Use Disorder", 
+#                 "Neurofibromatosis 1", "Neonatal disorder", "Motor neuron atrophy", 
+#                 "Mammary Neoplasms", "Hodgkin Disease", "Tumor Progression", "Pilocytic Astrocytoma",
+#                 "Muscle hypotonia", "Narcolepsy", "Ileal Diseases", "Acquired scoliosis",
+#                 "Adolescent idiopathic scoliosis"
+#                 )
+# modEnrich$disease <- modEnrich$disease[selected_diseases, ]
+# t2 <- lapply(modEnrich, prepare.data)
+# t2 <- melt(t2)
+# colnames(t2)[5] <- "category"
+# t2$category <- factor(t2$category, levels = unique(t2$category))
+# pdf("module_enrichment.pdf", 12, 20)
+# heat.plot(t2) + theme(legend.position = "top")
+# dev.off()
 
 ##### Find PD-mplicated genes #####
 
@@ -187,15 +181,15 @@ studies <- list(
                                          "SIPA1L2", "DLG2", "NUCKS1", "GCH1", "MCCC1", "FAM47E", "BCKDK", "TMPRSS9", "UBOX5",
                                          "CCDC62", "SYNJ1", "EIF4G1", "FBXO7", "C20orf30", "POLG", "VPS13C", "PLA2G6"),
   'Chang et al. 2017' = read.table("chang2017_riskgenes.txt", comment.char = "#", sep = "\n", row.names = NULL, stringsAsFactors = FALSE)[, 1],
-   'Nalls et al. 2014' = read.table("nalls2014_riskgenes.txt", comment.char = "#", sep = "\n", row.names = NULL, stringsAsFactors = FALSE)[, 1],
-                liscovitch2014 = read.table("ifn_signaling_genes.txt", comment.char = "#", sep = "\n", row.names = NULL, stringsAsFactors = FALSE)[, 1]
+   'Nalls et al. 2014' = read.table("nalls2014_riskgenes.txt", comment.char = "#", sep = "\n", row.names = NULL, stringsAsFactors = FALSE)[, 1]#,
+                # liscovitch2014 = read.table("ifn_signaling_genes.txt", comment.char = "#", sep = "\n", row.names = NULL, stringsAsFactors = FALSE)[, 1]
 )
 studies <- lapply(studies, name2EntrezId)
 studies <- lapply(studies, function(x) x[!is.na(x)])
 studies <- unique(Reduce(c, studies))
 
 # Presence PD genes
-t=as.data.frame(sapply(signif_modules, function(m){
+t=as.data.frame(sapply(modules[unlist(braakModules)], function(m){
   paste0(entrezId2Name(intersect(studies,m)), collapse = ", ")
 }))
 
