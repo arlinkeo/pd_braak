@@ -95,7 +95,7 @@ tab <- rbind(tab, Overlap = c(-sum(braakGenes$r<0), sum(braakGenes$r>0)))
 tab <- melt(tab)
 colnames(tab) <- c("type", "dir", "size")
 tab$type <- factor(tab$type, levels = rev(unique(tab$type)))
-tab$y <- ifelse(tab$dir == "positive", tab$size+200, tab$size-300)
+tab$y <- ifelse(tab$dir == "positive", tab$size+300, tab$size-300)
 
 p <- ggplot(tab) + 
   geom_col(aes(x=type, y = size, fill=dir), size = 0.5, colour = "black") + 
@@ -108,10 +108,12 @@ p <- ggplot(tab) +
   theme(
     axis.text = element_text(size = 11),
     axis.text.x = element_blank(),
-    panel.grid = element_blank()
+    panel.grid = element_blank(),
+    legend.position = "top", 
+    legend.title = element_blank()
   )
 p
-pdf("braakgenes_barplot.pdf", 5, 2)
+pdf("braakgenes_barplot.pdf", 4, 2)
 print(p)
 dev.off()
 
@@ -121,7 +123,7 @@ tab <- lapply(names(pdGenesID), function(n){
   g <- intersect(braakGenes$entrez_id, x)
   cbind(study = rep(n, length(g)), braakGenes[braakGenes$entrez_id %in% g,])
 })
-tab <- Reduce(rbind, tab)
+tab <- Reduce(rbind, tab)[, c(3,2,4,5,6,7,1)]
 write.table(tab, file = "pdgenes_stats.txt", sep ="\t", quote = FALSE, row.names = FALSE)
 
 ########## Volcano plot for label correlation and differential expression ##########
@@ -137,7 +139,9 @@ theme <- theme(legend.position = "none",
                plot.title = element_text(size = 12, face = "bold"))
 
 prepare.tab <- function(tab){
-  tab$'logp' <- -log10(tab$BH)
+  if ("logp" %in% colnames(tab)) {
+    tab$'logp' <- -log10(tab$BH)
+  }
   tab$info <- sapply(rownames(tab), function(x){
     if (x %in% braak_pos) 1
     else if (x %in% braak_neg) 2
@@ -156,6 +160,19 @@ ggplot(tab, aes(r, logp, colour = info)) +
   geom_point(size = 0.25, alpha = 0.3) +
   scale_colour_manual(values = c("0"="grey", "1"="red", "2"="blue")) +
   labs(x = "r", y = "-log10 P-value") +
+  ggtitle("Braak correlation") +
+  theme
+dev.off()
+
+# Volcano plot with fold-change (x) and correlation (y)
+tab <- data.frame(r = labelCor$r, fc = diffExpr$Estimate)
+rownames(tab) <- rownames(labelCor)
+tab <- prepare.tab(tab)
+pdf("BRGs_correlation_vs_foldchange.pdf", 4, 3)
+ggplot(tab, aes(r, fc, colour = info)) +
+  geom_point(size = 0.25, alpha = 0.3) +
+  scale_colour_manual(values = c("0"="grey", "1"="red", "2"="blue")) +
+  labs(x = "Braak correlation", y = "FC (R1-R6)") +
   ggtitle("Braak correlation") +
   theme
 dev.off()
