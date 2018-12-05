@@ -8,8 +8,8 @@ library(reshape2)
 library(ggplot2)
 load("../UKBEC/expr.maps.rda",verbose=T)
 load("resources/braakGenes.RData")
-load("resources/braakGenes2.RData")
-load("resources/braakGenes3.RData")
+# load("resources/braakGenes2.RData")
+# load("resources/braakGenes3.RData")
 load("resources/braakInfo.RData") # Braak colors
 source("PD/t.test.table.R")
 
@@ -92,12 +92,12 @@ bg <- list(
   bg1 = list( # Braak genes selected WIHTOUT cell-type correction
     down = braakGenes$entrez_id[braakGenes$r < 0],
     up = braakGenes$entrez_id[braakGenes$r > 0]
-  ),
-  bg2 = list( # Braak genes selected WITH cell-type correction
-    down = braakGenes2$entrez_id[braakGenes2$braak6 < 0],
-    up = braakGenes2$entrez_id[braakGenes2$braak6 > 0]
-  ),
-  bg3 = braakGenes3 # Intersection of corrected and uncorrected results
+  )#,
+  # bg2 = list( # Braak genes selected WITH cell-type correction
+  #   down = braakGenes2$entrez_id[braakGenes2$braak6 < 0],
+  #   up = braakGenes2$entrez_id[braakGenes2$braak6 > 0]
+  # ),
+  # bg3 = braakGenes3 # Intersection of corrected and uncorrected results
 )
 
 # Intersection with entrez IDs in UKBEC
