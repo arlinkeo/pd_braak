@@ -6,12 +6,11 @@ library(reshape2)
 source("PD/base_script.R")
 source("PD/sample.ids.R")
 
-load("../ABA_human_processed_Sjoerd/BrainExpr.RData")
-# brainExpr <- readRDS("../AHBA_Arlin/gene_expr.RDS")
+brainExpr <- readRDS("../AHBA_Arlin/gene_expr.RDS")
 
 # Fixed colors for Braak related regions
 braakColors <- brewer.pal(6, "Set2")
-names(braakColors) <- braakNames
+names(braakColors) <- braakRoi
 
 # Regions of interest (roi)
 roi <- c("myelencephalon", "pontine tegmentum", "substantia nigra", "amygdala", 
@@ -48,37 +47,13 @@ save(roiSamples, file = "resources/roiSamples.RData")
 
 # Braak stages
 braakRegions <- list(
-  braak1 = c("myelencephalon"),
-  braak2 = c("pontine tegmentum"),
-  braak3 = c("substantia nigra", "basal nucleus of meynert, right", "basal nucleus of meynert, left", "CA2 field"),
-  braak4 = c("amygdala", "occipito-temporal gyrus"), 
-  braak5 = c("cingulate gyrus", "temporal lobe"),
-  braak6 = c("frontal lobe", "parietal lobe")
+  R1 = c("myelencephalon"),
+  R2 = c("pontine tegmentum"),
+  R3 = c("substantia nigra", "basal nucleus of meynert, right", "basal nucleus of meynert, left", "CA2 field"),
+  R4 = c("amygdala", "occipito-temporal gyrus"), 
+  R5 = c("cingulate gyrus", "temporal lobe"),
+  R6 = c("frontal lobe", "parietal lobe")
 )
-
-# Plot sample sizes within Braak regions
-numbers <- sapply(donorNames, function (d){
-  roi <- roiSamples[[d]]
-  sapply(braakRegions, function(b){
-    sum(sapply(roi[b], length))
-  })
-})
-df <- melt(numbers)
-colnames(df) <- c("braak", "donor", "size")
-df$donor <- factor(df$donor, levels = unique(df$donor))
-df$braak <- factor(df$braak, levels = rev(unique(df$braak)))
-p <- ggplot(df)+
-  geom_col(aes(x=braak, y=size, fill= donor)) +
-  # guides(alpha=guide_legend(override.aes=list(fill=hcl(c(15,195),100,0), colour=NA))) +
-  # scale_alpha_discrete(labels = gsub("donor", "Donor ", donorNames)) +
-  # scale_color_discrete(values = unname(braakColors)) +
-  coord_flip() +
-  theme(
-    axis.text = element_text(size = 11),
-    axis.ticks.y = element_blank(),
-    panel.background = element_blank(),
-    legend.title = element_blank()
-  )
 
 # Braak stage samples
 braak_idx <- lapply(donorNames, function (d){
@@ -91,28 +66,45 @@ braak_idx <- lapply(donorNames, function (d){
   })
 })
 
-# Print table with sample sizes
-t(sapply(braak_idx, function(m) sapply(m, length)))
-
-# Function to get Braak labels
-# label.vector <- function(m){
-#   apply(m, 1, function(v){
-#     s <- which(v == 1)
-#     ifelse(length(s) == 0, 0, tail(unlist(strsplit(names(s), split = "braak")), 1))
-#   })
-# }
-# braakLabels <- lapply(braakStages, function(m) label.vector(m))
+# Sample sizes within Braak-related regions
+numbers <- sapply(braak_idx, function(m) sapply(m, length))
+colnames(numbers) <- sapply(colnames(numbers), function(x) gsub("donor", "Donor ", x))
+anatomy <- sapply(braakRegions, function(x) {
+  line <- paste(x, collapse = ", ")
+  paste0(toupper(substring(line, 1, 1)), substring(line, 2))
+})
+numbers <- cbind('Braak stage-related regions' = rownames(numbers),
+                 'Anatomical structures' = anatomy,
+                 numbers,
+                 'Total' = rowSums(numbers))
+write.csv(numbers, file = "braakRoi_size.csv", row.names = FALSE)
+# df <- melt(numbers)
+# colnames(df) <- c("braak", "donor", "size")
+# df$donor <- factor(df$donor, levels = unique(df$donor))
+# df$braak <- factor(df$braak, levels = rev(unique(df$braak)))
+# p <- ggplot(df)+
+#   geom_col(aes(x=braak, y=size, fill= donor)) +
+#   # guides(alpha=guide_legend(override.aes=list(fill=hcl(c(15,195),100,0), colour=NA))) +
+#   # scale_alpha_discrete(labels = gsub("donor", "Donor ", donorNames)) +
+#   # scale_color_discrete(values = unname(braakColors)) +
+#   coord_flip() +
+#   theme(
+#     axis.text = element_text(size = 11),
+#     axis.ticks.y = element_blank(),
+#     panel.background = element_blank(),
+#     legend.title = element_blank()
+#   )
 
 braakLabels <- lapply(donorNames, function(d){
   braak <- braak_idx[[d]]
   cols <- colnames(brainExpr[[d]])
   label <- rep("0", length(cols))
-  label[braak$braak1] <- "1"
-  label[braak$braak2] <- "2"
-  label[braak$braak3] <- "3"
-  label[braak$braak4] <- "4"
-  label[braak$braak5] <- "5"
-  label[braak$braak6] <- "6"
+  label[braak$R1] <- "1"
+  label[braak$R2] <- "2"
+  label[braak$R3] <- "3"
+  label[braak$R4] <- "4"
+  label[braak$R5] <- "5"
+  label[braak$R6] <- "6"
   names(label) <- cols
   label
 })

@@ -50,8 +50,8 @@ sampleInfo <- lapply(donorNames, function(d){
 
 ##### PD info about brain regions and genes #####
 
-braakNames <- c("braak1","braak2","braak3","braak4","braak5","braak6")
-names(braakNames) <- braakNames
+braakRoi <- c("R1","R2","R3","R4","R5","R6")
+names(braakRoi) <- braakRoi
 
 pdGenes <- list(hiImpact = c("SNCA", "LRRK2", "GBA", "VPS35", "PARK2", "UCHL1", "PINK1", "PARK7", "ATP13A2", "PLA2G6", "FBXO7", "DNAJC6", "SYNJ1", 
                              "EIF4G1", "DNAJC13", "CHCHD2", "C20orf30", "RIC3", "LRP10"), #TMEM230 is C20orf30
