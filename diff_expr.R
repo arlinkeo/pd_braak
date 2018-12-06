@@ -13,10 +13,10 @@ brainExpr <- readRDS("../AHBA_Arlin/gene_expr.RDS")
 source("PD/plot.deg.numbers.R")
 source("PD/t.test.table.R")
 
-# Pairwise combinations of Braak regions 1-6
-braakPairs <- t(combn(braakNames, 2))
-rownames(braakPairs) <- apply(braakPairs, 1, paste, collapse = "-")
-colnames(braakPairs) <- c("region_A", "region_B")
+# Pairwise combinations of Braak regions R1-R6
+roiPairs <- t(combn(braakRoi, 2))
+rownames(roiPairs) <- apply(roiPairs, 1, paste, collapse = "-")
+colnames(roiPairs) <- c("region_A", "region_B")
 
 # T-test to get p-values and CI's (only needed for forest plot of meta-analysis)
 ttest <- lapply(donorNames, function(d){
@@ -25,7 +25,7 @@ ttest <- lapply(donorNames, function(d){
   exprll <- lapply(braak_idx[[d]], function(b){ # expr. in Braak regions 1-6
     expr[, b]
   })
-  tab <- alply(braakPairs, 1, function(r){
+  tab <- alply(roiPairs, 1, function(r){
     print(unname(r))
     a <- exprll[[r[1]]] # matrix group 1
     b <- exprll[[r[2]]] # matrix group 2
