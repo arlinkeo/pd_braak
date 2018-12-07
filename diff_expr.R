@@ -70,7 +70,7 @@ summaryDiffExpr2 <- aaply(summaryDiffExpr2, 2, function(t){ # P-value corrected 
 diffGenes <- apply(summaryDiffExpr2, 1, function(t){
   down <-  rownames(t)[which(t[, "Estimate"] < -1 & t[,"BH"] < 0.05)]
   up <- rownames(t)[which(t[, "Estimate"] > 1 & t[,"BH"] < 0.05)]
-  list(down = down, up = up)
+  list(downregulated = down, upregulated = up)
 })
 numbers <- t(sapply(diffGenes, function(x){
   deg <- sapply(x, length)
@@ -80,6 +80,6 @@ numbers <- t(sapply(diffGenes, function(x){
 ########## Bar plot of differentially expressed genes between all Braak regions ##########
 
 p <- plot.deg.numbers(numbers[, -3])
-pdf("diff_expr_barplot.pdf", 6, 4)
+pdf("diff_expr_barplot.pdf", 5, 4)
 print(p)
 dev.off()
