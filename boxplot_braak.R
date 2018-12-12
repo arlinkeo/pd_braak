@@ -35,10 +35,11 @@ prepare.data <- function(g){
     expr <- brainExpr[[d]][g, ]
     expr <- apply(expr, 2, mean) # Mean across genes
     label <- braakLabels[[d]]
-    donor <- rep(d, length(expr))
-    data.frame(expr, label, donor)
+    # donor <- rep(d, length(expr))
+    data.frame(expr, label)#, donor)
   })
-  df <- Reduce(rbind, df)
+  df <- melt(df, value.name = "expr")
+  colnames(df)[4] <- "donor"
   df <- df[df$label != "0", ]#Remove Braak 0
   df$label <- paste0("R", df$label)
   df$label <- factor(df$label, levels = sort(unique(df$label)))
