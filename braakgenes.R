@@ -21,7 +21,7 @@ summaryDiffExpr <- aaply(summaryDiffExpr, 2, function(rp){
   cbind(tab, BH = p.adjust(tab[, "pvalue"], method = "BH"))
 })
 # Select region pair
-diffExpr <- as.data.frame(summaryDiffExpr["braak1-braak6", ,])
+diffExpr <- as.data.frame(summaryDiffExpr["R1-R6", ,])
 
 labelCor <- do.call(rbind.data.frame, lapply(summaryLabelCor, function(g) g["summary",]))
 labelCor$BH <- p.adjust(labelCor$pvalue, method = "BH")
@@ -140,7 +140,7 @@ theme <- theme(legend.position = "none",
                plot.title = element_text(size = 12, face = "bold"))
 
 prepare.tab <- function(tab){
-  if ("logp" %in% colnames(tab)) {
+  if (!("logp" %in% colnames(tab))) {
     tab$'logp' <- -log10(tab$BH)
   }
   tab$info <- sapply(rownames(tab), function(x){
@@ -179,22 +179,20 @@ ggplot(tab, aes(r, fc, colour = info)) +
 dev.off()
 
 # Differential expression plot
-ctab <- Reduce(rbind, summaryDiffExpr)
-ctab$logp <- -log10(ctab$BH)
-xmax <- max(ctab$meanDiff)
-xmin <- min(ctab$meanDiff)
-ymax <- ceiling(max(ctab$'logp'[is.finite(ctab$'logp')]))
+xmax <- max(summaryDiffExpr[, , "Estimate"])
+xmin <- min(summaryDiffExpr[, , "Estimate"])
+ymax <- ceiling(-log10(min(summaryDiffExpr[, , "BH"])))
 
-plotll <- lapply(names(summaryDiffExpr), function(rp){
-  tab <- summaryDiffExpr[[rp]]
+plotll <- lapply(dimnames(summaryDiffExpr)[[1]], function(rp){
+  tab <- data.frame(summaryDiffExpr[rp,,])
   tab <- prepare.tab(tab)
-  p <- ggplot(tab, aes(meanDiff, logp, colour = info)) +
+  p <- ggplot(tab, aes(Estimate, logp, colour = info)) +
     geom_point(size = 0.25, alpha = 0.3) +
     scale_colour_manual(values = c("0"="grey", "1"="red", "2"="blue")) +
     labs(x = "Fold-change", y = "-log10 P-value") +
     scale_x_continuous(limits = c(xmin, xmax), expand = c(0,0)) +
     scale_y_continuous(limits = c(0, ymax), expand = c(0,0)) +
-    ggtitle(paste("Braak stage ", gsub("braak", "", gsub("-", " vs ", rp)))) +
+    ggtitle(gsub("-", " vs ", rp)) +
     theme
   p
   name <- paste0("DiffExpr_braak/volcanoplot_", rp, ".pdf")
