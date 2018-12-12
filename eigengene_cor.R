@@ -35,7 +35,8 @@ save(eigenExpr, file = "resources/eigenExpr.RData")
 
 # Summary Braak correlation
 labels <- lapply(donorNames, function(d){
-  braakLabels[[d]][unlist(braak_idx[[d]])]
+  s <- unlist(braak_idx[[d]])
+  braakLabels[[d]][s]
 })
 summaryLabelCorrEG <- summary.braak.cor(eigenExpr, labels)
 save(summaryLabelCorrEG, file = "resources/summaryLabelCorrEG.RData")
