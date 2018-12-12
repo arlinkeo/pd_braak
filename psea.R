@@ -3,13 +3,39 @@ setwd("C:/Users/dkeo/surfdrive/pd_braak")
 source("PD/base_script.R")
 library(PSEA)
 library(plyr)
-library(ggplot2)
+# library(ggplot2)
 load("resources/braakInfo.RData")
 brainExpr <- readRDS("../AHBA_Arlin/gene_expr.RDS")
 load("resources/braakGenes.RData")
+load("resources/eigenExpr.RData")
+load("resources/braakModules.RData")
 
-expr_concat <- brainExpr$donor9861#Reduce(cbind, brainExpr)
-labels_concat <- braakLabels$donor9861#unlist2(braakLabels)
+########## Prepare data ##########
+
+# Gene expression in R1 and R6
+expr <- lapply(donorNames, function(d){
+  idx <- unlist(braak_idx[[d]][c("R1", "R6")])
+  e <- brainExpr[[d]]
+  e[idx]
+})
+expr_concat <- Reduce(cbind, expr)
+
+# Labels of R1 and R6
+labels <- lapply(donorNames, function(d){
+  idx <- unlist(braak_idx[[d]][c("R1", "R6")])
+  braakLabels[[d]][idx]
+})
+labels_concat <- unlist(labels)
+groups <- as.numeric(labels_concat == "6")
+
+# Module eigengene expression in R1 and R6
+module_eg <- lapply(donorNames, function(d) {
+  l <- braakLabels[[d]][unlist(braak_idx[[d]])]
+  idx <- which(l %in% c("1", "6"))
+  e <- eigenExpr[[d]]
+  e[unlist(braakModules), idx]
+})
+module_eg_concat <- Reduce(cbind, module_eg)
 
 # Cell-type genes
 celltypes <- sapply(c("Neurons", "Astrocytes", "Oligodendrocytes", "Microglia", "Endothelial_cells"), function(type){
@@ -17,20 +43,11 @@ celltypes <- sapply(c("Neurons", "Astrocytes", "Oligodendrocytes", "Microglia", 
   as.character(read.csv(file, header = TRUE)$entrez_id)
 }, simplify = FALSE)
 
-# Cell-type mean expression across all samples (whole brain)
-ct_ref <- t(sapply(celltypes, function(ct){
-  x <- t(expr_concat[ct, ])
-  mean <- apply(x, 1, mean)
+# Cell-type mean expression 
+ct <- t(sapply(celltypes, function(ct){
+  x <- expr_concat[ct, ]
+  colMeans(x)
 }))
-
-##### PSEA #####
-# R1-R6  
-idx <- which(labels_concat %in% c("1", "6"))
-
-expr <- expr_concat[, idx]
-groups <- labels_concat[idx]
-groups <- as.numeric(groups == "6")
-ct <- ct_ref[, idx]
 
 # Reference signals
 neurons <- ct["Neurons", ]
@@ -46,8 +63,9 @@ oligodendrocytes_diff <- groups * oligodendrocytes
 microglia_diff <- groups * microglia
 endothelial_cells_diff <- groups * endothelial_cells
 
-psea <- sapply(braakGenes$entrez_id, function(g){
-  gene <- t(expr[g, ])
+########## PSEA ##########
+
+psea <- function(gene){
   
   fit <- lm(gene ~ neurons + astrocytes + oligodendrocytes + microglia + endothelial_cells, subset = which(groups==0))
   par(mfrow=c(2,3), mex=0.8)
@@ -93,40 +111,61 @@ psea <- sapply(braakGenes$entrez_id, function(g){
   
   fc <- c(foldchange_neurons, foldchange_astrocytes, foldchange_oligodendrocytes, foldchange_microglia, foldchange_endothelial_cells)
   pval <- c(pval_neurons, pval_astrocytes, pval_oligodendrocytes, pval_microglia, pval_endothelial_cells)
-  t=cbind(celltype_fit, group_fc = fc, group_pval = pval)
+  cbind(celltype_fit, group_fc = fc, group_pval = pval)
+}
+
+# BRGs
+psea_brgs <- sapply(braakGenes$entrez_id, function(g){
+  gene <- unlist(expr_concat[g, ])
+  psea(gene)
 }, simplify = FALSE)
-psea <- simplify2array(psea)
+psea_brgs <- simplify2array(psea_brgs)
 
 # Celltype-specific expression
-m1 <- t(psea[, "celltype_pval", ])
+m1 <- t(psea_brgs[, "celltype_pval", ])
 m1 <- apply(m1, 2, function(x)p.adjust(x, method = "BH"))
 apply(m1 < 0.05, 2, sum)
 
 # Group-dependent expression
-m2 <- t(psea[, "group_pval", ])
+m2 <- t(psea_brgs[, "group_pval", ])
 m2 <- apply(m2, 2, function(x) p.adjust(x, method = "BH"))
 apply(m2 < 0.05, 2, sum)
 
-# Plot number of significant Betas
-sum1 <- apply(m1 < 0.05, 2, sum)
-sum2 <- apply(m1 < 0.05 & m2 < 0.05, 2, sum)
-celltype <- paste0(toupper(substr(names(sum),1,1)), substring(names(sum), 2))
-celltype <- gsub("_", " ", celltype)
-df <- data.frame(celltype = celltype, no_group_diff = sum1-sum2, group_diff = sum2)
-df <- melt(df)
-df$celltype <- factor(df$celltype, levels = unique(df$celltype)[order(sum1)])
-# df$y <- ifelse(df$variable == "group_diff", df$value-50, df$value+50)
-ggplot(df) + 
-  geom_col(aes(x=celltype, y=value, fill=celltype, alpha = variable)) +# stat_count() +
-  geom_text(aes(x=celltype, y= value-50, label=value)) +
-  coord_flip() +
-  labs(x = "", y = "Number of BRGs with significant Betas") +
-  theme_minimal() +
-  theme(
-    axis.text = element_text(size = 11),
-    # axis.text.x = element_blank(),
-    panel.grid = element_blank()
-  ) +
-  guides(fill = guide_legend(reverse = TRUE))
-df
+# Module eigengene
+psea_meg <- alply(module_eg_concat, 1, function(x) psea(unlist(x)))
+names(psea_meg) <- rownames(module_eg_concat)
+psea_meg <- simplify2array(psea_meg)
+
+# Celltype-specific expression
+m1 <- t(psea_meg[, "celltype_pval", ])
+m1 <- apply(m1, 2, function(x)p.adjust(x, method = "BH"))
+apply(m1 < 0.05, 2, sum)
+
+# Group-dependent expression
+m2 <- t(psea_meg[, "group_pval", ])
+m2 <- apply(m2, 2, function(x) p.adjust(x, method = "BH"))
+apply(m2 < 0.05, 2, sum)
+
+# # Plot number of significant Betas
+# sum1 <- apply(m1 < 0.05, 2, sum)
+# sum2 <- apply(m1 < 0.05 & m2 < 0.05, 2, sum)
+# celltype <- paste0(toupper(substr(names(sum),1,1)), substring(names(sum), 2))
+# celltype <- gsub("_", " ", celltype)
+# df <- data.frame(celltype = celltype, no_group_diff = sum1-sum2, group_diff = sum2)
+# df <- melt(df)
+# df$celltype <- factor(df$celltype, levels = unique(df$celltype)[order(sum1)])
+# # df$y <- ifelse(df$variable == "group_diff", df$value-50, df$value+50)
+# ggplot(df) + 
+#   geom_col(aes(x=celltype, y=value, fill=celltype, alpha = variable)) +# stat_count() +
+#   geom_text(aes(x=celltype, y= value-50, label=value)) +
+#   coord_flip() +
+#   labs(x = "", y = "Number of BRGs with significant Betas") +
+#   theme_minimal() +
+#   theme(
+#     axis.text = element_text(size = 11),
+#     # axis.text.x = element_blank(),
+#     panel.grid = element_blank()
+#   ) +
+#   guides(fill = guide_legend(reverse = TRUE))
+# df
 
