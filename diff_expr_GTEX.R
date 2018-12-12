@@ -10,8 +10,6 @@ load("resources/braakGenes.RData")
 # load("resources/braakGenes2.RData")
 # load("resources/braakGenes3.RData")
 
-names(braakColors) <- gsub("braak", "R", names(braakColors))
-
 # Load and filter data
 
 gtex_expr <- read.table("../GTEX/GTEx_Analysis_2016-01-15_v7_RNASeQCv1.1.8_gene_tpm.gct", sep = "\t", comment.char = "#", header = TRUE, skip = 2)
