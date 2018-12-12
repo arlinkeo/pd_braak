@@ -141,37 +141,9 @@ colnames(t1)[5] <- "category"
 t1$category <- factor(t1$category, levels = unique(t1$category))
 
 # Supplementary heatmap with all GO-terms and diseases
-pdf("module_enrichment_supplement.pdf", 11, 14)
+pdf("module_enrichment.pdf", 11, 14)
 heat.plot(t1) + theme(legend.position = "top")
 dev.off()
-# 
-# # Heatmap with Braak genes, cell-types, and selected GO terms and diseases
-# selected_GO <- c("lysosome", "synapse", "cell junction", "nervous system development", 
-#                  "plasma membrane", "extracellular region", "immune system process", 
-#                  "immune response", "DNA binding", "Protein ubiquitination", "angiogenesis", 
-#                  "Blood vessel morphogenesis",
-#                  "Defense response to bacterium", "Regulation of gene silencing",
-#                  "nucleosome", "inflammatory response", "GABA−A receptor complex", "GABA−A receptor activity")
-# modEnrich$GO <- modEnrich$GO[selected_GO, ]
-# selected_diseases <- c(
-#                 "Alzheimer Disease, Late Onset", "Alzheimer's Disease", "Dementia", "Lewy Body Disease", 
-#                 "Schizophrenia", "Chronic schizophrenia", "Epilepsy", "Multiple Sclerosis", "Anemia", 
-#                 "Autoimmune Diseases", "Inflammation", "Autism Spectrum Disorder", 
-#                 "Autistic Disorder", "Curvature of spine", "Melanoma", "Memory impairment",
-#                 "Diffuse Large B−Cell Lymphoma", "Vascular Diseases", "Tobacco Use Disorder", 
-#                 "Neurofibromatosis 1", "Neonatal disorder", "Motor neuron atrophy", 
-#                 "Mammary Neoplasms", "Hodgkin Disease", "Tumor Progression", "Pilocytic Astrocytoma",
-#                 "Muscle hypotonia", "Narcolepsy", "Ileal Diseases", "Acquired scoliosis",
-#                 "Adolescent idiopathic scoliosis"
-#                 )
-# modEnrich$disease <- modEnrich$disease[selected_diseases, ]
-# t2 <- lapply(modEnrich, prepare.data)
-# t2 <- melt(t2)
-# colnames(t2)[5] <- "category"
-# t2$category <- factor(t2$category, levels = unique(t2$category))
-# pdf("module_enrichment.pdf", 12, 20)
-# heat.plot(t2) + theme(legend.position = "top")
-# dev.off()
 
 ##### Find PD-mplicated genes #####
 
