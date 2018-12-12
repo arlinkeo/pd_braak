@@ -15,7 +15,7 @@ source("PD/diff_expr_hemispheres.R")
 #  Braak stage related genes (corrected for cell-types)
 # source("PD/lm_celltypes.R")
 # source("PD/diff_expr_compare_references.R")
-source("PD/diff_expr_lm.R")
+# source("PD/diff_expr_lm.R")
 # source("PD/diff_expr_lm_eigengene.R")
 
 # Visualize data
