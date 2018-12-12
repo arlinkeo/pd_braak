@@ -66,3 +66,4 @@ pdGenes <- list(hiImpact = c("SNCA", "LRRK2", "GBA", "VPS35", "PARK2", "UCHL1", 
                 # liscovitch2014 = read.table("ifn_signaling_genes.txt", comment.char = "#", sep = "\n", row.names = NULL)[, 1]
 )
 pdGenesID <- lapply(pdGenes, name2EntrezId)
+pdGenesID <- lapply(pdGenesID, function(x) x[!is.na(x)])
