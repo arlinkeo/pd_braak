@@ -3,9 +3,10 @@ setwd("C:/Users/dkeo/surfdrive/pd_braak")
 source("PD/base_script.R")
 library(WGCNA)
 
+coexpr <- readRDS("resources/avgCoexpr_wholeBraak.rds")
+
 ### Hierarchical clustering and module detection ###
-hier.clust <- function(file){
-  coexpr <- readRDS(file)
+hier.clust <- function(coexpr){
   dist <- as.dist(1 - coexpr)
   sapply(c("single", "complete", "average"), function(method){
     print(method)
@@ -18,8 +19,7 @@ hier.clust <- function(file){
     tree;
   }, simplify = FALSE)
 }
-
-hierclust_tree <- hier.clust("resources/avgCoexpr_wholeBraak.rds")
+hierclust_tree <- hier.clust(coexpr)
 save(hierclust_tree, file = "resources/hierclust_tree.RData")
 
 # Plot dendrogram and modules 
