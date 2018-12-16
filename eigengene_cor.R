@@ -137,3 +137,17 @@ module_info <- data.frame(
   genes = sapply(modules, function(m) paste0(entrezId2Name(m), collapse = ","))
 )
 write.table(module_info, file = "module_info.txt", sep = "\t", quote = FALSE, row.names = FALSE)
+
+# # Sum co-expression of genes between modules
+# rm(brainExpr)
+# coexpr <- readRDS("resources/avgCoexpr_wholeBraak.rds")
+# sum_coexpr <- sapply(modules[unlist(braakModules)], function(m1){
+#   sapply(modules[unlist(braakModules)], function(m2){
+#     sum(coexpr[m1, m2])
+#   })
+# })
+# diag(sum_coexpr) <- 0
+# heatmap.2(sum_coexpr, col = rampcols, 
+#           Rowv=FALSE, Colv=FALSE, 
+#           scale = "none", trace = "none", dendrogram = "none", key = FALSE, 
+#           main = "Sum co-expression between modules")
