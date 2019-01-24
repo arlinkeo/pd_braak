@@ -19,7 +19,7 @@ theme <- theme(panel.background = element_blank(), panel.grid = element_blank(),
 # Boxplot function
 box.plot <- function(df, title){
   p <- ggplot(df) + 
-    geom_boxplot(aes(x = label, y = expr, alpha = donor, fill = label)) +
+    geom_boxplot(aes(x = label, y = expr, alpha = donor, fill = label), outlier.size = 1) +
     labs(x = "Brain region", y = "Expression (log2-transformed)") +
     guides(alpha=guide_legend(override.aes=list(fill=hcl(c(15,195),100,0), colour=NA))) +
     scale_alpha_discrete(labels = gsub("donor", "Donor ", donorNames)) +
@@ -54,7 +54,7 @@ boxplot.gene <- function(g, title){
 }
 
 plot.pdf <- function(name, genes){
-  pdf(name, 8, 5)
+  pdf(name, 6, 4)
   lapply(genes, function(g){
     r <- format(summaryLabelCor[[g]]["summary", c("r", "pvalue")], digits = 2)
     title <- paste0(entrezId2Name(g), ", r=", r$r)
@@ -85,13 +85,13 @@ bg <- list(
 
 meanExpr <- lapply(bg, function(l){
   df <- melt(lapply(l, prepare.data))
-  colnames(df) <- c("label", "donor", "variable", "expr", "dir")
+  colnames(df) <- c("label", "variable", "donor", "expr", "dir")
   df
 })
 y_max <- max(sapply(meanExpr, function(x) max(x$expr)))
 y_min <- min(sapply(meanExpr, function(x) min(x$expr)))
 
-pdf("boxplot_AHBA.pdf", 10, 4)
+pdf("boxplot_AHBA.pdf", 6, 4)
 lapply(names(meanExpr), function(n){
   df <- meanExpr[[n]]
   box.plot(df, n) + facet_grid(.~dir, space = "free", scales = "free") +
