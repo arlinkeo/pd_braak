@@ -157,8 +157,13 @@ tab <- lapply(names(pdGenesID), function(n){
 })
 tab <- Reduce(rbind, tab)
 tab <- tab[!duplicated(tab$entrez_id), ]
-tab$module <- sapply(tab$entrez_id, function(g){names(which(sapply(modules, function(m) g %in% m)))})
-tab <- tab[order(tab$r), c(3,2,4,5,6,7,1)]
+tab$module <- sapply(tab$entrez_id, function(g) {
+  presence <- sapply(modules, function(m){g %in% m})
+  ifelse(any(presence), names(which(presence)), "")
+})
+tab <- tab[order(tab$r), c(2,1,3,4,5,6,8,7)]
+tab[, c(3,5)] <- round(tab[, c(3,5)], digits = 2)
+tab[, c(4,6)] <- format(tab[, c(4,6)], digits = 2, scientific = TRUE)
 write.table(tab, file = "pdgenes_stats.txt", sep ="\t", quote = FALSE, row.names = FALSE)
 
 ##### Write table with overlap and p-value of cell-type enrichment #####
