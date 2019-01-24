@@ -109,7 +109,7 @@ psea <- function(gene){
   pval_endothelial_cells <- summary_endothelial_cells$coefficients["endothelial_cells_diff", "Pr(>|t|)"]
   foldchange_endothelial_cells <- (fit_endothelial_cells$coefficients[2] + fit_endothelial_cells$coefficients[3]) / fit_endothelial_cells$coefficients[2]
   
-  fc <- log2(c(foldchange_neurons, foldchange_astrocytes, foldchange_oligodendrocytes, foldchange_microglia, foldchange_endothelial_cells))
+  fc <- c(foldchange_neurons, foldchange_astrocytes, foldchange_oligodendrocytes, foldchange_microglia, foldchange_endothelial_cells)s
   pval <- c(pval_neurons, pval_astrocytes, pval_oligodendrocytes, pval_microglia, pval_endothelial_cells)
   cbind(celltype_fit, group_fc = fc, group_pval = pval)
 }
