@@ -107,7 +107,7 @@ colColor <- rampcols[as.numeric(cut(labelCor$r, breaks = 201))]
 colsep <- tail(which(labelCor$r < 0), 1)
 
 pdf("heatmap_expr_eigengenes.pdf", 5, 12)
-lapply(donorNames[1], function(d){
+lapply(donorNames, function(d){
   samples <- unlist(braak_idx[[d]])
   df <- sampleInfo[[d]][samples,]
   labels <- braakLabels[[d]][samples]
