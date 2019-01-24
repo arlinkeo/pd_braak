@@ -171,7 +171,7 @@ meanExpr <- lapply(bg, function(s){
 y_max <- max(sapply(meanExpr, function(x) max(x$expr, na.rm = TRUE)))
 y_min <- min(sapply(meanExpr, function(x) min(x$expr, na.rm = TRUE)))
 
-pdf("boxplot_UKBEC.pdf", 4, 3)
+pdf("boxplot_UKBEC.pdf", 2.5, 4)
 lapply(names(meanExpr), function(n){
   df <- meanExpr[[n]]
   box.plot(df, n) +

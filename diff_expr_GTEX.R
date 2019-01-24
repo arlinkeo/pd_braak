@@ -11,7 +11,6 @@ load("resources/braakGenes.RData")
 # load("resources/braakGenes3.RData")
 
 # Load and filter data
-
 gtex_expr <- read.table("../GTEX/GTEx_Analysis_2016-01-15_v7_RNASeQCv1.1.8_gene_tpm.gct", sep = "\t", comment.char = "#", header = TRUE, skip = 2)
 rownames(gtex_expr) <- gtex_expr$Name
 # genes <- gtex_expr[, c(1,2)]
@@ -142,7 +141,7 @@ mean_df <- lapply(bg, function(s){
 
 y_max <- max(sapply(mean_df, function(x) max(x$expr)))
 
-pdf("boxplot_GTEX.pdf", 4, 3)
+pdf("boxplot_GTEX.pdf", 2.5, 4)
 lapply(names(mean_df), function(n){
   df <- mean_df[[n]]
   box.plot(df, n) +
