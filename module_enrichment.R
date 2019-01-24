@@ -9,9 +9,6 @@ library(biomaRt)
 load("resources/modules.RData")
 load("resources/braakGenes.RData")
 load("resources/braakModules.RData")
-# load("resources/braakModules2.RData")
-
-# dget("PD/diff.expr.lm.R")
 
 ########## Prepare list of Braak genes, cell types, GO-term, and diseases ##########
 
@@ -147,10 +144,22 @@ dev.off()
 
 ##### Find PD-mplicated genes #####
 
-# Presence PD genes
+# Presence PD genes inall modules
 sapply(modules[unlist(braakModules)], function(m){
   paste0(entrezId2Name(intersect(unlist(pdGenesID),m)), collapse = ", ")
 })
+
+########## Presence of PD-implicated genes as BRGs ##########
+tab <- lapply(names(pdGenesID), function(n){
+  x <- pdGenesID[[n]]
+  g <- intersect(braakGenes$entrez_id, x)
+  cbind(braakGenes[braakGenes$entrez_id %in% g,], study = rep(n, length(g)))
+})
+tab <- Reduce(rbind, tab)
+tab <- tab[!duplicated(tab$entrez_id), ]
+tab$module <- sapply(tab$entrez_id, function(g){names(which(sapply(modules, function(m) g %in% m)))})
+tab <- tab[order(tab$r), c(3,2,4,5,6,7,1)]
+write.table(tab, file = "pdgenes_stats.txt", sep ="\t", quote = FALSE, row.names = FALSE)
 
 ##### Write table with overlap and p-value of cell-type enrichment #####
 

@@ -117,16 +117,6 @@ pdf("braakgenes_barplot.pdf", 4, 2)
 print(p)
 dev.off()
 
-########## Presence of PD-implicated genes ##########
-tab <- lapply(names(pdGenesID), function(n){
-  x <- pdGenesID[[n]]
-  g <- intersect(braakGenes$entrez_id, x)
-  cbind(study = rep(n, length(g)), braakGenes[braakGenes$entrez_id %in% g,])
-})
-tab <- Reduce(rbind, tab)
-tab <- tab[order(tab$r), c(3,2,4,5,6,7,1)]
-write.table(tab, file = "pdgenes_stats.txt", sep ="\t", quote = FALSE, row.names = FALSE)
-
 ########## Volcano plot for label correlation and differential expression ##########
 
 braak_pos <- braakGenes$entrez_id[braakGenes$r>0]
