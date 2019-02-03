@@ -90,16 +90,15 @@ module_size <- sapply(modules, length)
 
 prepare.data <- function(m){ # input matrix
   m <- ifelse(m < 0.05, "<0.05", ">=0.05")
-  # m <- ifelse(m<0.05, ifelse(m<0.01, "<0.01", "0.01<P<0.05"), ">=0.05")
   rowOrder <- unique(unlist(apply(m, 2, function(x) which(x == "<0.05"))))
   m <- m[rowOrder,]
+  rownames(m) <- sapply(rownames(m), function(x) paste(strwrap(x, width = 68), collapse = "\n"))
   df <- lapply(braakModules, function(x) m[,x])
   df <- melt(df)
   colnames(df) <- c("geneset", "module", "value", "dir")
   df$module <- paste0(df$module, " (", module_size[df$module], ")")
   df$module <- factor(df$module, levels = unique(df$module))
   df$geneset <- factor(df$geneset, levels = rev(unique(df$geneset)))
-  # df$value <- factor(df$value, levels = unique(df$value)[c(1,3,2)])
   df
 }
 
@@ -108,8 +107,9 @@ heat.plot <- function(t) {
     geom_tile(aes(x=module, y=geneset, fill=value), colour = "black") +
     scale_fill_manual(name = "P-value", values = c("chocolate", "white")) +
     scale_x_discrete(position = "top") +
+    # scale_y_discrete(labels = function(x) paste(strwrap(x, width = 100), collapse = "\n")) +
     theme(axis.text.x = element_text(angle = 90, hjust = 0, size = 10),
-          axis.text.y = element_text(size = 10),
+          axis.text.y = element_text(size = 6),
           axis.title = element_blank(),
           legend.text = element_text(size = 10), legend.title = element_text(size = 10),
           panel.background = element_blank()
@@ -132,14 +132,15 @@ modEnrich <- lapply(genelists, function(l){ # For each category
 save(modEnrich, file = "resources/modEnrich.RData")
 
 # Prepare data for plotting
-t1 <- lapply(modEnrich, prepare.data)
-t1 <- melt(t1)
-colnames(t1)[5] <- "category"
-t1$category <- factor(t1$category, levels = unique(t1$category))
+t <- lapply(modEnrich, prepare.data)
+t <- melt(t)
+colnames(t)[5] <- "category"
+t$category <- factor(t$category, levels = unique(t$category))
 
 # Supplementary heatmap with all GO-terms and diseases
-pdf("module_enrichment.pdf", 11, 14)
-heat.plot(t1) + theme(legend.position = "top")
+# pdf("module_enrichment.pdf", 11, 14)
+pdf("module_enrichment.pdf", 7, 17)
+heat.plot(t) + theme(legend.position = "top")
 dev.off()
 
 ##### Find PD-mplicated genes #####
