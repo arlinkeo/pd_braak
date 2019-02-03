@@ -7,8 +7,6 @@ brainExpr <- readRDS("../AHBA_Arlin/gene_expr.RDS")
 load("resources/braakInfo.RData") # Braak stage label vectors
 load("resources/summaryLabelCor.RData")
 load("resources/braakGenes.RData")
-# load("resources/braakGenes2.RData")
-# load("resources/braakGenes3.RData")
 
 # Default theme for boxplot
 theme <- theme(panel.background = element_blank(), panel.grid = element_blank(), 
@@ -72,29 +70,16 @@ plot.pdf("boxplot_HLA_genes.pdf", pdGenesID$hla)
 
 # Boxplot for mean expression of -ve and +ve Braak genes
 bg <- list(
-  bg1 = list( # Braak genes selected WIHTOUT cell-type correction
-    down = braakGenes$entrez_id[braakGenes$r < 0],
-    up = braakGenes$entrez_id[braakGenes$r > 0]
-  )#,
-  # bg2 = list( # Braak genes selected WITH cell-type correction
-  #   down = braakGenes2$entrez_id[braakGenes2$braak6 < 0],
-  #   up = braakGenes2$entrez_id[braakGenes2$braak6 > 0]
-  # ),
-  # bg3 = braakGenes3 # Intersection of corrected and uncorrected results
+  down = braakGenes$entrez_id[braakGenes$r < 0],
+  up = braakGenes$entrez_id[braakGenes$r > 0]
 )
-
-meanExpr <- lapply(bg, function(l){
-  df <- melt(lapply(l, prepare.data))
-  colnames(df) <- c("label", "variable", "donor", "expr", "dir")
-  df
-})
+meanExpr <- lapply(bg, prepare.data) 
+df <- melt(meanExpr)
+colnames(df) <- c("label", "variable", "donor", "expr", "dir")
 y_max <- max(sapply(meanExpr, function(x) max(x$expr)))
 y_min <- min(sapply(meanExpr, function(x) min(x$expr)))
 
 pdf("boxplot_AHBA.pdf", 6, 4)
-lapply(names(meanExpr), function(n){
-  df <- meanExpr[[n]]
-  box.plot(df, n) + facet_grid(.~dir, space = "free", scales = "free") +
-    scale_y_continuous(limits = c(y_min, y_max))
-})
+box.plot(df, "Mean BRGs") + facet_grid(.~dir, space = "free", scales = "free") +
+  scale_y_continuous(limits = c(y_min, y_max))
 dev.off()
