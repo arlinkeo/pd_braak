@@ -70,8 +70,8 @@ venn2 <- venn(ll2)
 # Selection based on 2 criteria and collect info of selected genes
 braakGenes <- attr(venn, "intersections")[[paste0(criteria, collapse = ":")]]
 braakGenes <- data.frame(
-  entrez_id = braakGenes, 
   gene_symbol = entrezId2Name(braakGenes),
+  entrez_id = braakGenes, 
   r = labelCor[braakGenes, "r"], 
   r_BH = labelCor[braakGenes, "BH"], 
   fc = diffExpr[braakGenes, "Estimate"], 
@@ -79,7 +79,11 @@ braakGenes <- data.frame(
 )
 braakGenes <- braakGenes[order(braakGenes$r),]
 save(braakGenes, file = "resources/braakGenes.RData")
-write.table(braakGenes, file = "braakGenes.txt", row.names = FALSE, quote = FALSE, sep = "\t")
+
+table <- braakGenes
+table[, c(3,5)] <- round(table[, c(3,5)], digits = 2)
+table[, c(4,6)] <- format(table[, c(4,6)], digits = 3, scientific = TRUE)
+write.table(table, file = "braakGenes.txt", row.names = FALSE, quote = FALSE, sep = "\t")
 
 ########## Bar plot of selected genes ##########
 
