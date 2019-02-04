@@ -8,8 +8,6 @@ library(reshape2)
 library(ggplot2)
 load("../UKBEC/expr.maps.rda",verbose=T)
 load("resources/braakGenes.RData")
-# load("resources/braakGenes2.RData")
-# load("resources/braakGenes3.RData")
 load("resources/braakInfo.RData") # Braak colors
 source("PD/t.test.table.R")
 
