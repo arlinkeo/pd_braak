@@ -14,6 +14,11 @@ rownames(gtex_expr) <- gtex_expr$Name
 # genes <- gtex_expr[, c(1,2)]
 gtex_expr <- gtex_expr[ ,-c(1,2)]
 
+# Subject info
+subject_info <- read.table("../GTEX/GTEx_v7_Annotations_SubjectPhenotypesDS.txt", sep = "\t", header = TRUE)
+total <- nrow(subject_info)
+male <- (sum(subject_info$SEX == "1") / total)*100
+
 # Filter ensembl IDs for protein coding genes only
 gene.annot <- read.table("../GTEX/gencode.v19.genes.v7.patched_contigs.gtf", sep = "\t")
 gene.annot <- gene.annot[which(gene.annot$V3 == "gene"), ] # Filter for genes
