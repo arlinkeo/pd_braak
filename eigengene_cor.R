@@ -130,13 +130,13 @@ dev.off()
 ##### Print table with module info #####
 
 module_info <- data.frame(
-  Module = names(modules),
-  Size = sapply(modules, length), 
+  # Module = rownames(labelCor),
+  Size = sapply(modules, length)[rownames(labelCor)], 
   r = round(labelCor$r, digits = 2),
   "BH-corrected P" = format(labelCor$pvalue, digits = 3, scientific = TRUE),
-  genes = sapply(modules, function(m) paste0(entrezId2Name(m), collapse = ","))
+  genes = sapply(modules, function(m) paste0(entrezId2Name(m), collapse = ","))[rownames(labelCor)]
 )
-write.table(module_info, file = "module_info.txt", sep = "\t", quote = FALSE, row.names = FALSE)
+write.table(module_info, file = "module_info.txt", sep = "\t", quote = FALSE)
 
 # # Sum co-expression of genes between modules
 # rm(brainExpr)
