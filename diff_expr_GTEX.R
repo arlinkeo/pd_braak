@@ -9,7 +9,7 @@ source("PD/t.test.table.R")
 load("resources/braakGenes.RData")
 
 # Load and filter data
-gtex_expr <- read.table("../GTEX/GTEx_Analysis_2016-01-15_v7_RNASeQCv1.1.8_gene_tpm.gct", sep = "\t", comment.char = "#", header = TRUE, skip = 2)
+gtex_expr <- read.table("../GTEX/Gene_TPMs/GTEx_Analysis_2016-01-15_v7_RNASeQCv1.1.8_gene_tpm.gct", sep = "\t", comment.char = "#", header = TRUE, skip = 2)
 rownames(gtex_expr) <- gtex_expr$Name
 # genes <- gtex_expr[, c(1,2)]
 gtex_expr <- gtex_expr[ ,-c(1,2)]
