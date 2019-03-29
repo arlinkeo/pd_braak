@@ -92,7 +92,7 @@ prepare.data <- function(m){ # input matrix
   m <- ifelse(m < 0.05, "<0.05", ">=0.05")
   rowOrder <- unique(unlist(apply(m, 2, function(x) which(x == "<0.05"))))
   m <- m[rowOrder,]
-  rownames(m) <- sapply(rownames(m), function(x) paste(strwrap(x, width = 68), collapse = "\n"))
+  # rownames(m) <- sapply(rownames(m), function(x) paste(strwrap(x, width = 68), collapse = "\n"))
   df <- lapply(braakModules, function(x) m[,x])
   df <- melt(df)
   colnames(df) <- c("geneset", "module", "value", "dir")
@@ -109,7 +109,7 @@ heat.plot <- function(t) {
     scale_x_discrete(position = "top") +
     # scale_y_discrete(labels = function(x) paste(strwrap(x, width = 100), collapse = "\n")) +
     theme(axis.text.x = element_text(angle = 90, hjust = 0, size = 10),
-          axis.text.y = element_text(size = 6),
+          axis.text.y = element_text(size = 10),
           axis.title = element_blank(),
           legend.text = element_text(size = 10), legend.title = element_text(size = 10),
           panel.background = element_blank()
@@ -130,6 +130,15 @@ modEnrich <- lapply(genelists, function(l){ # For each category
   t
 })
 save(modEnrich, file = "resources/modEnrich.RData")
+load("resources/modEnrich.RData")
+
+# Poster version
+rowOrder <- unique(unlist(apply(modEnrich$GO, 2, function(x) which(x< 0.05))))
+modEnrich$GO <- modEnrich$GO[rowOrder, ]
+modEnrich$GO <- modEnrich$GO[-c(4:13,17,19:20,25:28,30,35,36,38,40,43:47,50), ]
+rowOrder <- unique(unlist(apply(modEnrich$disease, 2, function(x) which(x< 0.05))))
+modEnrich$disease <- modEnrich$disease[rowOrder, ]
+modEnrich$disease <- modEnrich$disease[-c(4,9:11:15,20,21,24), ]
 
 # Prepare data for plotting
 t <- lapply(modEnrich, prepare.data)
@@ -139,7 +148,7 @@ t$category <- factor(t$category, levels = unique(t$category))
 
 # Supplementary heatmap with all GO-terms and diseases
 # pdf("module_enrichment.pdf", 11, 14)
-pdf("module_enrichment.pdf", 7, 17)
+pdf("module_enrichment_posterversion.pdf", 7.5, 9)
 heat.plot(t) + theme(legend.position = "top")
 dev.off()
 
