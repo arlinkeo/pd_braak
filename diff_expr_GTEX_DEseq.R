@@ -5,8 +5,9 @@ library(reshape2)
 library(ggplot2)
 library(plyr)
 library(DESeq2)
+library(ggsignif)
 load("resources/braakInfo.RData") # Braak colors
-source("PD/t.test.table.R")
+# source("PD/t.test.table.R")
 load("resources/braakGenes.RData")
 
 # Load and filter data
@@ -125,7 +126,7 @@ theme <- theme(panel.background = element_blank(),
 
 box.plot <- function(df, title){
   ggplot(df) + 
-    geom_boxplot(aes(y = expr, x = region, fill = region)) +
+    geom_boxplot(aes(x = region, y = expr, fill = region)) +
     labs(x = "Brain region", y = "Expression (TPM)") +
     ggtitle(title) +
     scale_x_discrete(expand=c(0.2,0)) +
@@ -152,13 +153,12 @@ dev.off()
 
 #boxplot of PD genes
 prepare.data <- function(g){
-  ens <- conversion_tab$ensembl_gene_id[which(conversion_tab$entrezgene == g)]
-  df <- lapply(samples, function(s) unlist(gtex_expr[ens, s]))
+  df <- unlist(gtex_tpm[g, ])
+  df <- data.frame(sample = names(df), expr = df, region = samples$region)
   df <- melt(df)
-  colnames(df) <- c("expr", "region")
+  colnames(df) <- c("sample", "region", "variable", "expr")
   df$region <- paste0("R", df$region)
   df$region <- factor(df$region, levels = sort(unique(df$region)))
-  # df$region <- factor(df$region, levels = unique(df$region))
   df
 }
 
@@ -166,8 +166,19 @@ plot.pdf <- function(name, genes){
   pdf(name, 2, 3)
   lapply(genes, function(g){
     title <- paste0(entrezId2Name(g))
+    g <- conversion_tab$ensembl_gene_id[which(conversion_tab$entrezgene == g)]
     df <- prepare.data(g)
-    p <- box.plot(df, title)
+    p <- box.plot(df, title)# +
+    #   geom_signif(comparisons = list(c("R3", "R4")), 
+    #               step_increase = 0.1)
+    # p
+    # pval <- deseq[g, "padj", ]
+    # pg <- ggplot_build(p)
+    # pg$data[[1]]$annotation <- pval
+    # pg$data[[2]]$textsize <- 2.5
+    # pg$data[[2]]$colour <- ifelse(as.numeric(pg$data[[2]]$annotation) < 0.05, "red", "black")
+    # q1 <- ggplot_gtable((pg))
+    # p1 <- plot(q1)
     print(p)
   })
   dev.off()
