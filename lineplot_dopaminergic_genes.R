@@ -7,7 +7,8 @@ brainExpr <- readRDS("../AHBA_Arlin/gene_expr.RDS")
 load("resources/braakInfo.RData")
 
 # Dopaminergic genes
-genes <- c("SNCA", "SNCB", "GCH1", "TH", "SLC6A3", "SLC18A2")
+genes <- c("SNCA", #"SNCB", "SNCG", 
+           "GCH1", "TH", "SLC6A3", "SLC18A2")
 genes_id <- name2EntrezId(genes)
 
 # Plot function
@@ -31,9 +32,10 @@ expr <- lapply(donorNames, function(d){
   idx <- braak_idx[[d]]
   e <- sapply(idx, function(i){
     e <- brainExpr[[d]][genes_id, i]
+    # e <- rbind(e, e["6531",]/e["6571",])
     apply(e, 1, median)
   })
-  rownames(e) <- genes
+  rownames(e) <- c(genes)#, "Ratio")
   e
 })
 # labels <- lapply(donorNames, function(d){
@@ -60,6 +62,9 @@ plot.matrix(max_median, "max median across donors")
 min_median <- apply(simplify2array(expr), c(1,2), min)
 plot.matrix(min_median, "min median across donors")
 dev.off()
+
+# Combine with boxplot?
+
 
 # Concatenate data
 expr.concat <- Reduce(cbind, expr)
