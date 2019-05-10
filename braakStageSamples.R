@@ -40,7 +40,7 @@ roiSamples <- lapply(donorNames, function(d){
     samples.donor(ids, d)
   })
 })
-sapply(roiSamples, function(x){lapply(x, length)})
+sapply(roiSamples, function(x){sapply(x, length)})
 save(roiSamples, file = "resources/roiSamples.RData")
 
 ####################################################################
