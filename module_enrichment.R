@@ -92,11 +92,13 @@ prepare.data <- function(m){ # input matrix
   m <- ifelse(m < 0.05, "<0.05", ">=0.05")
   rowOrder <- unique(unlist(apply(m, 2, function(x) which(x == "<0.05"))))
   m <- m[rowOrder,]
-  # rownames(m) <- sapply(rownames(m), function(x) paste(strwrap(x, width = 68), collapse = "\n"))
-  df <- lapply(braakModules, function(x) m[,x])
+  df <- lapply(braakModules, function(x) {
+    sub_m <- m[,x]
+    colnames(sub_m) <- paste0(colnames(sub_m), " (", module_size[colnames(sub_m)], ")")
+    sub_m
+  })
   df <- melt(df)
   colnames(df) <- c("geneset", "module", "value", "dir")
-  df$module <- paste0(df$module, " (", module_size[df$module], ")")
   df$module <- factor(df$module, levels = unique(df$module))
   df$geneset <- factor(df$geneset, levels = rev(unique(df$geneset)))
   df
@@ -147,8 +149,8 @@ colnames(t)[5] <- "category"
 t$category <- factor(t$category, levels = unique(t$category))
 
 # Supplementary heatmap with all GO-terms and diseases
-# pdf("module_enrichment.pdf", 11, 14)
-pdf("module_enrichment_posterversion.pdf", 7.5, 9)
+pdf("module_enrichment.pdf", 11, 14)
+# pdf("module_enrichment_posterversion.pdf", 7.5, 9)
 heat.plot(t) + theme(legend.position = "top")
 dev.off()
 
