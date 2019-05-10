@@ -134,9 +134,9 @@ theme <- theme(legend.position = "none",
                plot.title = element_text(size = 12, face = "bold"))
 
 prepare.tab <- function(tab){
-  if (!("logp" %in% colnames(tab))) {
-    tab$'logp' <- -log10(tab$BH)
-  }
+  # if (!("logp" %in% colnames(tab))) {
+  #   tab$'logp' <- -log10(tab$BH)
+  # }
   tab$info <- sapply(rownames(tab), function(x){
     if (x %in% braak_pos) 1
     else if (x %in% braak_neg) 2
@@ -150,6 +150,7 @@ prepare.tab <- function(tab){
 
 # Braak correlation plot
 tab <- prepare.tab(labelCor)
+tab$'logp' <- -log10(tab$BH)
 pdf(file = "volcanoplot_cor.pdf", 4, 3)
 ggplot(tab, aes(r, logp, colour = info)) +
   geom_point(size = 0.25, alpha = 0.3) +
@@ -159,18 +160,18 @@ ggplot(tab, aes(r, logp, colour = info)) +
   theme
 dev.off()
 
-# Volcano plot with fold-change (x) and correlation (y)
-tab <- data.frame(r = labelCor$r, fc = diffExpr$Estimate)
-rownames(tab) <- rownames(labelCor)
-tab <- prepare.tab(tab)
-pdf("BRGs_correlation_vs_foldchange.pdf", 4, 3)
-ggplot(tab, aes(r, fc, colour = info)) +
-  geom_point(size = 0.25, alpha = 0.3) +
-  scale_colour_manual(values = c("0"="grey", "1"="red", "2"="blue")) +
-  labs(x = "Braak correlation", y = "FC (R1-R6)") +
-  ggtitle("Braak correlation") +
-  theme
-dev.off()
+# # Volcano plot with fold-change (x) and correlation (y)
+# tab <- data.frame(r = labelCor$r, fc = diffExpr$Estimate)
+# rownames(tab) <- rownames(labelCor)
+# tab <- prepare.tab(tab)
+# pdf("BRGs_correlation_vs_foldchange.pdf", 4, 3)
+# ggplot(tab, aes(r, fc, colour = info)) +
+#   geom_point(size = 0.25, alpha = 0.3) +
+#   scale_colour_manual(values = c("0"="grey", "1"="red", "2"="blue")) +
+#   labs(x = "Braak correlation", y = "FC (R1-R6)") +
+#   ggtitle("Braak correlation") +
+#   theme
+# dev.off()
 
 # Differential expression plot
 xmax <- max(summaryDiffExpr[, , "Estimate"])
@@ -180,6 +181,7 @@ ymax <- ceiling(-log10(min(summaryDiffExpr[, , "BH"])))
 plotll <- lapply(dimnames(summaryDiffExpr)[[1]], function(rp){
   tab <- data.frame(summaryDiffExpr[rp,,])
   tab <- prepare.tab(tab)
+  tab$'logp' <- -log10(tab$BH)
   p <- ggplot(tab, aes(Estimate, logp, colour = info)) +
     geom_point(size = 0.25, alpha = 0.3) +
     scale_colour_manual(values = c("0"="grey", "1"="red", "2"="blue")) +
@@ -197,7 +199,7 @@ plotll <- lapply(dimnames(summaryDiffExpr)[[1]], function(rp){
 
 ########## Heatmap expression of BRGs ##########
 
-genes <- braakGenes$entrez_id
+genes <- braakGenes$entrez_id # is sorted by correlation
 colsep <- which(braakGenes$r>0)[1]
 colPal <- c("darkblue", "white", "darkred")
 rampcols <- colorRampPalette(colors = colPal, space="Lab")(200)
