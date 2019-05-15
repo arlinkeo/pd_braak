@@ -69,42 +69,42 @@ psea <- function(gene){
   
   fit <- lm(gene ~ neurons + astrocytes + oligodendrocytes + microglia + endothelial_cells, subset = which(groups==0))
   par(mfrow=c(2,3), mex=0.8)
-  crplot(fit, "neurons", newplot = FALSE)
-  crplot(fit, "astrocytes", newplot = FALSE)
-  crplot(fit, "oligodendrocytes", newplot = FALSE)
-  crplot(fit, "microglia", newplot = FALSE)
-  crplot(fit, "endothelial_cells", newplot = FALSE)
+  # crplot(fit, "neurons", newplot = FALSE)
+  # crplot(fit, "astrocytes", newplot = FALSE)
+  # crplot(fit, "oligodendrocytes", newplot = FALSE)
+  # crplot(fit, "microglia", newplot = FALSE)
+  # crplot(fit, "endothelial_cells", newplot = FALSE)
   summary <- summary(fit)
   coefficients <- summary$coefficients
   celltype_fit <- coefficients[-1, c(1,4)]
   colnames(celltype_fit) <- c("celltype_beta", "celltype_pval")
   
   fit_neurons <- lm(gene ~ neurons + neurons_diff)
-  # crplot(fit_neurons, "neurons", g = "neurons_diff")
+  crplot(fit_neurons, "neurons", g = "neurons_diff")
   summary_neurons <- summary(fit_neurons)
   pval_neurons <- summary_neurons$coefficients["neurons_diff", "Pr(>|t|)"]
   foldchange_neurons <- (fit_neurons$coefficients[2] + fit_neurons$coefficients[3]) / fit_neurons$coefficients[2]
   
   fit_astrocytes <- lm(gene ~ astrocytes + astrocytes_diff)
-  # crplot(fit_astrocytes, "astrocytes", g = "astrocytes_diff")
+  crplot(fit_astrocytes, "astrocytes", g = "astrocytes_diff")
   summary_astrocytes <- summary(fit_astrocytes)
   pval_astrocytes <- summary_astrocytes$coefficients["astrocytes_diff", "Pr(>|t|)"]
   foldchange_astrocytes <- (fit_astrocytes$coefficients[2] + fit_astrocytes$coefficients[3]) / fit_astrocytes$coefficients[2]
   
   fit_oligodendrocytes <- lm(gene ~ oligodendrocytes + oligodendrocytes_diff)
-  # crplot(fit_oligodendrocytes, "oligodendrocytes", g = "oligodendrocytes_diff")
+  crplot(fit_oligodendrocytes, "oligodendrocytes", g = "oligodendrocytes_diff")
   summary_oligodendrocytes <- summary(fit_oligodendrocytes)
   pval_oligodendrocytes <- summary_oligodendrocytes$coefficients["oligodendrocytes_diff", "Pr(>|t|)"]
   foldchange_oligodendrocytes <- (fit_oligodendrocytes$coefficients[2] + fit_oligodendrocytes$coefficients[3]) / fit_oligodendrocytes$coefficients[2]
   
   fit_microglia <- lm(gene ~ microglia + microglia_diff)
-  # crplot(fit_microglia, "microglia", g = "microglia_diff")
+  crplot(fit_microglia, "microglia", g = "microglia_diff")
   summary_microglia <- summary(fit_microglia)
   pval_microglia <- summary_microglia$coefficients["microglia_diff", "Pr(>|t|)"]
   foldchange_microglia <- (fit_microglia$coefficients[2] + fit_microglia$coefficients[3]) / fit_microglia$coefficients[2]
   
   fit_endothelial_cells <- lm(gene ~ endothelial_cells + endothelial_cells_diff)
-  # crplot(fit_endothelial_cells, "endothelial_cells", g = "endothelial_cells_diff")
+  crplot(fit_endothelial_cells, "endothelial_cells", g = "endothelial_cells_diff")
   summary_endothelial_cells <- summary(fit_endothelial_cells)
   pval_endothelial_cells <- summary_endothelial_cells$coefficients["endothelial_cells_diff", "Pr(>|t|)"]
   foldchange_endothelial_cells <- (fit_endothelial_cells$coefficients[2] + fit_endothelial_cells$coefficients[3]) / fit_endothelial_cells$coefficients[2]
@@ -130,6 +130,9 @@ apply(m1 < 0.05, 2, sum)
 m2 <- t(psea_brgs[, "group_pval", ])
 m2 <- apply(m2, 2, function(x) p.adjust(x, method = "BH"))
 apply(m2 < 0.05, 2, sum)
+
+# Group-dependent fold-change
+m3 <- t(psea_brgs[, "group_fc", ])
 
 # Module eigengene
 psea_meg <- alply(module_eg_concat, 1, function(x) psea(unlist(x)))
