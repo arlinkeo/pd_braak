@@ -210,7 +210,8 @@ lapply(donorNames, function(d){
   samples <- unlist(braak_idx[[d]])
   df <- sampleInfo[[d]][samples,]
   labels <- braakLabels[[d]][samples]
-  exprMat <- scale(t(brainExpr[[d]][genes, samples]))
+  # exprMat <- scale(t(brainExpr[[d]][genes, samples]))
+  exprMat <- scale(t(brainExpr[[d]][name2EntrezId(c("SNCA", "GCH1", "TH", "SLC6A3", "SLC18A2")), samples]))
   rowsep <- match(c(2:6), labels)# separate Braak regions
   
   heatmap.2(exprMat, col = rampcols, 
