@@ -54,6 +54,7 @@ boxplot.gene <- function(g, title){
 plot.pdf <- function(name, genes){
   pdf(name, 6, 4)
   lapply(genes, function(g){
+    print(entrezId2Name(g))
     r <- format(summaryLabelCor[[g]]["summary", c("r", "pvalue")], digits = 2)
     title <- paste0(entrezId2Name(g), ", r=", r$r)
     df <- prepare.data(g)
@@ -67,6 +68,9 @@ plot.pdf <- function(name, genes){
 plot.pdf("boxplot_high_impact_genes.pdf", pdGenesID$hiImpact)
 plot.pdf("boxplot_susceptible_genes.pdf", pdGenesID$jansen2017)
 plot.pdf("boxplot_HLA_genes.pdf", pdGenesID$hla)
+
+pd_brgs <- read.table("pdgenes_stats.txt", sep ="\t", header = TRUE)
+plot.pdf("boxplot_pd_brgs.pdf", as.character(pd_brgs$entrez_id))
 
 # Boxplot for mean expression of -ve and +ve Braak genes
 bg <- list(
@@ -83,3 +87,6 @@ pdf("boxplot_AHBA.pdf", 6, 4)
 box.plot(df, "Mean BRGs") + facet_grid(.~dir, space = "free", scales = "free") +
   scale_y_continuous(limits = c(y_min, y_max))
 dev.off()
+
+# Boxplot dopaminergic genes
+plot.pdf("boxplot_hemegenes.pdf", name2EntrezId(c("HBD", "HBB", "HBA1", "HBA2", "OASL")))
