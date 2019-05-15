@@ -2,14 +2,10 @@
 setwd("C:/Users/dkeo/surfdrive/pd_braak")
 source("PD/base_script.R")
 library(ggplot2)
-# library(reshape2)
+library(reshape2)
 brainExpr <- readRDS("../AHBA_Arlin/gene_expr.RDS")
 load("resources/braakInfo.RData")
-
-# Dopaminergic genes
-genes <- c("SNCA", #"SNCB", "SNCG", 
-           "GCH1", "TH", "SLC6A3", "SLC18A2")
-genes_id <- name2EntrezId(genes)
+load("resources/eigenExpr.RData")
 
 # Plot function
 plot.matrix <- function(expr, title){
@@ -27,52 +23,55 @@ plot.matrix <- function(expr, title){
     theme_classic()
 }
 
-# Data per donor
-expr <- lapply(donorNames, function(d){
-  idx <- braak_idx[[d]]
-  e <- sapply(idx, function(i){
-    e <- brainExpr[[d]][genes_id, i]
-    # e <- rbind(e, e["6531",]/e["6571",])
-    apply(e, 1, median)
+# Function get expression of genes and modules
+get.expr <- function(g, m){
+  lapply(donorNames, function(d){
+    idx <- braak_idx[[d]]
+    labels <- braakLabels[[d]][unlist(idx)]
+    idx_eg <- sapply(names(idx), function(i){ #index of sorted labels
+      which(labels == gsub("R","", i))
+    }, simplify = FALSE) 
+    e <- sapply(names(idx), function(i){
+      e <- brainExpr[[d]][g, idx[[i]]] # expr of genes
+      em <- eigenExpr[[d]][m, idx_eg[[i]]]# expr of module
+      e <- rbind(em, e)
+      apply(e, 1, median)
+    })
+    rownames(e) <- c(m, g)
+    e
   })
-  rownames(e) <- c(genes)#, "Ratio")
-  e
-})
-# labels <- lapply(donorNames, function(d){
-#   idx <- unlist(braak_idx[[d]])
-#   braakLabels[[d]][idx]
-# })
+}
 
-# Plot
-pdf("lineplot_dopaminergic_genes.pdf",6, 4)
-# Per donor
-lapply(donorNames, function(d){
-  e <- expr[[d]]
-  # l <- labels[[d]]
-  # intercepts <- match(c(1:6), l)[-1]-1
-  plot.matrix(e, d)
-})
+# Data of dopaminergic genes & module
+genes <- c("SNCA", "GCH1", "TH", "SLC6A3", "SLC18A2")
+genes_id <- name2EntrezId(genes)
+module <- c("M127")
+expr_dopa <- get.expr(genes_id, module)
+
+pdf("lineplot_dopaminergic_genes.pdf", 6, 4)
+# # Per donor
+# lapply(donorNames, function(d){
+#   e <- expr[[d]]
+#   plot.matrix(e, d)
+# })
 # Average median across donor
-mean_median <- apply(simplify2array(expr), c(1,2), mean)
+mean_median <- apply(simplify2array(expr_dopa), c(1,2), mean)
 plot.matrix(mean_median, "mean median across donors")
-median_median <- apply(simplify2array(expr), c(1,2), median)
-plot.matrix(median_median, "median median across donors")
-max_median <- apply(simplify2array(expr), c(1,2), max)
-plot.matrix(max_median, "max median across donors")
-min_median <- apply(simplify2array(expr), c(1,2), min)
-plot.matrix(min_median, "min median across donors")
+# median_median <- apply(simplify2array(expr_dopa), c(1,2), median)
+# plot.matrix(median_median, "median median across donors")
+# max_median <- apply(simplify2array(expr_dopa), c(1,2), max)
+# plot.matrix(max_median, "max median across donors")
+# min_median <- apply(simplify2array(expr_dopa), c(1,2), min)
+# plot.matrix(min_median, "min median across donors")
 dev.off()
 
-# Combine with boxplot?
+# Data of blood oxygen genes
+genes <- c("HBD", "HBB", "HBA1", "HBA2", "OASL")
+genes_id <- name2EntrezId(genes)
+module <- c("M47")
+expr_bloodoxy <- get.expr(genes_id, module)
 
-
-# Concatenate data
-expr.concat <- Reduce(cbind, expr)
-labels.concat <- unlist(labels)
-colorder <- order(labels.concat)
-expr.concat <- expr.concat[, colorder]
-labels.concat <- labels.concat[colorder]
-intercepts.concat <- match(c(1:6), labels.concat)[-1]-1
-
-plot.concat <- plot.matrix(expr.concat, intercepts.concat, "dopaminergic genes")
-plot.concat
+pdf("lineplot_bloodoxygen_genes.pdf", 6, 4)
+mean_median <- apply(simplify2array(expr_bloodoxy), c(1,2), mean)
+plot.matrix(mean_median, "mean median across donors")
+dev.off()
