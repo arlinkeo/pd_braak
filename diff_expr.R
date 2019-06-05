@@ -55,7 +55,7 @@ summaryDiffExpr <- aaply(ttest, c(1,3), function(g){ # For each Braak region pai
   summary <- rma(t$Estimate, t$Var, method = "DL", test = "t")
   gene$weight <- weights(summary)
   t <- cbind(t, pvalue = gene[, "pvalue"], weight = weights(summary))
-  rbind(t, 'summary' = list(summary$beta, summary$se^2 , summary$ci.lb, summary$ci.ub,
+  t <- rbind(t, 'summary' = list(summary$beta, summary$se^2 , summary$ci.lb, summary$ci.ub,
                             summary$pval, sum(weights(summary))))
   as.matrix(t)
 }) # 4D-array: genes x regions x measures x donors
