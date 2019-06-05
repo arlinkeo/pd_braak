@@ -37,7 +37,7 @@ get.expr <- function(g, m){
       e <- rbind(em, e)
       apply(e, 1, median)
     })
-    rownames(e) <- c(m, g)
+    rownames(e) <- c(m, entrezId2Name(g))
     e
   })
 }
