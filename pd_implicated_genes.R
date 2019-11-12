@@ -22,3 +22,30 @@ pdGenesID <- lapply(pdGenesID, function(x) x[!is.na(x)])
 
 # pd_brgs <- read.table("pdgenes_stats.txt", sep ="\t", header = TRUE)
 # plot.pdf("boxplot_pd_brgs.pdf", as.character(pd_brgs$entrez_id))
+
+
+##### Find PD-mplicated genes #####
+
+# Presence PD genes in all modules
+sapply(modules[unlist(braakModules)], function(m){
+  paste0(entrezId2Name(intersect(unlist(pdGenesID),m)), collapse = ", ")
+})
+
+########## Presence of PD-implicated genes as BRGs and module member ##########
+tab <- lapply(names(pdGenesID), function(n){
+  x <- pdGenesID[[n]]
+  g <- intersect(braakGenes$entrez_id, x)
+  cbind(braakGenes[braakGenes$entrez_id %in% g,], study = rep(n, length(g)))
+})
+tab <- Reduce(rbind, tab)
+tab <- tab[!duplicated(tab$entrez_id), ]
+tab$module <- sapply(tab$entrez_id, function(g) {
+  presence <- sapply(modules, function(m){g %in% m})
+  ifelse(any(presence), names(which(presence)), "")
+})
+tab <- tab[order(tab$r), c(1:6,8,7)]
+tab[, c(3,5)] <- round(tab[, c(3,5)], digits = 2)
+tab[, c(4,6)] <- format(tab[, c(4,6)], digits = 2, scientific = TRUE)
+colnames(tab) <- c("Gene symbol", "Entrez ID", "Correlation with Braak (r)", "P-value (BH-corrected)", "Fold-change", "P-value (BH-corrected)",
+                   "Module member", "Reference")
+write.table(tab, file = "output/pdgenes_stats.txt", sep ="\t", quote = FALSE, row.names = FALSE)
