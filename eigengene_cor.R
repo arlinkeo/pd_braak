@@ -1,6 +1,5 @@
-# Eigen gene differential expression
+# Module eigengene expression correlation with Braak stages
 library(ggrepel)
-# library(gplots)
 
 # eigen gene function for data matrix (samples x genes)
 eigen.gene <- function(x){
