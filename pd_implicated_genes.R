@@ -38,10 +38,11 @@ tab <- lapply(names(pdGenesID), function(n){
   cbind(braakGenes[braakGenes$entrez_id %in% g,], study = rep(n, length(g)))
 })
 tab <- Reduce(rbind, tab)
+tab$study <- sapply((tab[, "entrez_id"]), function(g) paste0(tab[tab$entrez_id==g, "study"], collapse = ", "))  # Merge studies if there are duplicate genes
 tab <- tab[!duplicated(tab$entrez_id), ]
 tab$module <- sapply(tab$entrez_id, function(g) {
   presence <- sapply(modules, function(m){g %in% m})
-  ifelse(any(presence), names(which(presence)), "")
+  ifelse(any(presence), names(which(presence)), "-")
 })
 tab <- tab[order(tab$r), c(1:6,8,7)]
 tab[, c(3,5)] <- round(tab[, c(3,5)], digits = 2)
