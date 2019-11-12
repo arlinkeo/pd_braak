@@ -1,21 +1,8 @@
 # Heatmap of modules enriched for different gene sets
 # Braak gene enrichment of modules
-setwd("C:/Users/dkeo/surfdrive/pd_braak")
-source("PD/base_script.R")
-library(ggplot2)
-library(reshape2)
-library(biomaRt)
-# library(GO.db)
-load("resources/modules.RData")
-load("resources/braakGenes.RData")
-load("resources/braakModules.RData")
+library(GO.db)
 
 ########## Prepare list of Braak genes, cell types, GO-term, and diseases ##########
-
-# Braak genes
-braak <- list( 
-  downregulated = braakGenes$entrez_id[braakGenes$r < 0],
-  upregulated = braakGenes$entrez_id[braakGenes$r > 0])
 
 # Genes associated with GO-terms
 ensembl <- useEnsembl(biomart="ensembl", dataset="hsapiens_gene_ensembl", version=92)
@@ -24,12 +11,12 @@ names(goterms) <- goterms
 go_genes <- lapply(goterms, function(go){
   as.character(unlist(getBM(c('entrezgene'), filters='go', mart=ensembl, values=go)))
 })
-save(go_genes, file = "resources/go_genes.RData")
+saveRDS(go_genes, file = "output/go_genes.rds")
 names(go_genes) <- Term(names(go_genes))
 go_genes <- go_genes[which(!is.na(names(go_genes)))]
 
 # Disease-associated genes
-disease_table <- read.delim("gene_associated_with_disease.txt")
+disease_table <- read.delim("../gene_associated_with_disease.txt")
 diseases <- unique(disease_table$diseaseName)
 disease_genes <- sapply(diseases, function(x){
   disease_table$geneId[disease_table$diseaseName %in% x]
@@ -37,7 +24,7 @@ disease_genes <- sapply(diseases, function(x){
 
 # Cell-type genes
 celltype_genes <- sapply(c("Astrocytes", "Endothelial_cells", "Microglia", "Neurons", "Oligodendrocytes"), function(type){
-  file = paste0("brainscope_celltypes/", type, ".txt")
+  file = paste0("../brainscope_celltypes/", type, ".txt")
   as.character(read.csv(file, header = TRUE)$entrez_id)
 }, simplify = FALSE)
 
@@ -52,22 +39,11 @@ genelists <- lapply(genelists, function(t){
   sets <- sets[sapply(sets, length) >= 10]
   sets
 })
-save(genelists, file = "resources/genelists.RData")
-load("resources/genelists.RData")
+saveRDS(genelists, file = "output/genelists.rds")
     
 ########## Module enrichment functions ##########
 
-# hypergeometric test
-hyper.test <- function(a, b, total){
-  genes <- intersect(a, b)
-  overlap <- length(genes)
-  ns1 <- length(a)
-  ns2 <- length(b)
-  p <- phyper(overlap - 1, ns1, total - ns1, ns2, lower.tail = FALSE)
-  p
-}
-
-# Test for each category of gene set and correct P for modules and gene sets
+# Test for each category of gene set and correct P for modules AND gene sets
 hyper.test.table <- function(l1, l2){ # two lists of gene sets
   pvalue <- t(sapply(names(l1), function(n){
     print(paste0(which(names(l1)==n), ": ", n))
@@ -121,7 +97,7 @@ heat.plot <- function(t) {
 
 ########## Module enrichment and plotting table ##########
 
-# Apply hypergeometrix test between gene sets
+# Apply hypergeometric test between gene sets
 modEnrich <- lapply(genelists, function(l){ # For each category
   t <- hyper.test.table(l, modules[unlist(braakModules)]) # Apply hypergeometric test
   rows <- apply(t, 1, function(x) any(x < 0.05)) # Filter significant gene sets
@@ -131,8 +107,7 @@ modEnrich <- lapply(genelists, function(l){ # For each category
   rownames(t) <- paste0(toupper(substring(rownames(t),1,1)), substring(rownames(t),2)) # Capital first character
   t
 })
-save(modEnrich, file = "resources/modEnrich.RData")
-load("resources/modEnrich.RData")
+saveRDS(modEnrich, file = "output/modEnrich.rds")
 
 # Poster version
 rowOrder <- unique(unlist(apply(modEnrich$GO, 2, function(x) which(x< 0.05))))
@@ -156,12 +131,12 @@ dev.off()
 
 ##### Find PD-mplicated genes #####
 
-# Presence PD genes inall modules
+# Presence PD genes in all modules
 sapply(modules[unlist(braakModules)], function(m){
   paste0(entrezId2Name(intersect(unlist(pdGenesID),m)), collapse = ", ")
 })
 
-########## Presence of PD-implicated genes as BRGs ##########
+########## Presence of PD-implicated genes as BRGs and module member ##########
 tab <- lapply(names(pdGenesID), function(n){
   x <- pdGenesID[[n]]
   g <- intersect(braakGenes$entrez_id, x)
@@ -173,28 +148,30 @@ tab$module <- sapply(tab$entrez_id, function(g) {
   presence <- sapply(modules, function(m){g %in% m})
   ifelse(any(presence), names(which(presence)), "")
 })
-tab <- tab[order(tab$r), c(2,1,3,4,5,6,8,7)]
+tab <- tab[order(tab$r), c(1:6,8,7)]
 tab[, c(3,5)] <- round(tab[, c(3,5)], digits = 2)
 tab[, c(4,6)] <- format(tab[, c(4,6)], digits = 2, scientific = TRUE)
-write.table(tab, file = "pdgenes_stats.txt", sep ="\t", quote = FALSE, row.names = FALSE)
+colnames(tab) <- c("Gene symbol", "Entrez ID", "Correlation with Braak (r)", "P-value (BH-corrected)", "Fold-change", "P-value (BH-corrected)",
+                   "Module member", "Reference")
+write.table(tab, file = "output/pdgenes_stats.txt", sep ="\t", quote = FALSE, row.names = FALSE)
 
-##### Write table with overlap and p-value of cell-type enrichment #####
-
-cor <- round(labelCor[names(signif_modules), "r"], digits = 2)
-braak_pval <- t(modEnrich$BSGs)
-braak_overlap <- sapply(braak, function(set){
-  sapply(signif_modules, function(mod_genes){
-    length(intersect(mod_genes, set))
-  })
-})
-cell_pval <- t(modEnrich$celltype)
-cell_overlap <- sapply(celltype_genes, function(set){
-  sapply(signif_modules, function(mod_genes){
-    length(intersect(mod_genes, set))
-  })
-})
-
-table <- cbind('Module' = names(signif_modules), 'r' = cor, 
-               braak_overlap, braak_pval,
-               cell_overlap, cell_pval)
-write.table(table, file = "module_enrichment.txt", sep = "\t", row.names = FALSE)
+# ##### Write table with overlap and p-value of cell-type enrichment #####
+# 
+# cor <- round(labelCor[names(signif_modules), "r"], digits = 2)
+# braak_pval <- t(modEnrich$BSGs)
+# braak_overlap <- sapply(braak, function(set){
+#   sapply(signif_modules, function(mod_genes){
+#     length(intersect(mod_genes, set))
+#   })
+# })
+# cell_pval <- t(modEnrich$celltype)
+# cell_overlap <- sapply(celltype_genes, function(set){
+#   sapply(signif_modules, function(mod_genes){
+#     length(intersect(mod_genes, set))
+#   })
+# })
+# 
+# table <- cbind('Module' = names(signif_modules), 'r' = cor, 
+#                braak_overlap, braak_pval,
+#                cell_overlap, cell_pval)
+# write.table(table, file = "module_enrichment.txt", sep = "\t", row.names = FALSE)

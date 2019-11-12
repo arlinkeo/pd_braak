@@ -1,15 +1,6 @@
 # Eigen gene differential expression
-setwd("C:/Users/dkeo/surfdrive/pd_braak")
-library(ggplot2)
 library(ggrepel)
-library(gplots)
-source("PD/base_script.R")
-load("resources/modules.RData")
-load("resources/braakInfo.RData")
-
-brainExpr <- readRDS("../AHBA_Arlin/gene_expr.RDS")
-
-#####  Functions #####
+# library(gplots)
 
 # eigen gene function for data matrix (samples x genes)
 eigen.gene <- function(x){
@@ -17,9 +8,6 @@ eigen.gene <- function(x){
   mean <- apply(x, 1, mean)
   if (cor(eg, mean) > 0) eg else -eg # flip sign of eigen gene based on the data
 }
-
-# Braak-correlation for eigengenes
-summary.braak.cor <- dget("PD/summary.braak.cor.R")
 
 ##### PCA eigen gene #####
 
@@ -31,17 +19,17 @@ eigenExpr <- lapply(donorNames, function(d){
     eigen.gene(t(expr[genes, ]))
   })))
 })
-save(eigenExpr, file = "resources/eigenExpr.RData")
+saveRDS(eigenExpr, file = "output/eigenExpr.rds")
 
 # Summary Braak correlation
 labels <- lapply(donorNames, function(d){
   s <- unlist(braak_idx[[d]])
   braakLabels[[d]][s]
 })
-summaryLabelCorrEG <- summary.braak.cor(eigenExpr, labels)
-save(summaryLabelCorrEG, file = "resources/summaryLabelCorrEG.RData")
+summaryLabelCorEG <- summary.braak.cor(eigenExpr, labels)
+saveRDS(summaryLabelCorEG, file = "output/summaryLabelCorEG.rds")
 
-labelCor <- do.call(rbind.data.frame, lapply(summaryLabelCorrEG, function(g) g["summary",]))
+labelCor <- do.call(rbind.data.frame, lapply(summaryLabelCorEG, function(g) g["summary",]))
 labelCor$BH <- p.adjust(labelCor$pvalue, method = "BH")
 orderEG <- order(labelCor$r)
 labelCor <- labelCor[orderEG, ]
@@ -50,7 +38,6 @@ mod_neg <- rownames(labelCor)[labelCor$BH < 0.0001 & labelCor$r < 0] # significa
 mod_pos <- rownames(labelCor)[labelCor$BH < 0.0001 & labelCor$r > 0] # significant correlated modules
 
 braakModules <- list(down = mod_neg, up = mod_pos)
-save(braakModules, file = "resources/braakModules.RData")
 
 #####  Volcano plot #####
 
@@ -91,7 +78,7 @@ p <- ggplot(tab, aes(r, logp, colour = info)) +
   scale_y_continuous(limits = c(0, ymax), expand = c(0,0)) +
   theme
 
-pdf("eigengene_r_volcanoplot.pdf", 5, 5)
+pdf("output/eigengene_r_volcanoplot.pdf", 5, 5)
 p
 dev.off()
 
@@ -106,15 +93,14 @@ rampcols <- colorRampPalette(colors = colPal, space="Lab")(201)
 colColor <- rampcols[as.numeric(cut(labelCor$r, breaks = 201))]
 colsep <- tail(which(labelCor$r < 0), 1)
 
-pdf("heatmap_expr_eigengenes.pdf", 5, 12)
+pdf("output/heatmap_expr_eigengenes.pdf", 5, 12)
 lapply(donorNames, function(d){
   samples <- unlist(braak_idx[[d]])
-  df <- sampleInfo[[d]][samples,]
+  df <- sample_annot[[d]][samples,]
   labels <- braakLabels[[d]][samples]
   exprMat <- t(as.matrix(eigenExpr[[d]][cols, ]))
   rowsep <- match(c(2:6), labels) -1# separate Braak regions
   rowColor <- df$color_hex_triplet
-  # rownames(exprMat) <- NULL
   heatmap.2(exprMat, col = rampcols, 
             labRow = df$name, 
             rowsep = rowsep, colsep = colsep, sepcolor = "black",
@@ -136,18 +122,4 @@ module_info <- data.frame(
   "BH-corrected P" = format(labelCor$pvalue, digits = 3, scientific = TRUE),
   genes = sapply(modules, function(m) paste0(entrezId2Name(m), collapse = ","))[rownames(labelCor)]
 )
-write.table(module_info, file = "module_info.txt", sep = "\t", quote = FALSE)
-
-# # Sum co-expression of genes between modules
-# rm(brainExpr)
-# coexpr <- readRDS("resources/avgCoexpr_wholeBraak.rds")
-# sum_coexpr <- sapply(modules[unlist(braakModules)], function(m1){
-#   sapply(modules[unlist(braakModules)], function(m2){
-#     sum(coexpr[m1, m2])
-#   })
-# })
-# diag(sum_coexpr) <- 0
-# heatmap.2(sum_coexpr, col = rampcols, 
-#           Rowv=FALSE, Colv=FALSE, 
-#           scale = "none", trace = "none", dendrogram = "none", key = FALSE, 
-#           main = "Sum co-expression between modules")
+write.table(module_info, file = "output/module_info.txt", sep = "\t", quote = FALSE)

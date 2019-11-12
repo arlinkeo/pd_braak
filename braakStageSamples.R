@@ -1,12 +1,6 @@
-#sample IDs of ROI for PD
-setwd("C:/Users/dkeo/surfdrive/pd_braak")
+# Sample IDs of ROI for PD
 library(RColorBrewer)
 library(ggplot2)
-library(reshape2)
-source("PD/base_script.R")
-source("PD/sample.ids.R")
-
-brainExpr <- readRDS("../AHBA_Arlin/gene_expr.RDS")
 
 # Fixed colors for Braak related regions
 braakColors <- brewer.pal(6, "Set2")
@@ -41,7 +35,6 @@ roiSamples <- lapply(donorNames, function(d){
   })
 })
 sapply(roiSamples, function(x){sapply(x, length)})
-save(roiSamples, file = "resources/roiSamples.RData")
 
 ####################################################################
 
@@ -60,7 +53,7 @@ braak_idx <- lapply(donorNames, function (d){
   roi <- roiSamples[[d]]
   lapply(braakRegions, function(b){
     samples <- Reduce(c, roi[b])
-    graph_order <- sampleInfo[[d]][samples, "graph_order"]
+    graph_order <- sample_annot[[d]][samples, "graph_order"]
     sample_order <- order(-graph_order)
     samples[sample_order]
   })
@@ -77,24 +70,9 @@ numbers <- cbind('Braak stage-related regions' = rownames(numbers),
                  'Anatomical structures' = anatomy,
                  numbers,
                  'Total' = rowSums(numbers))
-write.csv(numbers, file = "braakRoi_size.csv", row.names = FALSE)
-# df <- melt(numbers)
-# colnames(df) <- c("braak", "donor", "size")
-# df$donor <- factor(df$donor, levels = unique(df$donor))
-# df$braak <- factor(df$braak, levels = rev(unique(df$braak)))
-# p <- ggplot(df)+
-#   geom_col(aes(x=braak, y=size, fill= donor)) +
-#   # guides(alpha=guide_legend(override.aes=list(fill=hcl(c(15,195),100,0), colour=NA))) +
-#   # scale_alpha_discrete(labels = gsub("donor", "Donor ", donorNames)) +
-#   # scale_color_discrete(values = unname(braakColors)) +
-#   coord_flip() +
-#   theme(
-#     axis.text = element_text(size = 11),
-#     axis.ticks.y = element_blank(),
-#     panel.background = element_blank(),
-#     legend.title = element_blank()
-#   )
+write.csv(numbers, file = "output/braakRoi_size.csv", row.names = FALSE)
 
+# Vector of Braak labels for all samples for each donor
 braakLabels <- lapply(donorNames, function(d){
   braak <- braak_idx[[d]]
   cols <- colnames(brainExpr[[d]])
@@ -109,4 +87,4 @@ braakLabels <- lapply(donorNames, function(d){
   label
 })
 
-save(braak_idx, braakLabels, braakColors, file = "resources/braakInfo.RData")
+# save(braak_idx, braakLabels, braakColors, file = "output/braakInfo.RData")

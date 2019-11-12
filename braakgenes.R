@@ -1,27 +1,12 @@
 # select significant genes based on significant summary estimate
-setwd("C:/Users/dkeo/surfdrive/pd_braak")
-library("metap")
+library(metap)
 library(gplots)
-library(ggplot2)
-library(reshape2)
-library(plyr)
-library("RDAVIDWebService")
-source("PD/base_script.R")
-load("resources/braakInfo.RData")
-load("resources/summaryDiffExpr.RData")
-load("resources/summaryLabelCor.RData")
-
-brainExpr <- readRDS("../AHBA_Arlin/gene_expr.RDS")
+library(RDAVIDWebService)
 
 ########## Prepare data ##########
 
-# Extract summary statistics, BH-correct
-summaryDiffExpr <- aaply(summaryDiffExpr, 2, function(rp){
-  tab <- rp[,"summary",] #do.call(rbind.data.frame, lapply(rp, function(g) g["summary",]))
-  cbind(tab, BH = p.adjust(tab[, "pvalue"], method = "BH"))
-})
-# Select region pair
-diffExpr <- as.data.frame(summaryDiffExpr["R1-R6", ,])
+# Select results from differential expression and correlation analysis with summary statistics
+diffExpr <- as.data.frame(summaryDiffExpr["R1-R6", "summary", ,])
 
 labelCor <- do.call(rbind.data.frame, lapply(summaryLabelCor, function(g) g["summary",]))
 labelCor$BH <- p.adjust(labelCor$pvalue, method = "BH")
@@ -78,7 +63,6 @@ braakGenes <- data.frame(
   fc_BH = diffExpr[braakGenes, "BH"]
 )
 braakGenes <- braakGenes[order(braakGenes$r),]
-save(braakGenes, file = "resources/braakGenes.RData")
 
 table <- braakGenes
 table[, c(3,5)] <- round(table[, c(3,5)], digits = 2)
@@ -116,9 +100,8 @@ p <- ggplot(tab) +
     legend.position = "top", 
     legend.title = element_blank()
   )
+pdf("output/braakgenes_barplot.pdf", 4, 2)
 p
-pdf("braakgenes_barplot.pdf", 4, 2)
-print(p)
 dev.off()
 
 ########## Volcano plot for label correlation and differential expression ##########
@@ -134,9 +117,6 @@ theme <- theme(legend.position = "none",
                plot.title = element_text(size = 12, face = "bold"))
 
 prepare.tab <- function(tab){
-  # if (!("logp" %in% colnames(tab))) {
-  #   tab$'logp' <- -log10(tab$BH)
-  # }
   tab$info <- sapply(rownames(tab), function(x){
     if (x %in% braak_pos) 1
     else if (x %in% braak_neg) 2
@@ -151,89 +131,22 @@ prepare.tab <- function(tab){
 # Braak correlation plot
 tab <- prepare.tab(labelCor)
 tab$'logp' <- -log10(tab$BH)
-pdf(file = "volcanoplot_cor.pdf", 4, 3)
+pdf(file = "output/volcanoplot_cor.pdf", 4, 3)
 ggplot(tab, aes(r, logp, colour = info)) +
   geom_point(size = 0.25, alpha = 0.3) +
   scale_colour_manual(values = c("0"="grey", "1"="red", "2"="blue")) +
-  labs(x = "r", y = "-log10 P-value") +
+  labs(x = bquote("Correlation with Braak stages ("*italic(r)*")"), y = bquote("-"*log[10]*" "*italic(P)*"-value")) +
   ggtitle("Braak correlation") +
   theme
 dev.off()
 
-# # Volcano plot with fold-change (x) and correlation (y)
-# tab <- data.frame(r = labelCor$r, fc = diffExpr$Estimate)
-# rownames(tab) <- rownames(labelCor)
-# tab <- prepare.tab(tab)
-# pdf("BRGs_correlation_vs_foldchange.pdf", 4, 3)
-# ggplot(tab, aes(r, fc, colour = info)) +
-#   geom_point(size = 0.25, alpha = 0.3) +
-#   scale_colour_manual(values = c("0"="grey", "1"="red", "2"="blue")) +
-#   labs(x = "Braak correlation", y = "FC (R1-R6)") +
-#   ggtitle("Braak correlation") +
-#   theme
-# dev.off()
-
-# Differential expression plot
-xmax <- max(summaryDiffExpr[, , "Estimate"])
-xmin <- min(summaryDiffExpr[, , "Estimate"])
-ymax <- ceiling(-log10(min(summaryDiffExpr[, , "BH"])))
-
-plotll <- lapply(dimnames(summaryDiffExpr)[[1]], function(rp){
-  tab <- data.frame(summaryDiffExpr[rp,,])
-  tab <- prepare.tab(tab)
-  tab$'logp' <- -log10(tab$BH)
-  p <- ggplot(tab, aes(Estimate, logp, colour = info)) +
-    geom_point(size = 0.25, alpha = 0.3) +
-    scale_colour_manual(values = c("0"="grey", "1"="red", "2"="blue")) +
-    labs(x = "Fold-change", y = "-log10 P-value") +
-    scale_x_continuous(limits = c(xmin, xmax), expand = c(0,0)) +
-    scale_y_continuous(limits = c(0, ymax), expand = c(0,0)) +
-    ggtitle(gsub("-", " vs ", rp)) +
-    theme
-  p
-  name <- paste0("DiffExpr_braak/volcanoplot_", rp, ".pdf")
-  pdf(file = name, 4, 3)
-  print(p)
-  dev.off()
-})
-
-########## Heatmap expression of BRGs ##########
-
-genes <- braakGenes$entrez_id # is sorted by correlation
-colsep <- which(braakGenes$r>0)[1]
-colPal <- c("darkblue", "white", "darkred")
-rampcols <- colorRampPalette(colors = colPal, space="Lab")(200)
-
-pdf("heatmap_BRGs.pdf", 16, 12)
-lapply(donorNames, function(d){
-  # Subselect expression matrices
-  samples <- unlist(braak_idx[[d]])
-  df <- sampleInfo[[d]][samples,]
-  labels <- braakLabels[[d]][samples]
-  # exprMat <- scale(t(brainExpr[[d]][genes, samples]))
-  exprMat <- scale(t(brainExpr[[d]][name2EntrezId(c("SNCA", "GCH1", "TH", "SLC6A3", "SLC18A2")), samples]))
-  rowsep <- match(c(2:6), labels)# separate Braak regions
-  
-  heatmap.2(exprMat, col = rampcols, 
-            labRow = df$acronym, labCol = entrezId2Name(colnames(exprMat)), 
-            rowsep = rowsep, colsep = colsep, sepcolor = "black",
-            Rowv=FALSE, Colv=FALSE, 
-            cexCol = .5, cexRow = .5,
-            scale = "none", trace = "none", dendrogram = "none", density.info = "none", 
-            RowSideColors = df$color_hex_triplet, 
-            main = paste0("Expression of BRGs in ", d),
-            margins = c(5, 5))
-})
-dev.off()
-
-# Functional enrichment of genes which expression correlate with Braak regions
+# Functional enrichment of braak genes
 
 braak <- lapply(c(positive = "pos", negative = "neg"), function(x){
   if (x == "pos") braakGenes$entrez_id[braakGenes$r > 0]
   else braakGenes$entrez_id[braakGenes$r < 0]
 })
 
-#Functional enrichment of  genes correlated greater or smaller than 0
 david<-DAVIDWebService$new(email="D.L.Keo@tudelft.nl",
                            url="https://david.abcc.ncifcrf.gov/webservice/services/DAVIDWebService.DAVIDWebServiceHttpSoap12Endpoint/")
 setAnnotationCategories(david, c("GOTERM_BP_ALL", "GOTERM_MF_ALL", "GOTERM_CC_ALL"))
@@ -249,6 +162,6 @@ lapply(names(braak), function(r){
   result <- addList(david, genes, idType = "ENTREZ_GENE_ID", listName = r, listType = "Gene")
   print(result)
   setCurrentBackgroundPosition(david, 1)
-  getFunctionalAnnotationChartFile(david, paste0("Functional_analyses/", r, "_goterms.txt"), threshold=t, count=2L)
-  getClusterReportFile(david, paste0("Functional_analyses/", r, "_termclusters.txt"), type = c("Term"))
+  getFunctionalAnnotationChartFile(david, paste0("output/Functional_analyses/", r, "_goterms.txt"), threshold=t, count=2L)
+  getClusterReportFile(david, paste0("output/Functional_analyses/", r, "_termclusters.txt"), type = c("Term"))
 })

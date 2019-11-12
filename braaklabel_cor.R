@@ -1,14 +1,4 @@
-#Correlate expression  with braakstage labels
-setwd("C:/Users/dkeo/surfdrive/pd_braak")
-source("PD/base_script.R")
-library(reshape2)
-library(metafor)
-load("resources/braakInfo.RData")
-
-brainExpr <- readRDS("../AHBA_Arlin/gene_expr.RDS")
-
-##### Correlation on expression data #####
-summary.braak.cor <- dget("PD/summary.braak.cor.R")
+# Correlate expression  with Braak stage labels
 
 labels <- lapply(donorNames, function(d){
   idx <- unlist(braak_idx[[d]])
@@ -20,4 +10,5 @@ expr_braak <- lapply(donorNames, function(d){
   brainExpr[[d]][, idx] # Expression in Braak regions
 })
 summaryLabelCor <- summary.braak.cor(expr_braak, labels)
-save(summaryLabelCor, file = "resources/summaryLabelCor.RData")
+saveRDS(summaryLabelCor, file = "output/summaryLabelCor.rds")
+load("output/summaryLabelCor.RData")

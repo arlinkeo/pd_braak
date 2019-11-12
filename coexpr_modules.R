@@ -1,9 +1,6 @@
 # Co-expression modules in Braak 1 and 6
-setwd("C:/Users/dkeo/surfdrive/pd_braak")
-source("PD/base_script.R")
-library(WGCNA)
 
-coexpr <- readRDS("resources/avgCoexpr_wholeBraak.rds")
+# avgCoexpr <- readRDS("output/avgCoexpr_wholeBraak.rds")
 
 ### Hierarchical clustering and module detection ###
 hier.clust <- function(coexpr){
@@ -19,11 +16,11 @@ hier.clust <- function(coexpr){
     tree;
   }, simplify = FALSE)
 }
-hierclust_tree <- hier.clust(coexpr)
-save(hierclust_tree, file = "resources/hierclust_tree.RData")
+hierclust_tree <- hier.clust(avgCoexpr)
+saveRDS(hierclust_tree, file = "output/hierclust_tree.rds")
 
 # Plot dendrogram and modules 
-pdf("coexpr_modules.pdf", 12, 2)
+pdf("output/coexpr_modules.pdf", 12, 2)
 lapply(names(hierclust_tree), function(method){
   title <- ""#paste0("Co-expression modules in Braak 1-6, ", method, " linkage")
   tree <- hierclust_tree[[method]]
@@ -46,4 +43,4 @@ names(modNames) <- paste0("M", modNames)
 modules <- lapply(modNames, function(m){
   t$labels[t$module == m]
 })
-save(modules, file = "resources/modules.RData")
+ 

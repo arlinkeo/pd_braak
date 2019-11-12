@@ -1,12 +1,6 @@
 # Boxplot of expression in Braak regions for a single gene
-setwd("C:/Users/dkeo/surfdrive/pd_braak")
-library(ggplot2)
-library(reshape2)
-source("PD/base_script.R")
-brainExpr <- readRDS("../AHBA_Arlin/gene_expr.RDS")
-load("resources/braakInfo.RData") # Braak stage label vectors
-load("resources/summaryLabelCor.RData")
-load("resources/braakGenes.RData")
+
+########## Functions for boxplots ##########
 
 # Default theme for boxplot
 theme <- theme(panel.background = element_blank(), panel.grid = element_blank(), 
@@ -18,7 +12,7 @@ theme <- theme(panel.background = element_blank(), panel.grid = element_blank(),
 box.plot <- function(df, title){
   p <- ggplot(df) + 
     geom_boxplot(aes(x = label, y = expr, alpha = donor, fill = label), outlier.size = 1) +
-    labs(x = "Brain region", y = "Expression (log2-transformed)") +
+    labs(x = "Brain region", y = bquote("Expression ("*log[2]*"-transformed)")) +
     guides(alpha=guide_legend(override.aes=list(fill=hcl(c(15,195),100,0), colour=NA))) +
     scale_alpha_discrete(labels = gsub("donor", "Donor ", donorNames)) +
     scale_fill_manual(values = unname(braakColors), guide = FALSE) +
@@ -56,7 +50,7 @@ plot.pdf <- function(name, genes){
   lapply(genes, function(g){
     print(entrezId2Name(g))
     r <- format(summaryLabelCor[[g]]["summary", c("r", "pvalue")], digits = 2)
-    title <- paste0(entrezId2Name(g), ", r=", r$r)
+    title <- bquote(italic(.(entrezId2Name(g)))*", "*italic(r)*"="*.(r$r))
     df <- prepare.data(g)
     p <- box.plot(df, title)
     print(p)
@@ -64,18 +58,12 @@ plot.pdf <- function(name, genes){
   dev.off()
 }
 
-# Boxplot for each PD-implicated gene
-plot.pdf("boxplot_high_impact_genes.pdf", pdGenesID$hiImpact)
-plot.pdf("boxplot_susceptible_genes.pdf", pdGenesID$jansen2017)
-plot.pdf("boxplot_HLA_genes.pdf", pdGenesID$hla)
-
-pd_brgs <- read.table("pdgenes_stats.txt", sep ="\t", header = TRUE)
-plot.pdf("boxplot_pd_brgs.pdf", as.character(pd_brgs$entrez_id))
+###################################################
 
 # Boxplot for mean expression of -ve and +ve Braak genes
 bg <- list(
-  down = braakGenes$entrez_id[braakGenes$r < 0],
-  up = braakGenes$entrez_id[braakGenes$r > 0]
+  'r < 0' = braakGenes$entrez_id[braakGenes$r < 0],
+  'r > 0' = braakGenes$entrez_id[braakGenes$r > 0]
 )
 meanExpr <- lapply(bg, prepare.data) 
 df <- melt(meanExpr)
@@ -83,10 +71,25 @@ colnames(df) <- c("label", "variable", "donor", "expr", "dir")
 y_max <- max(sapply(meanExpr, function(x) max(x$expr)))
 y_min <- min(sapply(meanExpr, function(x) min(x$expr)))
 
-pdf("boxplot_AHBA.pdf", 6, 4)
+pdf("output/boxplot_AHBA.pdf", 6, 4)
 box.plot(df, "Mean BRGs") + facet_grid(.~dir, space = "free", scales = "free") +
   scale_y_continuous(limits = c(y_min, y_max))
 dev.off()
 
-# Boxplot dopaminergic genes
-plot.pdf("boxplot_hemegenes.pdf", name2EntrezId(c("HBD", "HBB", "HBA1", "HBA2", "OASL")))
+# # Mean expression in one donor
+# meanExprD1 <- lapply(meanExpr, function(t){
+#   rows <- which(t$donor %in% "donor9861")
+#   t[rows,]
+# })
+# df <- melt(meanExprD1)
+# colnames(df) <- c("label", "variable", "donor", "expr", "dir")
+# pdf("boxplot_AHBA_donor9861.pdf", 4.8, 4)
+#   ggplot(df) + 
+#   geom_boxplot(aes(x = label, y = expr,fill = label), outlier.size = 1) +
+#   labs(x = "Brain region", y = "Expression (log2-transformed)") +
+#   scale_fill_manual(values = unname(braakColors), guide = FALSE) +
+#   ggtitle("Mean BRGs in donor 9861") +
+#   theme + 
+#   facet_grid(.~dir, space = "free", scales = "free") +
+#   scale_y_continuous(limits = c(y_min, y_max))
+# dev.off()

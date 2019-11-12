@@ -1,9 +1,8 @@
 # Function for summary Braak label correlation
-require(metafor)
 
 # correlation with Braak labels for all genes and donors
 braak.cor.data <- function(matList, labelList) {
-  donorll <- sapply(names(matList), function(d){
+  correlations <- sapply(names(matList), function(d){
     labels <- labelList[[d]] # of all samples
     expr <- matList[[d]]
     t(apply(expr, 1, function(gene){# corr. each gene/row
@@ -11,10 +10,11 @@ braak.cor.data <- function(matList, labelList) {
       labels <- as.numeric(labels)
       r <- cor.test(gene, labels) # Pearson's r by default
       c(r = unname(r$estimate), pvalue = r$p.value, size = ncol(expr))
-    })) # data.frame for each donor
+    })) # genes x measures
   }, simplify = FALSE)
-  genell <- apply(simplify2array(donorll), 1, data.frame) # dataframe for each gene
-  lapply(genell, function(x) as.data.frame(t(x)))
+  simplify2array(correlations) # genes x measures x donors
+  # genell <- apply(correlations, 1, data.frame) # dataframe for each gene
+  # lapply(genell, function(x) as.data.frame(t(x)))
 }
 
 # Transform correlations to Fisher's z-scale and get corresponding sampling variances and confidence intervals for each row (gene)
@@ -39,7 +39,7 @@ summary.braak.cor <- function(matList, labelList){
   geneLabelZscore <- lapply(geneLabelCor, z.transform) 
   
   # Summary effect of correlations
-  lapply(geneLabelZscore, function(t){
+  tabList <- lapply(geneLabelZscore, function(t){
     summary <- rma(t$r, t$variance, method = "DL", test = "t")
     t$weight <- round(weights(summary), digits = 2)
     t$donors <- sapply(rownames(t), function(n){ gsub("donor", "Donor ", n)})
@@ -48,4 +48,5 @@ summary.braak.cor <- function(matList, labelList){
     t[, c("r", "variance", "lower95", "upper95")] <- back.transform(t[, c("r", "variance", "lower95", "upper95")])
     t
   })
+  simplify2array(tabList)
 }

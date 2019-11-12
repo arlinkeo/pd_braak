@@ -1,17 +1,7 @@
-# Differential expression based on mean expression
-setwd("C:/Users/dkeo/surfdrive/pd_braak")
-source("PD/base_script.R")
+# Differential expression analysis between Braak stage-related genes in the Allen Human Brain Atlas
 library(metafor)
 library(reshape2)
-library(ggplot2)
 library(plyr)
-load("resources/braakInfo.RData")
-
-brainExpr <- readRDS("../AHBA_Arlin/gene_expr.RDS")
-
-# Load functions
-source("PD/plot.deg.numbers.R")
-source("PD/t.test.table.R")
 
 # Pairwise combinations of Braak regions R1-R6
 roiPairs <- t(combn(braakRoi, 2))
@@ -34,7 +24,7 @@ ttest <- lapply(donorNames, function(d){
   simplify2array(tab) # 3D array: genes x measures x region pairs
 })
 ttest <- simplify2array(ttest) # 4D array: genes x measures x region pairs x donors
-save(ttest, file = "resources/ttest.RData")
+saveRDS(ttest, file = "output/ttest.rds")
 
 # Print number of diff. expr. genes
 apply(ttest, c(3,4), function(x){
@@ -58,29 +48,49 @@ summaryDiffExpr <- aaply(ttest, c(1,3), function(g){ # For each Braak region pai
   t <- rbind(t, 'summary' = list(summary$beta, summary$se^2 , summary$ci.lb, summary$ci.ub,
                             summary$pval, sum(weights(summary))))
   as.matrix(t)
-}) # 4D-array: genes x regions x measures x donors
-save(summaryDiffExpr, file = "resources/summaryDiffExpr.RData")
+}) # 4D-array: genes x regions x donors x measures
+saveRDS(summaryDiffExpr, file = "output/summaryDiffExpr.rds")
 
 # Filter summary estimates, and correct P-values
-summaryDiffExpr2 <- summaryDiffExpr[,,"summary",] # genes x region x measures
-summaryDiffExpr2 <- aaply(summaryDiffExpr2, 2, function(t){ # P-value corrected for genes
+summaryDiffExpr <- aaply(summaryDiffExpr, c(2,3), function(t){ # P-value corrected for genes
   b <- p.adjust(t[, "pvalue"], method = "BH")
   cbind(t, BH = b)
-}) # region x genes x measures
+}) # region x donors x genes x measures
 
-diffGenes <- apply(summaryDiffExpr2, 1, function(t){
-  down <-  rownames(t)[which(t[, "Estimate"] < -1 & t[,"BH"] < 0.05)]
-  up <- rownames(t)[which(t[, "Estimate"] > 1 & t[,"BH"] < 0.05)]
-  list(downregulated = down, upregulated = up)
+diffGenes <- aaply(summaryDiffExpr, c(1,2), function(t){
+  down <-  t[which(t[, "Estimate"] < -1 & t[,"BH"] < 0.05), ]
+  up <- t[which(t[, "Estimate"] > 1 & t[,"BH"] < 0.05), ]
+  n1 <- nrow(down)
+  n2 <- nrow(up)
+  n1 <- ifelse(is.null(n1), 0, n1)
+  n2 <- ifelse(is.null(n2), 0, n2)
+  c(downregulated = n1, upregulated = n2)
 })
-numbers <- t(sapply(diffGenes, function(x){
-  deg <- sapply(x, length)
-  c(deg, sum = sum(deg))
-}))
 
 ########## Bar plot of differentially expressed genes between all Braak regions ##########
 
-p <- plot.deg.numbers(numbers[, -3])
-pdf("diff_expr_barplot.pdf", 5, 4)
-print(p)
+df <- melt(diffGenes[, "summary", ])
+colnames(df) <- c("region", "dir", "size")
+df$size[df$dir == "downregulated"] <- df$size[df$dir == "downregulated"]*-1
+df$region <- factor(df$region, levels = rev(unique(df$region)))
+lab_offset <- max(df$size)*0.5
+df$y <- ifelse(df$dir == "upregulated", df$size + lab_offset, df$size - lab_offset)
+
+p <- ggplot(df) +
+  geom_col(aes(x=region, y = size, fill=dir), size = 0.5, colour = "black") +
+  geom_text(aes(x=region, y= y, label=format(abs(df$size), big.mark=","))) +
+  scale_fill_manual(values = c("blue", "red")) +
+  scale_y_continuous(expand = c(0.1,0.1)) +
+  coord_flip() +
+  labs(x = "", y = "Number of differentially expressed genes") +
+  theme(
+    axis.text = element_text(size = 11),
+    axis.text.x = element_blank(),
+    axis.ticks = element_blank(),
+    panel.background = element_blank(),
+    legend.title = element_blank(),
+    legend.position = "top"
+  )
+pdf("output/diff_expr_barplot.pdf", 5, 4)
+p
 dev.off()

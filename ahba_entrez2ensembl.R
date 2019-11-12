@@ -1,6 +1,5 @@
 # Convert Entrez IDs to Ensembl IDs of all AHBA genes
-setwd("C:/Users/dkeo/surfdrive/pd_braak")
-source("PD/base_script.R")
+# Conversion of IDs is used for analysis of PD RNA-seq dataset and GTEx RNAseq dataset
 library(biomaRt)
 
 ahba <- ahba.genes()
@@ -10,4 +9,4 @@ ensembl <- useEnsembl(biomart="ensembl", dataset="hsapiens_gene_ensembl", versio
 id_conversion <- getBM(c('ensembl_gene_id', 'entrezgene', 'hgnc_symbol'), filters=c('entrezgene'), mart=ensembl, values=ahba)
 id_conversion$ahba_symbol <- entrezId2Name(id_conversion$entrezgene)
 id_conversion <- id_conversion[order(id_conversion$entrezgene), ]
-write.table(id_conversion, file = "ahba_entrez2ensembl.txt", quote = FALSE, row.names = FALSE, sep = "\t")
+write.table(id_conversion, file = "output/ahba_entrez2ensembl.txt", quote = FALSE, row.names = FALSE, sep = "\t")
