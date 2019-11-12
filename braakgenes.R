@@ -67,7 +67,7 @@ braakGenes <- braakGenes[order(braakGenes$r),]
 table <- braakGenes
 table[, c(3,5)] <- round(table[, c(3,5)], digits = 2)
 table[, c(4,6)] <- format(table[, c(4,6)], digits = 3, scientific = TRUE)
-write.table(table, file = "braakGenes.txt", row.names = FALSE, quote = FALSE, sep = "\t")
+write.table(table, file = "output/braakGenes.txt", row.names = FALSE, quote = FALSE, sep = "\t")
 
 ########## Bar plot of selected genes ##########
 
