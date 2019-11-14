@@ -1,5 +1,6 @@
 # Module eigengene expression correlation with Braak stages
 library(ggrepel)
+library(ComplexHeatmap)
 
 # eigen gene function for data matrix (samples x genes)
 eigen.gene <- function(x){
@@ -36,7 +37,7 @@ labelCor <- labelCor[orderEG, ]
 mod_neg <- rownames(labelCor)[labelCor$BH < 0.0001 & labelCor$r < 0] # significant correlated modules
 mod_pos <- rownames(labelCor)[labelCor$BH < 0.0001 & labelCor$r > 0] # significant correlated modules
 
-braakModules <- list(down = mod_neg, up = mod_pos)
+braakModules <- list('r < 0' = mod_neg, 'r > 0' = mod_pos)
 
 #####  Volcano plot #####
 
@@ -122,3 +123,41 @@ module_info <- data.frame(
   genes = sapply(modules, function(m) paste0(entrezId2Name(m), collapse = ","))[rownames(labelCor)]
 )
 write.table(module_info, file = "output/module_info.txt", sep = "\t", quote = FALSE)
+
+##### Heatmap of eigengene co-expression #####
+
+pdf("output/heatmap_coexpr_modules.pdf", 3.2, 2.6)
+lapply(donorNames, function(d){
+  lapply(names(braakModules), function(r){
+    m <- braakModules[[r]]
+    e <- eigenExpr[[d]][m, ]
+    cor <- cor(t(e)) # correlation between eigengenes (diagonal matrix)
+    Heatmap(cor, name = "r",
+            column_title = paste0(gsub("donor", "Donor ", d), ", ", r),
+            cluster_rows = FALSE,
+            cluster_columns = FALSE,
+            row_names_gp = gpar(fontsize = 8),
+            column_names_gp = gpar(fontsize = 8),
+            column_names_rot = 45,
+            width = unit(ncol(cor)*.8, "lines"),
+            height = unit(nrow(cor)*.8, "lines")
+    )
+  })
+})
+dev.off()
+
+# ##### Line plot of module eigengenes #####
+# 
+# lapply(donorNames, function(d){
+#   e <- as.matrix(eigenExpr[[d]][unlist(braakModules), ])
+#   df <- melt(e)
+#   colnames(df) <- c("module", "sample", "expr")
+#   df$module <- factor(df$module, levels = unique(df$module))
+#   df$sample <- factor(df$sample, levels = unique(df$sample))
+# 
+#   ggplot(df, aes(x=sample, y=expr, group=module, color=module)) +
+#     # geom_point() +
+#     # geom_line() +
+#     geom_smooth(aes(group=module), span = 0.1) +
+#     theme_classic()
+# })
