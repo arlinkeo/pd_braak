@@ -48,9 +48,11 @@ ll2 <- list(corrGenes_pos, diffGenes1_pos, diffGenes2_pos)
 names(ll) <- criteria
 names(ll1) <- criteria
 names(ll2) <- criteria
+pdf("output/brgs_venndiagram.pdf", 4.5, 4.5)
 venn <- venn(ll)
 venn1 <- venn(ll1)
 venn2 <- venn(ll2)
+dev.off()
 
 # Selection based on 2 criteria and collect info of selected genes
 braakGenes <- attr(venn, "intersections")[[paste0(criteria, collapse = ":")]]
@@ -67,6 +69,8 @@ braakGenes <- braakGenes[order(braakGenes$r),]
 table <- braakGenes
 table[, c(3,5)] <- round(table[, c(3,5)], digits = 2)
 table[, c(4,6)] <- format(table[, c(4,6)], digits = 3, scientific = TRUE)
+colnames(table) <- c("Gene symbol", "Entrez ID", "Correlation with Braak r", "P-value of correlation with Braak r (BH-corrected)", "Fold-change
+ between R1 and R6", "P-value of Fold-change between R1 and R6 (BH-corrected)")
 write.table(table, file = "output/braakGenes.txt", row.names = FALSE, quote = FALSE, sep = "\t")
 
 ########## Bar plot of selected genes ##########
