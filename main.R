@@ -1,4 +1,6 @@
 # Main script to run all the analyses
+setwd("C:/Users/dkeo/surfdrive/pd_braak/pd_braak")
+options(stringsAsFactors = FALSE)
 
 # Useful variables
 donorNames <- c("donor9861", "donor10021", "donor12876", "donor14380", "donor15496", "donor15697")
@@ -53,3 +55,8 @@ source("PD/module_enrichment.R")
 
 # Presence of PD-implicated genes
 source("PD/pd_implicated_genes.R")
+
+# Other  scripts 
+# forestplot.R
+# lineplot_dopaminergic_genes.R
+# psea.R
