@@ -108,26 +108,43 @@ modEnrich <- lapply(genelists, function(l){ # For each category
   t
 })
 saveRDS(modEnrich, file = "output/modEnrich.rds")
+modEnrich <- readRDS("output/modEnrich.rds")
 
-# Poster version
-rowOrder <- unique(unlist(apply(modEnrich$GO, 2, function(x) which(x< 0.05))))
-modEnrich$GO <- modEnrich$GO[rowOrder, ]
-modEnrich$GO <- modEnrich$GO[-c(4:13,17,19:20,25:28,30,35,36,38,40,43:47,50), ]
-rowOrder <- unique(unlist(apply(modEnrich$disease, 2, function(x) which(x< 0.05))))
-modEnrich$disease <- modEnrich$disease[rowOrder, ]
-modEnrich$disease <- modEnrich$disease[-c(4,9:11:15,20,21,24), ]
-
-# Prepare data for plotting
+# Plot full version table
 t <- lapply(modEnrich, prepare.data)
 t <- melt(t)
 colnames(t)[5] <- "category"
 t$category <- factor(t$category, levels = unique(t$category))
-
-# Supplementary heatmap with all GO-terms and diseases
-pdf("module_enrichment.pdf", 11, 14)
-# pdf("module_enrichment_posterversion.pdf", 7.5, 9)
+pdf("output/module_enrichment_full.pdf", 11, 14)
 heat.plot(t) + theme(legend.position = "top")
 dev.off()
+
+# Plot reduced version table
+rowOrder <- unique(unlist(apply(modEnrich$GO, 2, function(x) which(x< 0.05))))
+modEnrich$GO <- modEnrich$GO[rowOrder, ]
+data.frame(rownames(modEnrich$GO) )
+modEnrich$GO <- modEnrich$GO[c(1:3,29,31:33,39,40,42,43:45,51), ]
+
+rowOrder <- unique(unlist(apply(modEnrich$disease, 2, function(x) which(x< 0.05))))
+modEnrich$disease <- modEnrich$disease[rowOrder, ]
+data.frame(rownames(modEnrich$disease))
+modEnrich$disease <- modEnrich$disease[c(1:3,19,22,23,25,26), ]
+
+t <- lapply(modEnrich, prepare.data)
+t <- melt(t)
+colnames(t)[5] <- "category"
+t$category <- factor(t$category, levels = unique(t$category))
+pdf("output/module_enrichment_reduced.pdf", 7.5, 7)
+heat.plot(t) + theme(legend.position = "top")
+dev.off()
+
+# Poster version
+# rowOrder <- unique(unlist(apply(modEnrich$GO, 2, function(x) which(x< 0.05))))
+# modEnrich$GO <- modEnrich$GO[rowOrder, ]
+# modEnrich$GO <- modEnrich$GO[-c(4:13,17,19:20,25:28,30,35,36,38,40,43:47,50), ]
+# rowOrder <- unique(unlist(apply(modEnrich$disease, 2, function(x) which(x< 0.05))))
+# modEnrich$disease <- modEnrich$disease[rowOrder, ]
+# modEnrich$disease <- modEnrich$disease[-c(4,9:11:15,20,21,24), ]
 
 # ##### Write table with overlap and p-value of cell-type enrichment #####
 # 
