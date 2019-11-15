@@ -61,10 +61,7 @@ plot.pdf <- function(name, genes){
 ###################################################
 
 # Boxplot for mean expression of -ve and +ve Braak genes
-bg <- list(
-  'r < 0' = braakGenes$entrez_id[braakGenes$r < 0],
-  'r > 0' = braakGenes$entrez_id[braakGenes$r > 0]
-)
+
 meanExpr <- lapply(bg, prepare.data) 
 df <- melt(meanExpr)
 colnames(df) <- c("label", "variable", "donor", "expr", "dir")

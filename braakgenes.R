@@ -146,10 +146,10 @@ dev.off()
 
 # Functional enrichment of braak genes
 
-braak <- lapply(c(positive = "pos", negative = "neg"), function(x){
-  if (x == "pos") braakGenes$entrez_id[braakGenes$r > 0]
-  else braakGenes$entrez_id[braakGenes$r < 0]
-})
+bg <- list(
+  'r < 0' = braakGenes$entrez_id[braakGenes$r < 0],
+  'r > 0' = braakGenes$entrez_id[braakGenes$r > 0]
+)
 
 david<-DAVIDWebService$new(email="D.L.Keo@tudelft.nl",
                            url="https://david.abcc.ncifcrf.gov/webservice/services/DAVIDWebService.DAVIDWebServiceHttpSoap12Endpoint/")
