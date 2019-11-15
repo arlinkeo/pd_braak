@@ -28,7 +28,7 @@ R.utils::sourceDirectory(fun_dir, modifiedOnly = FALSE)
 dir.create("output")
 
 # Data preprocessing
-# source(paste0(ahba_dir, "/probe2gene.R"))
+source("PD/probe2gene_AHBA.R")
 
 # Run scripts
 source("PD/braakStageSamples.R")
