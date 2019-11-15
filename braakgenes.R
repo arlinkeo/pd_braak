@@ -155,17 +155,35 @@ david<-DAVIDWebService$new(email="D.L.Keo@tudelft.nl",
                            url="https://david.abcc.ncifcrf.gov/webservice/services/DAVIDWebService.DAVIDWebServiceHttpSoap12Endpoint/")
 setAnnotationCategories(david, c("GOTERM_BP_ALL", "GOTERM_MF_ALL", "GOTERM_CC_ALL"))
 setTimeOut(david, 200000)
-bg_list <- ahba.genes()
-bg <- addList(david, bg_list, idType = "ENTREZ_GENE_ID", listName = "AHBA background", listType = "Background")
-bg
+background_list <- ahba.genes()
+background <- addList(david, background_list, idType = "ENTREZ_GENE_ID", listName = "AHBA background", listType = "Background")
+background
 t <- 0.05 # EASE p-value threshold
 
 # Enrichment of positively and negatively correlated progression genes
-lapply(names(braak), function(r){
-  genes <- braak[[r]]
+lapply(names(bg), function(r){
+  genes <- bg[[r]]
   result <- addList(david, genes, idType = "ENTREZ_GENE_ID", listName = r, listType = "Gene")
   print(result)
   setCurrentBackgroundPosition(david, 1)
+  if (r == "r < 0") r = "negative" else r = "positive"
   getFunctionalAnnotationChartFile(david, paste0("output/Functional_analyses/", r, "_goterms.txt"), threshold=t, count=2L)
   getClusterReportFile(david, paste0("output/Functional_analyses/", r, "_termclusters.txt"), type = c("Term"))
+})
+
+# Read files
+lapply(names(bg), function(r){
+  if (r == "r < 0") r = "negative" else r = "positive"
+  go <- read.delim(paste0("output/Functional_analyses/", r, "_goterms.txt"))
+  colnames(go) <- gsub("\\.", " ", colnames(go))
+  colnames(go)[4] <- "%"
+  print(paste0(r, ": ",  nrow(go)))
+  # Select terms with BH-corrected P < 0.05
+  go <- go[which(go$Benjamini < 0.05), ]
+  print(paste0(r, ": ",  nrow(go)))
+  # Remove terms with less than 20 counts
+  go <- go[which(go$Count >= 20), ]
+  print(paste0(r, ": ",  nrow(go)))
+  write.table(go, file = paste0("output/Functional_analyses/", r, "_goterms_BH_count20.txt"), 
+              quote = FALSE, sep = "\t", row.names = FALSE)
 })
