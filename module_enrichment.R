@@ -108,7 +108,6 @@ modEnrich <- lapply(genelists, function(l){ # For each category
   t
 })
 saveRDS(modEnrich, file = "output/modEnrich.rds")
-modEnrich <- readRDS("output/modEnrich.rds")
 
 # Plot full version table
 t <- lapply(modEnrich, prepare.data)

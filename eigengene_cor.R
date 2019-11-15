@@ -161,3 +161,23 @@ dev.off()
 #     geom_smooth(aes(group=module), span = 0.1) +
 #     theme_classic()
 # })
+
+# # Module membership (correlation with eigengene) to identify hub genes
+# module_membership <- sapply(unname(unlist(braakModules)), function(m){
+#   mm <- sapply(donorNames, function(d){
+#     eg <- unlist(eigenExpr[[d]][m, ]) # eigengene expression of module
+#     s <- unlist(braak_idx[[d]]) # sample indices for all braak samples
+#     module_genes <- modules[[m]] # genes in module
+#     gene_expr <- brainExpr[[d]][module_genes, s] # gene expression in all Braak regions
+#     cor(t(gene_expr), eg)[,1] # module membership
+#     # sort(mm)
+#   })
+#   avg_mm <- apply(mm, 1, mean) # module membership averaged across donors
+#   rev(sort(avg_mm))
+# }, simplify = FALSE)
+# 
+# hubgenes <- sapply(module_membership, function(m){
+#   hg <- names(m)[1:10]
+#   pd_hg <- lapply(pdGenesID, function(x)intersect(hg, x))
+#   sapply(pd_hg, length)
+# })
