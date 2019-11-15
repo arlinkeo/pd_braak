@@ -165,3 +165,10 @@ dev.off()
 #                braak_overlap, braak_pval,
 #                cell_overlap, cell_pval)
 # write.table(table, file = "module_enrichment.txt", sep = "\t", row.names = FALSE)
+
+# Check overlap with DEGs from Kelly et al. 2019
+kelly_degs_table <- read.csv("../Kelly2019_degs.csv")
+kelly_degs <- as.character(kelly_degs_table$Entrez.Gene)
+m47_kelly <- intersect(modules$M47, kelly_degs)
+entrezId2Name(m47_kelly)
+kelly_degs_table[(kelly_degs_table$Entrez.Gene %in% m47_kelly), c("Entrez.Gene", "Symbol", "PD.Average.FC", "PD.FDR.Pval")]
