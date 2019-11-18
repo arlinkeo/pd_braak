@@ -1,4 +1,11 @@
 # Differential expression in GTEx data base
+# First download the RNA-seq data and annotations (V7) from https://gtexportal.org/home/datasets
+# Files: 
+# GTEx_Analysis_2016-01-15_v7_RNASeQCv1.1.8_gene_reads.gct.gz
+# GTEx_Analysis_2016-01-15_v7_RNASeQCv1.1.8_gene_tpm.gct.gz
+# GTEx_v7_Annotations_SubjectPhenotypesDS.txt
+# GTEx_v7_Annotations_SampleAttributesDS.txt
+
 library(DESeq2)
 library(ggsignif)
 
