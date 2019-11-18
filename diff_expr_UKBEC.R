@@ -1,9 +1,10 @@
 # Differential expression between regions in UKBEC
-library(WGCNA)
-load("../../UKBEC/expr.maps.rda",verbose=T)
+# First download all data files from http://www.braineac.org/ and store in UKBEC directory
+
+# Set UKBEC data directory
+ukbec_dir <- "C:/Users/dkeo/surfdrive/UKBEC"
 
 ##############################################################################################
-
 # Map affy ID to entrez IDs
 ensembl <- useEnsembl(biomart="ensembl", dataset="hsapiens_gene_ensembl", version = 92)
 affyID <- expr.map$exprID
@@ -21,7 +22,7 @@ saveRDS(ukbecGeneID, file = "output/ukbecGeneID.rds")
 # Read expression data for all brain regions
 regions <- c("CRBL", "FCTX", "HIPP","MEDU", "OCTX", "PUTM", "SNIG", "TCTX", "THAL", "WHMT")
 regionExpr <- sapply(regions, function(r){
-  fName <- paste0("../UKBEC/expr_", r, ".txt")
+  fName <- paste0(ukbec_dir, "/expr_", r, ".txt")
   x=read.csv(fName, header = TRUE, sep = " ", row.names = 1)
 }, simplify = FALSE)
 exprConcat <- Reduce(cbind, regionExpr) #Concatenate brain regions
@@ -44,7 +45,7 @@ regionExpr <- lapply(regionExpr, function(x) {
   rownames(x) <- genes
   x
 })
-save(regionExpr, file = "../../UKBEC/regionExpr.RData")
+save(regionExpr, file = paste0(ukbec_dir, "/regionExpr.RData"))
 
 ##############################################################################################
 # T-test in UKBEC
