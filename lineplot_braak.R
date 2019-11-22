@@ -1,11 +1,4 @@
 # Line plot of dopaminergic genes
-setwd("C:/Users/dkeo/surfdrive/pd_braak")
-source("PD/base_script.R")
-library(ggplot2)
-library(reshape2)
-brainExpr <- readRDS("../AHBA_Arlin/gene_expr.RDS")
-load("resources/braakInfo.RData")
-load("resources/eigenExpr.RData")
 
 # Plot function
 plot.matrix <- function(expr, title){
@@ -24,7 +17,7 @@ plot.matrix <- function(expr, title){
 }
 
 # Function get expression of genes and modules
-get.expr <- function(g, m){
+get.expr <- function(g = NULL, m = NULL){
   lapply(donorNames, function(d){
     idx <- braak_idx[[d]]
     labels <- braakLabels[[d]][unlist(idx)]
@@ -32,8 +25,8 @@ get.expr <- function(g, m){
       which(labels == gsub("R","", i))
     }, simplify = FALSE) 
     e <- sapply(names(idx), function(i){
-      e <- brainExpr[[d]][g, idx[[i]]] # expr of genes
-      em <- eigenExpr[[d]][m, idx_eg[[i]]]# expr of module
+      if (is.null(g)) e <- integer(0) else e <- brainExpr[[d]][g, idx[[i]]] # expr of genes
+      if (is.null(m)) em <- integer(0) else  em <- eigenExpr[[d]][m, idx_eg[[i]]]# expr of module
       e <- rbind(em, e)
       apply(e, 1, median)
     })
@@ -71,7 +64,26 @@ genes_id <- name2EntrezId(genes)
 module <- c("M47")
 expr_bloodoxy <- get.expr(genes_id, module)
 
-pdf("lineplot_bloodoxygen_genes.pdf", 6, 4)
+pdf("output/lineplot_bloodoxygen_genes.pdf", 6, 4)
 mean_median <- apply(simplify2array(expr_bloodoxy), c(1,2), mean)
 plot.matrix(mean_median, "mean median across donors")
 dev.off()
+
+##### Line plot of module eigengenes #####
+
+pdf("output/lineplot_braakmodules.pdf", 6, 4)
+expr_braakmodules <- get.expr(m = unlist(braakModules))
+mean_median <- apply(simplify2array(expr_braakmodules), c(1,2), mean)
+plot.matrix(mean_median, "mean median across donors")
+dev.off()
+
+# lapply(donorNames[1], function(d){
+#   e <- as.matrix(eigenExpr[[d]][unlist(braakModules), ])
+#   df <- melt(e)
+#   colnames(df) <- c("module", "sample", "expr")
+#   df$module <- factor(df$module, levels = unique(df$module))
+#   df$sample <- factor(df$sample, levels = unique(df$sample))
+#   ggplot(df, aes(x=sample, y=expr, group=module, color=module)) +
+#     geom_smooth(aes(group=module), span = 0.1, size = 0.5) +
+#     theme_classic()
+# })

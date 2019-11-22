@@ -146,21 +146,6 @@ lapply(donorNames, function(d){
 })
 dev.off()
 
-# ##### Line plot of module eigengenes #####
-# 
-# lapply(donorNames, function(d){
-#   e <- as.matrix(eigenExpr[[d]][unlist(braakModules), ])
-#   df <- melt(e)
-#   colnames(df) <- c("module", "sample", "expr")
-#   df$module <- factor(df$module, levels = unique(df$module))
-#   df$sample <- factor(df$sample, levels = unique(df$sample))
-# 
-#   ggplot(df, aes(x=sample, y=expr, group=module, color=module)) +
-#     # geom_point() +
-#     # geom_line() +
-#     geom_smooth(aes(group=module), span = 0.1) +
-#     theme_classic()
-# })
 
 # # Module membership (correlation with eigengene) to identify hub genes
 # module_membership <- sapply(unname(unlist(braakModules)), function(m){
