@@ -2,6 +2,7 @@
 library(metap)
 library(gplots)
 library(RDAVIDWebService)
+library(ComplexHeatmap)
 
 ########## Prepare data ##########
 
@@ -67,10 +68,12 @@ braakGenes <- data.frame(
 braakGenes <- braakGenes[order(braakGenes$r),]
 
 table <- braakGenes
-table[, c(3,5)] <- round(table[, c(3,5)], digits = 2)
+table[, c(3)] <- format(table[, c(3)], digits = 2)
+table[, c(5)] <- round(table[, c(5)], digits = 2)
 table[, c(4,6)] <- format(table[, c(4,6)], digits = 3, scientific = TRUE)
-colnames(table) <- c("Gene symbol", "Entrez ID", "Correlation with Braak r", "P-value of correlation with Braak r (BH-corrected)", "Fold-change
- between R1 and R6", "P-value of Fold-change between R1 and R6 (BH-corrected)")
+colnames(table) <- c("Gene symbol", "Entrez ID", "Correlation with Braak r", 
+"P-value of correlation with Braak r (BH-corrected)", "Fold-change between R1 and R6", 
+"P-value of Fold-change between R1 and R6 (BH-corrected)")
 write.table(table, file = "output/braakGenes.txt", row.names = FALSE, quote = FALSE, sep = "\t")
 
 ########## Bar plot of selected genes ##########
@@ -132,7 +135,7 @@ prepare.tab <- function(tab){
   tab
 }
 
-# Braak correlation plot
+# Braak volcano plot with correlations
 tab <- prepare.tab(labelCor)
 tab$'logp' <- -log10(tab$BH)
 pdf(file = "output/volcanoplot_cor.pdf", 4, 3)
@@ -187,3 +190,44 @@ lapply(names(bg), function(r){
   write.table(go, file = paste0("output/Functional_analyses/", r, "_goterms_BH_count20.txt"), 
               quote = FALSE, sep = "\t", row.names = FALSE)
 })
+
+########## Heatmap expression of BRGs ##########
+
+pdf("output/heatmap_expr_BRGs.pdf", 12, 6.5)
+lapply(donorNames[1:6], function(d){
+  # Subselect expression matrices
+  samples <- unlist(braak_idx[[d]])
+  df <- sample_annot[[d]][samples,]
+  ahba_color <- df$color_hex_triplet
+  names(ahba_color) <- df$acronym
+  row_color <- list(ahba_color = ahba_color)
+  labels <- braakLabels[[d]][samples]
+  expr <- scale(t(brainExpr[[d]][unlist(bg), samples])) # Genes are sorted by correlation, expr. is scaled across samples
+  colnames(expr) <- entrezId2Name(colnames(expr))
+  rownames(expr) <- df$acronym
+  ha_col = HeatmapAnnotation(df = data.frame(type = rep(names(lengths(bg)), lengths(bg))),
+                         col = list(type = c("r < 0" =  "blue", "r > 0" = "red")), 
+                         show_legend = FALSE, show_annotation_name = FALSE)
+  ha_row = HeatmapAnnotation(df = data.frame(ahba_color = rownames(expr)), 
+                             col = row_color, which = "row", width = unit(1, "cm"), 
+                             show_legend = FALSE, show_annotation_name = FALSE)
+                             
+  Heatmap(expr, name = 'Z-Score\nexpression',
+          row_split = paste0("R", labels),
+          column_split = rep(names(lengths(bg)), lengths(bg)),
+          column_title = gsub("donor", "Donor ", d),
+          column_title_gp = gpar(fontsize = 16),
+          cluster_rows = FALSE,
+          cluster_columns = FALSE,
+          show_row_names = FALSE, 
+          show_column_names = FALSE,
+          # row_names_gp = gpar(fontsize = 2),
+          # column_names_gp = gpar(fontsize = 2),
+          row_title_rot = 0,
+          row_title_gp = gpar(fontsize = 12),
+          width = unit(ncol(expr)*.05, "lines"),
+          height = unit(nrow(expr)*.05, "lines"),
+          top_annotation = ha_col
+  ) + ha_row
+})
+dev.off()
