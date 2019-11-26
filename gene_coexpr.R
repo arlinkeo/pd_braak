@@ -1,12 +1,9 @@
 # Gene co-expression in whole Braak region
 
-wholeBraak <- lapply(braakLabels, function(d){ d != 0 })# Merge labels 1-6
-sapply(wholeBraak, sum)
-
 # Average co-expression for whole region
 gene_coexpr <- lapply(donorNames, function(d){
   print(d)
-  e <- brainExpr[[d]][, wholeBraak[[d]]]
+  e <- brainExpr[[d]][, unlist(braak_idx[[d]])] # whole braak region
   cor(t(e), method = "pearson") #r-matrix
 })
 gene_coexpr <- simplify2array(gene_coexpr) # genes x genes x donors
