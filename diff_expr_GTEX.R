@@ -47,19 +47,19 @@ saveRDS(gtex_expr, file = "output/gtex_expr.rds")
 # Select samples corresponding to brain tissues of Braak regions
 sample.annot <- read.table("../../GTEX/GTEx_v7_Annotations_SampleAttributesDS.txt", sep = "\t", header = TRUE, fill = T, quote = "")
 roi <- c('3' = "Substantia nigra", '4' = "Amygdala", '5' = "Anterior cingulate cortex", '6' = "Frontal Cortex")
-samples <- lapply(roi, function(r){
+sample_list <- lapply(roi, function(r){
   rows <- grep(r, sample.annot$SMTSD)
   ids <- gsub("-", ".", sample.annot[rows, "SAMPID"])
   intersect(ids, colnames(gtex_expr))
 })
 
-zerorows <- lapply(samples, function(s){
+zerorows <- lapply(sample_list, function(s){
   apply(gtex_expr[, s], 1, sum) == 0
 })
 zerorows <- Reduce("|", zerorows)
 gtex_expr <- gtex_expr[!zerorows, ]
 
-samples <- melt(samples)
+samples <- melt(sample_list)
 colnames(samples) <- c("sample", "region")
 samples$region <- factor(samples$region, levels = unique(samples$region))
 
@@ -143,6 +143,31 @@ df$region <- factor(df$region, levels = sort(unique(df$region)))
 pdf("output/boxplot_GTEX.pdf", 2.5, 4)
 box.plot(df, "BRGs in GTEx") +
   facet_grid(.~dir, scales = 'free', space = 'free', switch = "y")
+dev.off()
+
+########## Heatmap expression of BRGs ##########
+
+expr <- sapply(sample_list, function(s){
+  e <- gtex_tpm[unlist(bg_gtex), s]
+  apply(e, 1, mean)
+})
+colnames(expr) <- paste0("R", colnames(expr))
+expr <- t(scale(t(expr))) # expr. is scaled across samples
+
+pdf("output/heatmap_expr_BRGs_GTEx.pdf", 2.7, 10)
+Heatmap(expr, name = 'Z-Score\nexpression',
+        col = col_fun,
+        row_split = rep(names(lengths(bg_gtex)), lengths(bg_gtex)),
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        show_row_names = FALSE,
+        column_names_gp = gpar(fontsize = 10),
+        column_names_rot = 0,
+        column_names_centered = TRUE,
+        row_title_rot = 0,
+        width = unit(ncol(expr), "lines"),
+        height = unit(nrow(expr)*.05, "lines")
+)
 dev.off()
 
 # #boxplot of PD genes

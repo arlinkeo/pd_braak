@@ -3,6 +3,7 @@ library(metap)
 library(gplots)
 library(RDAVIDWebService)
 library(ComplexHeatmap)
+library(circlize)
 
 ########## Prepare data ##########
 
@@ -193,41 +194,32 @@ lapply(names(bg), function(r){
 
 ########## Heatmap expression of BRGs ##########
 
-pdf("output/heatmap_expr_BRGs.pdf", 12, 6.5)
-lapply(donorNames[1:6], function(d){
+# Same heat colors for all BRG heatmaps
+col_fun <- colorRamp2(c(-2, 0, 2), c("blue", "#EEEEEE", "red"))
+
+expr <- lapply(donorNames, function(d){
   # Subselect expression matrices
-  samples <- unlist(braak_idx[[d]])
-  df <- sample_annot[[d]][samples,]
-  ahba_color <- df$color_hex_triplet
-  names(ahba_color) <- df$acronym
-  row_color <- list(ahba_color = ahba_color)
-  labels <- braakLabels[[d]][samples]
-  expr <- scale(t(brainExpr[[d]][unlist(bg), samples])) # Genes are sorted by correlation, expr. is scaled across samples
-  colnames(expr) <- entrezId2Name(colnames(expr))
-  rownames(expr) <- df$acronym
-  ha_col = HeatmapAnnotation(df = data.frame(type = rep(names(lengths(bg)), lengths(bg))),
-                         col = list(type = c("r < 0" =  "blue", "r > 0" = "red")), 
-                         show_legend = FALSE, show_annotation_name = FALSE)
-  ha_row = HeatmapAnnotation(df = data.frame(ahba_color = rownames(expr)), 
-                             col = row_color, which = "row", width = unit(1, "cm"), 
-                             show_legend = FALSE, show_annotation_name = FALSE)
-                             
-  Heatmap(expr, name = 'Z-Score\nexpression',
-          row_split = paste0("R", labels),
-          column_split = rep(names(lengths(bg)), lengths(bg)),
-          column_title = gsub("donor", "Donor ", d),
-          column_title_gp = gpar(fontsize = 16),
-          cluster_rows = FALSE,
-          cluster_columns = FALSE,
-          show_row_names = FALSE, 
-          show_column_names = FALSE,
-          # row_names_gp = gpar(fontsize = 2),
-          # column_names_gp = gpar(fontsize = 2),
-          row_title_rot = 0,
-          row_title_gp = gpar(fontsize = 12),
-          width = unit(ncol(expr)*.05, "lines"),
-          height = unit(nrow(expr)*.05, "lines"),
-          top_annotation = ha_col
-  ) + ha_row
+  samples <- braak_idx[[d]]
+  expr <- sapply(samples, function(s){ # Genes are sorted by correlation
+    e <- brainExpr[[d]][unlist(bg), s]
+    apply(e, 1, mean) # mean across samples in Braak region
+   })
 })
+expr <- apply(simplify2array(expr), c(1,2), mean)
+expr <- t(scale(t(expr))) # expr. is scaled across samples
+
+pdf("output/heatmap_expr_BRGs_AHBA.pdf", 2.7, 10)
+Heatmap(expr, name = 'Z-Score\nexpression',
+        col = col_fun,
+        row_split = rep(names(lengths(bg)), lengths(bg)),
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        show_row_names = FALSE,
+        column_names_gp = gpar(fontsize = 10),
+        column_names_rot = 0,
+        column_names_centered = TRUE,
+        row_title_rot = 0,
+        width = unit(ncol(expr), "lines"),
+        height = unit(nrow(expr)*.05, "lines")
+)
 dev.off()

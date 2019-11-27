@@ -146,6 +146,31 @@ box.plot(df, "BRGs in UKBEC") +
   scale_y_continuous(limits = c(y_min, y_max))
 dev.off()
 
+########## Heatmap expression of BRGs ##########
+
+expr <- sapply(roi, function(r){
+    e <- regionExpr[[r]][unlist(bg_ukbec), ]
+    apply(e, 1, function(x) mean(x, na.rm = TRUE))
+})
+colnames(expr) <- paste0("R", colnames(expr))
+expr <- t(scale(t(expr))) # expr. is scaled across samples
+
+pdf("output/heatmap_expr_BRGs_UKBEC.pdf", 2.7, 10)
+Heatmap(expr, name = 'Z-Score\nexpression',
+        col = col_fun,
+        row_split = rep(names(lengths(bg_ukbec)), lengths(bg_ukbec)),
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        show_row_names = FALSE,
+        column_names_gp = gpar(fontsize = 10),
+        column_names_rot = 0,
+        column_names_centered = TRUE,
+        row_title_rot = 0,
+        width = unit(ncol(expr), "lines"),
+        height = unit(nrow(expr)*.05, "lines")
+)
+dev.off()
+
 # #boxplot of PD genes
 # plot.pdf("boxplot_UKBEC_PD_variant_genes.pdf", 
 #          name2EntrezId(c("SNCA", "ZNF184", "BAP1", "SH3GL2", "ELOVL7", "SCARB2")))
