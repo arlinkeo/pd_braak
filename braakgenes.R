@@ -195,7 +195,7 @@ lapply(names(bg), function(r){
 ########## Heatmap expression of BRGs ##########
 
 # Same heat colors for all BRG heatmaps
-col_fun <- colorRamp2(c(-2, 0, 2), c("blue", "#EEEEEE", "red"))
+col_fun <- colorRamp2(c(-1.5, 0, 1.5), c("blue", "#EEEEEE", "red"))
 
 expr <- lapply(donorNames, function(d){
   # Subselect expression matrices
