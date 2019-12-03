@@ -57,9 +57,14 @@ t <- sapply(modules, function(m1){
     length(intersect(m1, m2))
   })
 })
+colOrder <- hclust(dist(t(t)))[["order"]]
+t <- t[, colOrder]
+t[t == 0] <- NA
+
 pdf("output/module_overlap_softthreshold.pdf", 18.2, 7.6)
 Heatmap(t, name = "module overlap",
-        col = colorRamp2(c(0, 1.5), c("#EEEEEE", "red")), #c(1, max(t)),
+        col = colorRamp2(c(0, quantile(t, 0.9, na.rm = T)), c("#EEEEEE", "red")), #c(1, max(t)),
+        na_col = "gray",
         cluster_rows = FALSE,
         cluster_columns = FALSE,
         row_names_gp = gpar(fontsize = 8),
