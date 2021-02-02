@@ -88,7 +88,7 @@ lapply(donorNames, function(d){
 # Copy ontology info to ahba_dir
 write.csv(ontology, file = paste0(ahba_dir, "/Ontology.csv"), row.names = FALSE)
 
-########## Load AHBA data for analyses ##########
+########## Load AHBA data for analyses ############
 
 # probeInfo <- read.csv(paste0(ahba_dir, "/probe_info_2018-11-18.csv"))
 # brainExpr <- readRDS(paste0(ahba_dir, "/gene_expr.RDS"))
