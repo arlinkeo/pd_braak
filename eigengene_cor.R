@@ -73,7 +73,7 @@ p <- ggplot(tab, aes(r, logp, colour = info)) +
   geom_point(size = 2, alpha = 0.5) +
   geom_text_repel(aes(label=label), colour = "black", size = 4, nudge_x = 0) +
   scale_colour_manual(values = c("0"="grey", "1"="blue", "2"="red")) +
-  labs(x = "Correlation with Braak r", y = "-log10 p-value") +
+  labs(x = bquote("Correlation with Braak "*italic(r)), y = bquote("-log"[10]*" "*italic(P)*"-value")) +
   scale_x_continuous(limits = c(xmin, xmax), expand = c(0,0)) +
   scale_y_continuous(limits = c(0, ymax), expand = c(0,0)) +
   theme
