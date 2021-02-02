@@ -6,8 +6,8 @@ library(WGCNA)
 ########## Load data ##########
 
 # Set location of AHBA directories
-ahba_download <- "C:/Users/dkeo/surfdrive/AHBA_download" # To store downloaded files
-ahba_dir <- "C:/Users/dkeo/surfdrive/AHBA_Arlin" # To store processed files as done in this script
+ahba_download <- "C:/Users/Arlin/surfdrive/AHBA_download" # To store downloaded files
+ahba_dir <- "C:/Users/Arlin/surfdrive/AHBA_Arlin" # To store processed files as done in this script
 
 # Read ontology and probe info (files are the same for each donor)
 ontology <- read.csv(paste0(ahba_download, "/normalized_microarray_donor9861/Ontology.csv")) # Same for each donor
