@@ -19,6 +19,7 @@ braak.cor.data <- function(matList, labelList) {
 
 # Transform correlations to Fisher's z-scale and get corresponding sampling variances and confidence intervals for each row (gene)
 z.transform <- function(g){
+  g <- data.frame(t(g))
   t <- escalc(measure = "ZCOR", ri = g$r, ni = g$size)
   t <- summary(t)
   t <- t[, c(1,2,5,6)]
@@ -36,7 +37,7 @@ back.transform <- function(x){
 # Correlated expression with labels and get summary effect
 summary.braak.cor <- function(matList, labelList){
   geneLabelCor <- braak.cor.data(matList, labelList) # get correlations and p-values
-  geneLabelZscore <- lapply(geneLabelCor, z.transform) 
+  geneLabelZscore <- apply(geneLabelCor, 1, z.transform) 
   
   # Summary effect of correlations
   tabList <- lapply(geneLabelZscore, function(t){
