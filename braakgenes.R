@@ -195,7 +195,7 @@ lapply(names(bg), function(r){
 ########## Heatmap expression of BRGs ##########
 
 # Same heat colors for all BRG heatmaps
-col_fun <- colorRamp2(c(-1.5, 0, 1.5), c("blue", "#EEEEEE", "red"))
+col_fun <- colorRamp2(c(-1.2, 0, 1.2), c("blue", "#EEEEEE", "red"))
 
 expr <- lapply(donorNames, function(d){
   # Subselect expression matrices
@@ -208,7 +208,7 @@ expr <- lapply(donorNames, function(d){
 expr <- apply(simplify2array(expr), c(1,2), mean)
 expr <- t(scale(t(expr))) # expr. is scaled across samples
 
-pdf("output/heatmap_expr_BRGs_AHBA.pdf", 2.7, 10)
+pdf("output/heatmap_expr_BRGs_AHBAcol1.2.pdf", 2.7, 10)
 Heatmap(expr, name = 'Z-Score\nexpression',
         col = col_fun,
         row_split = rep(names(lengths(bg)), lengths(bg)),

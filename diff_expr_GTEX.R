@@ -154,7 +154,7 @@ expr <- sapply(sample_list, function(s){
 colnames(expr) <- paste0("R", colnames(expr))
 expr <- t(scale(t(expr))) # expr. is scaled across samples
 
-pdf("output/heatmap_expr_BRGs_GTEx.pdf", 2.7, 10)
+pdf("output/heatmap_expr_BRGs_GTEx_col1.2.pdf", 2.7, 10)
 Heatmap(expr, name = 'Z-Score\nexpression',
         col = col_fun,
         row_split = rep(names(lengths(bg_gtex)), lengths(bg_gtex)),
