@@ -39,7 +39,7 @@ module_eg_concat <- Reduce(cbind, module_eg)
 
 # Cell-type genes
 celltypes <- sapply(c("Neurons", "Astrocytes", "Oligodendrocytes", "Microglia", "Endothelial_cells"), function(type){
-  file = paste0("brainscope_celltypes/", type, ".txt")
+  file = paste0("../brainscope_celltypes/", type, ".txt")
   as.character(read.csv(file, header = TRUE)$entrez_id)
 }, simplify = FALSE)
 
