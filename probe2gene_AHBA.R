@@ -28,7 +28,7 @@ brainExpr <- lapply(donorNames, function(d){
 ########## Filter probes based on concatenated info from all donors ##########
 
 # Probes with missing Entrez IDs
-probes_missing_entrezID <- is.na(probe_info$entrez_id) # same in all donors
+probes_missing_entrezID <- is.na(probeInfo$entrez_id) # same in all donors
 sum(probes_missing_entrezID)
 
 # Probes with expression well above background in at least 1% of samples in all donors
