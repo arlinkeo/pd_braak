@@ -156,7 +156,7 @@ bg <- list(
 )
 
 david<-DAVIDWebService$new(email="D.L.Keo@tudelft.nl",
-                           url="https://david.abcc.ncifcrf.gov/webservice/services/DAVIDWebService.DAVIDWebServiceHttpSoap12Endpoint/")
+                           url="https://david.ncifcrf.gov/webservice/services/DAVIDWebService.DAVIDWebServiceHttpSoap12Endpoint/")
 setAnnotationCategories(david, c("GOTERM_BP_ALL", "GOTERM_MF_ALL", "GOTERM_CC_ALL"))
 setTimeOut(david, 200000)
 background_list <- ahba.genes()
